@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@fontsource/archivo-black": "^5.2.8",
+    "@fontsource/bodoni-moda": "^5.2.7",
     "next": "16.2.10",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
