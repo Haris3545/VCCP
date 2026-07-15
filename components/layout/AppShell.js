@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import artistConfig from '@/lib/artist.config';
-import GrainOverlay from './GrainOverlay';
+import DashboardBackground from './DashboardBackground';
 import Header from './Header';
 import Ticker from './Ticker';
 
@@ -12,7 +12,7 @@ export default function AppShell({ children, title }) {
         <title>{pageTitle}</title>
         <meta name="description" content={artistConfig.meta.description} />
       </Head>
-      <GrainOverlay />
+      <DashboardBackground />
       <Header />
       <Ticker />
       <main className="container page">{children}</main>
