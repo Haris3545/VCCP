@@ -173,33 +173,24 @@ p {
   gap: 16px;
 }
 
+/* .grid--kpi's column count is set inline by KpiGrid (picks a divisor of
+   the card count per breakpoint so rows are never left half-empty); this is
+   just the pre-JS fallback. */
 .grid--kpi {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .grid--2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-@media (max-width: 1100px) {
-  .grid--kpi {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 900px) {
-  .grid--kpi {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .grid--2 {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 560px) {
-  .grid--kpi {
-    grid-template-columns: 1fr;
-  }
   .container {
     padding: 0 16px;
   }
@@ -369,11 +360,13 @@ textarea:focus-visible {
 }
 
 .header__row {
-  height: var(--header-h);
+  min-height: var(--header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  padding: 10px 0;
+  flex-wrap: wrap;
 }
 
 .header__identity {
@@ -420,9 +413,6 @@ textarea:focus-visible {
 
 @media (max-width: 860px) {
   .header__row {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 14px 0;
     gap: 10px;
   }
   .header__actions {
@@ -559,6 +549,53 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   margin-top: 12px;
+}
+
+/* Flip mechanics: front shows just the headline number, back reveals the
+   sparkline + a derived insight line on hover. */
+.kpi-flip {
+  min-height: 176px;
+  perspective: 1200px;
+}
+
+.kpi-flip__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.kpi-flip:hover .kpi-flip__inner,
+.kpi-flip:focus-within .kpi-flip__inner {
+  transform: rotateY(180deg);
+}
+
+.kpi-flip__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.kpi-flip__face--back {
+  transform: rotateY(180deg);
+  justify-content: space-between;
+}
+
+.kpi-flip__insight {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: lowercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kpi-flip__inner {
+    transition: none;
+  }
 }
 
 /* ---------------------------------------------------------------------- */

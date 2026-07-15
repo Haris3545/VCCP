@@ -4,8 +4,17 @@ import artistConfig from '@/lib/artist.config';
 
 const TAB_LABELS = {
   dashboard: 'Dashboard',
+  media: 'Media',
+  'social-listening': 'Social listening',
+  music: 'Music',
+  youtube: 'YouTube',
   audience: 'Audience',
   strategy: 'Strategy',
+  tactics: 'Tactics',
+  locations: 'Locations',
+  ideas: 'Ideas',
+  calendar: 'Calendar',
+  research: 'Research',
 };
 
 export default function TabNav() {
