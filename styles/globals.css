@@ -138,7 +138,8 @@ p {
 }
 
 .page {
-  padding: 36px 0 96px;
+  padding-top: 36px;
+  padding-bottom: 96px;
 }
 
 .page-head {
@@ -325,7 +326,7 @@ textarea:focus-visible {
   z-index: -3;
   background-image: url('/media/dashboard-bg.jpg');
   background-size: cover;
-  background-position: center 30%;
+  background-position: 78% 22%;
   filter: contrast(1.05) brightness(0.92);
 }
 
@@ -366,6 +367,12 @@ textarea:focus-visible {
   gap: 4px;
 }
 
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
 .tab-nav {
   display: flex;
   gap: 4px;
@@ -401,11 +408,17 @@ textarea:focus-visible {
   background: var(--accent);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 860px) {
   .header__row {
     flex-wrap: wrap;
     height: auto;
     padding: 14px 0;
+    gap: 10px;
+  }
+  .header__actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
     gap: 10px;
   }
   .tab-nav {
@@ -414,6 +427,9 @@ textarea:focus-visible {
   }
   .tab-nav__link {
     margin: 0;
+  }
+  .header__actions .btn--ghost {
+    align-self: flex-end;
   }
 }
 
@@ -433,6 +449,10 @@ textarea:focus-visible {
   padding: 8px 0;
   width: max-content;
   animation: ticker-scroll 42s linear infinite;
+}
+
+.ticker:hover .ticker__track {
+  animation-duration: 260s;
 }
 
 .ticker__item {
