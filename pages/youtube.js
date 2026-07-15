@@ -1,7 +1,8 @@
 import AppShell from '@/components/layout/AppShell';
-import PlaceholderView from '@/components/ui/PlaceholderView';
+import YouTubeView from '@/components/youtube/YouTubeView';
+import { getYoutubeData } from '@/lib/dataSource';
 
-export default function YouTubePage() {
+export default function YouTubePage({ data }) {
   return (
     <AppShell title="YouTube">
       <div className="page-head">
@@ -11,7 +12,12 @@ export default function YouTubePage() {
           <span className="eyebrow">Views &amp; engagement</span>
         </div>
       </div>
-      <PlaceholderView description="Video views, watch time, and engagement trends will land here once the YouTube data source is connected." />
+      <YouTubeView data={data} />
     </AppShell>
   );
+}
+
+export async function getStaticProps() {
+  const data = await getYoutubeData();
+  return { props: { data }, revalidate: 3600 };
 }

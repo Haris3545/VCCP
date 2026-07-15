@@ -20,7 +20,7 @@ export default function TrendChart({ trend }) {
           <span className={`delta ${positive ? 'delta--up' : 'delta--down'}`}>
             {positive ? '▲' : '▼'} {Math.abs(trend.delta)}
           </span>
-          <SimulatedBadge />
+          <SimulatedBadge source={trend.source} />
         </div>
       </div>
       <div className="trend-chart__plot">

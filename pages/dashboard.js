@@ -19,5 +19,5 @@ export default function DashboardPage({ data }) {
 
 export async function getStaticProps() {
   const data = await getDashboardData();
-  return { props: { data } };
+  return { props: { data }, revalidate: 3600 };
 }

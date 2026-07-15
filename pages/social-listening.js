@@ -1,7 +1,8 @@
 import AppShell from '@/components/layout/AppShell';
-import PlaceholderView from '@/components/ui/PlaceholderView';
+import SocialListeningView from '@/components/social/SocialListeningView';
+import { getSocialListeningData } from '@/lib/dataSource';
 
-export default function SocialListeningPage() {
+export default function SocialListeningPage({ data }) {
   return (
     <AppShell title="Social listening">
       <div className="page-head">
@@ -11,7 +12,12 @@ export default function SocialListeningPage() {
           <span className="eyebrow">Conversation &amp; sentiment tracking</span>
         </div>
       </div>
-      <PlaceholderView description="Mention volume, sentiment breakdown, and trending conversation topics will land here once a social-listening source is connected." />
+      <SocialListeningView data={data} />
     </AppShell>
   );
+}
+
+export async function getStaticProps() {
+  const data = await getSocialListeningData();
+  return { props: { data }, revalidate: 3600 };
 }

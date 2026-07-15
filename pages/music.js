@@ -1,7 +1,8 @@
 import AppShell from '@/components/layout/AppShell';
-import PlaceholderView from '@/components/ui/PlaceholderView';
+import MusicView from '@/components/music/MusicView';
+import { getMusicData } from '@/lib/dataSource';
 
-export default function MusicPage() {
+export default function MusicPage({ data }) {
   return (
     <AppShell title="Music">
       <div className="page-head">
@@ -11,7 +12,12 @@ export default function MusicPage() {
           <span className="eyebrow">Streaming &amp; catalogue performance</span>
         </div>
       </div>
-      <PlaceholderView description="Full-catalogue streaming trends, per-track breakdowns, and chart performance will land here once a music-data source is connected." />
+      <MusicView data={data} />
     </AppShell>
   );
+}
+
+export async function getStaticProps() {
+  const data = await getMusicData();
+  return { props: { data }, revalidate: 3600 };
 }
