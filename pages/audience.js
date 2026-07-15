@@ -7,8 +7,9 @@ export default function AudiencePage({ data }) {
     <AppShell title="Audience">
       <div className="page-head">
         <div className="page-head__title">
-          <span className="eyebrow">GWI segments</span>
+          <span className="page-head__bar" aria-hidden="true" />
           <h1>Audience</h1>
+          <span className="eyebrow">GWI segments</span>
         </div>
       </div>
       <AudienceView data={data} />

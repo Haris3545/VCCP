@@ -7,8 +7,9 @@ export default function StrategyPage({ defaults }) {
     <AppShell title="Strategy">
       <div className="page-head">
         <div className="page-head__title">
-          <span className="eyebrow">Strategy on a Page / Plan on a Page</span>
+          <span className="page-head__bar" aria-hidden="true" />
           <h1>Strategy</h1>
+          <span className="eyebrow">Strategy on a Page / Plan on a Page</span>
         </div>
       </div>
       <StrategyView defaults={defaults} />

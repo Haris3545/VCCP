@@ -7,8 +7,9 @@ export default function DashboardPage({ data }) {
     <AppShell title="Dashboard">
       <div className="page-head">
         <div className="page-head__title">
-          <span className="eyebrow">Roll-up</span>
+          <span className="page-head__bar" aria-hidden="true" />
           <h1>Dashboard</h1>
+          <span className="eyebrow">Roll-up</span>
         </div>
       </div>
       <DashboardView data={data} />

@@ -1,5 +1,6 @@
 import EmptyState from '@/components/ui/EmptyState';
 import KpiGrid from './KpiGrid';
+import TrendChart from './TrendChart';
 
 export default function DashboardView({ data }) {
   return (
@@ -15,6 +16,10 @@ export default function DashboardView({ data }) {
 
       <h2 style={{ marginBottom: 14 }}>Key metrics</h2>
       <KpiGrid kpis={data.kpis} />
+
+      <div style={{ marginTop: 24 }}>
+        <TrendChart trend={data.trend} />
+      </div>
     </>
   );
 }
