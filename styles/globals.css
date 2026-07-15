@@ -40,6 +40,14 @@ body {
   margin: 0;
 }
 
+html {
+  /* Reserve the scrollbar's width on every page, whether or not that page's
+     content is tall enough to need it — otherwise centered content shifts a
+     few pixels sideways when navigating between a short page and a tall one. */
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--bg);
   color: var(--paper);
@@ -368,7 +376,8 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 14px 0;
+  padding-top: 14px;
+  padding-bottom: 14px;
   flex-wrap: wrap;
 }
 
@@ -407,7 +416,8 @@ textarea:focus-visible {
 .tab-bar__row {
   display: flex;
   align-items: center;
-  padding: 12px 0;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
 .tab-bar__desktop {
@@ -455,7 +465,18 @@ textarea:focus-visible {
   border-color: var(--accent);
 }
 
-@media (max-width: 1080px) {
+/* Touch devices only (phones/tablets) — a resized desktop window with a
+   mouse still gets the pill row, even if it wraps, rather than the
+   full-screen takeover pattern meant for touch. */
+@media (hover: none) and (pointer: coarse) {
+  .tab-bar {
+    background: transparent;
+    border-bottom: none;
+  }
+  .tab-bar__row {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
   .tab-bar__desktop {
     display: none;
   }
@@ -555,11 +576,7 @@ textarea:focus-visible {
   white-space: nowrap;
   padding: 8px 0;
   width: max-content;
-  animation: ticker-scroll 42s linear infinite;
-}
-
-.ticker:hover .ticker__track {
-  animation-duration: 260s;
+  will-change: transform;
 }
 
 .ticker__item {
@@ -584,20 +601,6 @@ textarea:focus-visible {
   background: var(--accent);
 }
 
-@keyframes ticker-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ticker__track {
-    animation: none;
-  }
-}
 
 /* ---------------------------------------------------------------------- */
 /* Grain overlay                                                           */
