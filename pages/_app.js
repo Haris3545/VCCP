@@ -1,5 +1,8 @@
 import artistConfig from '@/lib/artist.config';
+import '@fontsource/bodoni-moda/900.css';
+import '@fontsource/archivo-black';
 import '@/styles/globals.css';
+import PageTransitionOverlay from '@/components/layout/PageTransitionOverlay';
 
 const themeVars = {
   '--bg': artistConfig.theme.bg,
@@ -15,6 +18,7 @@ export default function App({ Component, pageProps }) {
   return (
     <div style={themeVars}>
       <Component {...pageProps} />
+      <PageTransitionOverlay />
     </div>
   );
 }

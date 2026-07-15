@@ -1,15 +1,21 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import artistConfig from '@/lib/artist.config';
 import { AGENCY_KICKER } from '@/lib/constants';
-import GrainOverlay from '@/components/layout/GrainOverlay';
+import FilmGrain from '@/components/layout/FilmGrain';
+import { startPageTransition } from '@/lib/pageTransition';
+
+// The login screen has its own display name, independent of artistConfig —
+// the console itself (dashboard, header, tabs) stays "Charli XCX" throughout.
+const LOGIN_DISPLAY_NAME = 'The Recording Studio';
 
 export default function LoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const enterBtnRef = useRef(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -28,6 +34,10 @@ export default function LoginPage() {
         return;
       }
       const dest = typeof router.query.from === 'string' ? router.query.from : '/dashboard';
+      const rect = enterBtnRef.current?.getBoundingClientRect();
+      if (rect) {
+        startPageTransition(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      }
       router.push(dest);
     } catch {
       setError('Something went wrong — try again.');
@@ -40,16 +50,21 @@ export default function LoginPage() {
       <Head>
         <title>{artistConfig.meta.title}</title>
       </Head>
-      <GrainOverlay />
       <div className="login-screen">
+        <video className="login-bg-video" autoPlay muted loop playsInline>
+          <source src="/media/login-bg.webm" type="video/webm" />
+          <source src="/media/login-bg.mp4" type="video/mp4" />
+        </video>
+        <div className="login-scrim" />
+        <FilmGrain opacity={0.16} />
+        <div className="login-vignette" />
+
         <div className="login-card">
           <div className="kicker">{AGENCY_KICKER}</div>
           <div className="wordmark" style={{ marginTop: 10 }}>
-            {artistConfig.wordmark}
+            {LOGIN_DISPLAY_NAME}
           </div>
-          <p style={{ color: 'var(--muted)', marginTop: 10, fontSize: 13 }}>
-            Cultural intelligence console — enter the access password to continue.
-          </p>
+          <hr className="flourish" />
           <form onSubmit={handleSubmit}>
             <input
               type="password"
@@ -60,8 +75,8 @@ export default function LoginPage() {
               aria-label="Password"
             />
             {error ? <div className="login-error">{error}</div> : null}
-            <button type="submit" className="btn btn--primary" disabled={submitting}>
-              {submitting ? 'Checking…' : 'Enter'}
+            <button type="submit" className="btn-sweep" disabled={submitting} ref={enterBtnRef}>
+              <span>{submitting ? 'Checking…' : 'Enter'}</span>
             </button>
           </form>
         </div>
