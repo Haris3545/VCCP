@@ -4,6 +4,7 @@ import SimulatedBadge from '@/components/ui/SimulatedBadge';
 export default function TrendChart({ trend }) {
   if (!trend) return null;
   const positive = trend.delta >= 0;
+  const lineColor = positive ? 'var(--trend-up)' : 'var(--danger)';
 
   return (
     <div className="card trend-chart">
@@ -40,9 +41,9 @@ export default function TrendChart({ trend }) {
             <Line
               type="monotone"
               dataKey="v"
-              stroke="var(--accent)"
+              stroke={lineColor}
               strokeWidth={2}
-              dot={{ r: 3, fill: 'var(--accent)', strokeWidth: 0 }}
+              dot={{ r: 3, fill: lineColor, strokeWidth: 0 }}
               activeDot={{ r: 5 }}
               isAnimationActive={false}
             />

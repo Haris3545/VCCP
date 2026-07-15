@@ -9,12 +9,15 @@
   --surface-raised: #1c1c1c;
   --paper: #f4f2ea;
   --muted: #8a8a86;
-  --accent: #8ace00;
-  --accent-deep: #5c8f00;
+  /* General UI accent — off-white grey. Reserve green/red (--trend-up /
+     --danger) for upward/downward trend indicators only. */
+  --accent: #d4d2d2;
+  --accent-deep: #b5b3b3;
   --accent-contrast: #0b0b0b;
   --border: rgba(244, 242, 234, 0.12);
   --border-strong: rgba(244, 242, 234, 0.24);
   --danger: #ff5c5c;
+  --trend-up: #8ace00;
   --grain-opacity: 0.07;
 
   --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
@@ -173,33 +176,24 @@ p {
   gap: 16px;
 }
 
+/* .grid--kpi's column count is set inline by KpiGrid (picks a divisor of
+   the card count per breakpoint so rows are never left half-empty); this is
+   just the pre-JS fallback. */
 .grid--kpi {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .grid--2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-@media (max-width: 1100px) {
-  .grid--kpi {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 900px) {
-  .grid--kpi {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .grid--2 {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 560px) {
-  .grid--kpi {
-    grid-template-columns: 1fr;
-  }
   .container {
     padding: 0 16px;
   }
@@ -264,7 +258,7 @@ p {
 }
 
 .delta--up {
-  color: var(--accent);
+  color: var(--trend-up);
 }
 
 .delta--down {
@@ -369,11 +363,13 @@ textarea:focus-visible {
 }
 
 .header__row {
-  height: var(--header-h);
+  min-height: var(--header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  padding: 14px 0;
+  flex-wrap: wrap;
 }
 
 .header__identity {
@@ -382,28 +378,69 @@ textarea:focus-visible {
   gap: 4px;
 }
 
-.header__actions {
+.header__studio-name {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(18px, 2.4vw, 24px);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+
+.header__artist-name {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(16px, 2.2vw, 22px);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Tab bar (below the ticker, deliberately separate from the brand header) */
+/* ---------------------------------------------------------------------- */
+.tab-bar {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.tab-bar__row {
   display: flex;
   align-items: center;
-  gap: 20px;
+  padding: 12px 0;
+}
+
+.tab-bar__desktop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.tab-bar__mobile-trigger {
+  display: none;
+  width: 100%;
+  justify-content: flex-end;
 }
 
 .tab-nav {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .tab-nav__link {
   position: relative;
-  padding: 9px 16px;
-  font-size: 12px;
+  padding: 6px 10px;
+  font-size: 9.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   color: var(--muted);
   border: 1px solid var(--border-strong);
   border-radius: 999px;
+  white-space: nowrap;
   transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
@@ -418,24 +455,88 @@ textarea:focus-visible {
   border-color: var(--accent);
 }
 
-@media (max-width: 860px) {
-  .header__row {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 14px 0;
-    gap: 10px;
+@media (max-width: 1080px) {
+  .tab-bar__desktop {
+    display: none;
   }
-  .header__actions {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
+  .tab-bar__mobile-trigger {
+    display: flex;
   }
-  .tab-nav {
-    width: 100%;
-  }
-  .header__actions .btn--ghost {
-    align-self: flex-end;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Mobile nav — hamburger trigger + full-screen panel that expands from it */
+/* ---------------------------------------------------------------------- */
+.hamburger {
+  position: relative;
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.hamburger span {
+  display: block;
+  width: 24px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--paper);
+  transition: transform 0.3s ease, opacity 0.2s ease;
+}
+
+.hamburger.is-open span:nth-child(1) {
+  transform: translateY(9px) rotate(45deg);
+}
+
+.hamburger.is-open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.is-open span:nth-child(3) {
+  transform: translateY(-9px) rotate(-45deg);
+}
+
+.mobile-nav-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  clip-path: circle(0px at 100% 0%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  pointer-events: none;
+}
+
+.mobile-nav-panel.is-open {
+  pointer-events: auto;
+  transition: clip-path 550ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.mobile-nav-panel .tab-nav {
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.mobile-nav-panel .tab-nav__link {
+  font-size: 15px;
+  padding: 12px 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-panel.is-open {
+    transition: none;
   }
 }
 
@@ -561,6 +662,55 @@ textarea:focus-visible {
   margin-top: 12px;
 }
 
+/* Flip mechanics: front shows just the headline number, back reveals the
+   sparkline + a derived insight line on hover (desktop) or tap (touch —
+   .is-flipped is toggled in KpiCard's onClick since touch has no :hover). */
+.kpi-flip {
+  min-height: 176px;
+  perspective: 1200px;
+  cursor: pointer;
+}
+
+.kpi-flip__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.kpi-flip:hover .kpi-flip__inner,
+.kpi-flip.is-flipped .kpi-flip__inner {
+  transform: rotateY(180deg);
+}
+
+.kpi-flip__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.kpi-flip__face--back {
+  transform: rotateY(180deg);
+  justify-content: space-between;
+}
+
+.kpi-flip__insight {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: lowercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kpi-flip__inner {
+    transition: none;
+  }
+}
+
 /* ---------------------------------------------------------------------- */
 /* Trend chart (Dashboard)                                                 */
 /* ---------------------------------------------------------------------- */
@@ -643,7 +793,7 @@ textarea:focus-visible {
 }
 
 .segment-table__value--hot {
-  color: var(--accent);
+  color: var(--trend-up);
   font-weight: 700;
 }
 
@@ -696,7 +846,7 @@ textarea:focus-visible {
 
 .editable:focus {
   border-bottom: 1px solid var(--accent);
-  background: rgba(138, 206, 0, 0.06);
+  background: rgba(212, 210, 210, 0.08);
 }
 
 .editable-wrap {

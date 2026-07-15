@@ -2,13 +2,9 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import artistConfig from '@/lib/artist.config';
-import { AGENCY_KICKER } from '@/lib/constants';
+import { AGENCY_KICKER, STUDIO_NAME } from '@/lib/constants';
 import FilmGrain from '@/components/layout/FilmGrain';
 import { startPageTransition } from '@/lib/pageTransition';
-
-// The login screen has its own display name, independent of artistConfig —
-// the console itself (dashboard, header, tabs) stays "Charli XCX" throughout.
-const LOGIN_DISPLAY_NAME = 'The Recording Studio';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -62,7 +58,7 @@ export default function LoginPage() {
         <div className="login-card">
           <div className="kicker">{AGENCY_KICKER}</div>
           <div className="wordmark" style={{ marginTop: 10 }}>
-            {LOGIN_DISPLAY_NAME}
+            {STUDIO_NAME}
           </div>
           <hr className="flourish" />
           <form onSubmit={handleSubmit}>

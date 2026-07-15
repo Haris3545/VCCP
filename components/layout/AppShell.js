@@ -3,6 +3,7 @@ import artistConfig from '@/lib/artist.config';
 import DashboardBackground from './DashboardBackground';
 import Header from './Header';
 import Ticker from './Ticker';
+import TabBar from './TabBar';
 
 export default function AppShell({ children, title }) {
   const pageTitle = title ? `${title} · ${artistConfig.wordmark}` : artistConfig.meta.title;
@@ -15,6 +16,7 @@ export default function AppShell({ children, title }) {
       <DashboardBackground />
       <Header />
       <Ticker />
+      <TabBar />
       <main className="container page">{children}</main>
     </div>
   );

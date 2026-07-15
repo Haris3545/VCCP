@@ -1,9 +1,9 @@
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 
-export default function Sparkline({ data, positive = true }) {
-  const color = positive ? 'var(--accent)' : 'var(--danger)';
+export default function Sparkline({ data, positive = true, height = 48 }) {
+  const color = positive ? 'var(--trend-up)' : 'var(--danger)';
   return (
-    <div style={{ width: '100%', height: 48 }}>
+    <div style={{ width: '100%', height }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
           <defs>

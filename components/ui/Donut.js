@@ -1,6 +1,6 @@
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 
-const COLORS = ['#8ace00', '#5c8f00', '#d8d6cc', '#4a4a46'];
+const COLORS = ['#f4f2ea', '#d4d2d2', '#8a8a86', '#4a4a46'];
 
 export default function Donut({ data }) {
   return (

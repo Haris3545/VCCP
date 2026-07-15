@@ -12,6 +12,21 @@ export function proxy(req) {
   return NextResponse.redirect(loginUrl);
 }
 
+// Mirrors artistConfig.tabs — Next.js needs this matcher list statically,
+// so it can't just be derived from the config array at build time.
 export const config = {
-  matcher: ['/dashboard', '/audience', '/strategy'],
+  matcher: [
+    '/dashboard',
+    '/media',
+    '/social-listening',
+    '/music',
+    '/youtube',
+    '/audience',
+    '/strategy',
+    '/tactics',
+    '/locations',
+    '/ideas',
+    '/calendar',
+    '/research',
+  ],
 };
