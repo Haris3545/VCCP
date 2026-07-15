@@ -9,12 +9,15 @@
   --surface-raised: #1c1c1c;
   --paper: #f4f2ea;
   --muted: #8a8a86;
-  --accent: #8ace00;
-  --accent-deep: #5c8f00;
+  /* General UI accent — off-white grey. Reserve green/red (--trend-up /
+     --danger) for upward/downward trend indicators only. */
+  --accent: #d4d2d2;
+  --accent-deep: #b5b3b3;
   --accent-contrast: #0b0b0b;
   --border: rgba(244, 242, 234, 0.12);
   --border-strong: rgba(244, 242, 234, 0.24);
   --danger: #ff5c5c;
+  --trend-up: #8ace00;
   --grain-opacity: 0.07;
 
   --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
@@ -255,7 +258,7 @@ p {
 }
 
 .delta--up {
-  color: var(--accent);
+  color: var(--trend-up);
 }
 
 .delta--down {
@@ -365,7 +368,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 10px 0;
+  padding: 14px 0;
   flex-wrap: wrap;
 }
 
@@ -375,10 +378,39 @@ textarea:focus-visible {
   gap: 4px;
 }
 
-.header__actions {
+.header__studio-name {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(18px, 2.4vw, 24px);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+
+.header__artist-name {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(16px, 2.2vw, 22px);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Tab bar (below the ticker, deliberately separate from the brand header) */
+/* ---------------------------------------------------------------------- */
+.tab-bar {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.tab-bar__row {
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 0;
 }
 
 .tab-nav {
@@ -412,11 +444,7 @@ textarea:focus-visible {
 }
 
 @media (max-width: 860px) {
-  .header__row {
-    gap: 10px;
-  }
-  .header__actions {
-    width: 100%;
+  .tab-bar__row {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
@@ -424,7 +452,7 @@ textarea:focus-visible {
   .tab-nav {
     width: 100%;
   }
-  .header__actions .btn--ghost {
+  .tab-bar__row .btn--ghost {
     align-self: flex-end;
   }
 }
@@ -552,10 +580,12 @@ textarea:focus-visible {
 }
 
 /* Flip mechanics: front shows just the headline number, back reveals the
-   sparkline + a derived insight line on hover. */
+   sparkline + a derived insight line on hover (desktop) or tap (touch —
+   .is-flipped is toggled in KpiCard's onClick since touch has no :hover). */
 .kpi-flip {
   min-height: 176px;
   perspective: 1200px;
+  cursor: pointer;
 }
 
 .kpi-flip__inner {
@@ -567,7 +597,7 @@ textarea:focus-visible {
 }
 
 .kpi-flip:hover .kpi-flip__inner,
-.kpi-flip:focus-within .kpi-flip__inner {
+.kpi-flip.is-flipped .kpi-flip__inner {
   transform: rotateY(180deg);
 }
 
@@ -680,7 +710,7 @@ textarea:focus-visible {
 }
 
 .segment-table__value--hot {
-  color: var(--accent);
+  color: var(--trend-up);
   font-weight: 700;
 }
 
@@ -733,7 +763,7 @@ textarea:focus-visible {
 
 .editable:focus {
   border-bottom: 1px solid var(--accent);
-  background: rgba(138, 206, 0, 0.06);
+  background: rgba(212, 210, 210, 0.08);
 }
 
 .editable-wrap {

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Sparkline from './Sparkline';
 import SimulatedBadge from './SimulatedBadge';
 
@@ -14,9 +15,23 @@ function describeTrend(series) {
 export default function KpiCard({ kpi }) {
   const positive = kpi.delta >= 0;
   const { min, max, direction } = describeTrend(kpi.series);
+  const [flipped, setFlipped] = useState(false);
 
   return (
-    <div className="kpi-flip">
+    <div
+      className={`kpi-flip${flipped ? ' is-flipped' : ''}`}
+      onClick={() => setFlipped((f) => !f)}
+      role="button"
+      tabIndex={0}
+      aria-pressed={flipped}
+      aria-label={`${kpi.label}, tap to see trend detail`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setFlipped((f) => !f);
+        }
+      }}
+    >
       <div className="kpi-flip__inner">
         <div className="kpi-flip__face kpi-flip__face--front card">
           <div className="kpi-card__label">{kpi.label}</div>
