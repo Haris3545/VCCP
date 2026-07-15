@@ -4,6 +4,7 @@ import DashboardBackground from './DashboardBackground';
 import Header from './Header';
 import Ticker from './Ticker';
 import TabBar from './TabBar';
+import RefreshButton from './RefreshButton';
 
 export default function AppShell({ children, title }) {
   const pageTitle = title ? `${title} · ${artistConfig.wordmark}` : artistConfig.meta.title;
@@ -18,6 +19,7 @@ export default function AppShell({ children, title }) {
       <Ticker />
       <TabBar />
       <main className="container page">{children}</main>
+      <RefreshButton />
     </div>
   );
 }

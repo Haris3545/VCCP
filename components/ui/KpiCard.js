@@ -43,7 +43,7 @@ export default function KpiCard({ kpi }) {
             <span className={`delta ${positive ? 'delta--up' : 'delta--down'}`}>
               {positive ? '▲' : '▼'} {Math.abs(kpi.delta)}
             </span>
-            <SimulatedBadge />
+            <SimulatedBadge source={kpi.source} />
           </div>
         </div>
 

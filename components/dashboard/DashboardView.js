@@ -3,11 +3,15 @@ import KpiGrid from './KpiGrid';
 import TrendChart from './TrendChart';
 
 export default function DashboardView({ data }) {
+  const anyLive = data.kpis.some((kpi) => kpi.source === 'live') || data.trend?.source === 'live';
+
   return (
     <>
-      <EmptyState>
-        Awaiting live source connections — figures below are illustrative simulated data.
-      </EmptyState>
+      {!anyLive && (
+        <EmptyState>
+          Awaiting live source connections — figures below are illustrative simulated data.
+        </EmptyState>
+      )}
 
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="eyebrow">Summary</div>
