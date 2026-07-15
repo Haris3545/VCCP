@@ -1,6 +1,7 @@
 import artistConfig from '@/lib/artist.config';
 import { AGENCY_KICKER } from '@/lib/constants';
 import TabNav from './TabNav';
+import LogoutButton from './LogoutButton';
 
 export default function Header() {
   return (
@@ -10,7 +11,10 @@ export default function Header() {
           <span className="kicker">{AGENCY_KICKER}</span>
           <span className="wordmark">{artistConfig.wordmark}</span>
         </div>
-        <TabNav />
+        <div className="header__actions">
+          <TabNav />
+          <LogoutButton />
+        </div>
       </div>
     </header>
   );
