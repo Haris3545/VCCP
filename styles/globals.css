@@ -302,6 +302,8 @@ p {
   padding: 10px 16px;
   border-radius: var(--radius);
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
@@ -450,14 +452,25 @@ textarea:focus-visible {
 
 .tab-nav {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(2px, 0.6vw, 6px);
+  flex-wrap: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tab-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-nav__link {
   position: relative;
-  padding: 6px 10px;
-  font-size: 9.5px;
+  flex-shrink: 0;
+  padding: 6px clamp(5px, 1.3vw, 10px);
+  font-size: clamp(8px, 1.5vw, 9.5px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
