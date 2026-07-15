@@ -312,9 +312,35 @@ textarea:focus-visible {
 /* App shell / header / nav                                                */
 /* ---------------------------------------------------------------------- */
 .app-shell {
+  position: relative;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  isolation: isolate;
+}
+
+.app-bg-photo {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background-image: url('/media/dashboard-bg.jpg');
+  background-size: cover;
+  background-position: center 30%;
+  filter: contrast(1.05) brightness(0.92);
+}
+
+.app-bg-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(2, 2, 2, 0.55) 0%, rgba(2, 2, 2, 0.2) 22%, rgba(2, 2, 2, 0.35) 60%, rgba(2, 2, 2, 0.82) 100%),
+    linear-gradient(90deg, rgba(2, 2, 2, 0.4) 0%, rgba(2, 2, 2, 0.05) 35%, rgba(2, 2, 2, 0.05) 65%, rgba(2, 2, 2, 0.4) 100%);
+}
+
+.app-shell .film-grain {
+  z-index: -1;
 }
 
 .header {
@@ -948,7 +974,7 @@ textarea:focus-visible {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: var(--paper);
+  background: #0a0a0a;
   clip-path: circle(0px at 50% 50%);
   transition: clip-path 900ms cubic-bezier(0.65, 0, 0.35, 1);
   will-change: clip-path;
