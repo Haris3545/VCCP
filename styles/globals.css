@@ -1492,6 +1492,38 @@ textarea:focus-visible {
   border-color: var(--muted);
 }
 
+/* Unmissable top banner while a QA preview override is forced — the
+   opposite of .preview-toggle's deliberately quiet styling, since the
+   whole point here is to not be easy to overlook. */
+.preview-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  width: 100%;
+  appearance: none;
+  border: none;
+  background: var(--danger);
+  color: #1a0505;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 9px 16px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.preview-banner:hover {
+  opacity: 0.9;
+}
+
+:root[data-preview='mobile'] .app-shell,
+:root[data-preview='desktop'] .app-shell {
+  padding-top: 34px;
+}
+
 /* ---------------------------------------------------------------------- */
 /* Page transition — circular reveal used when leaving the login screen    */
 /* ---------------------------------------------------------------------- */
