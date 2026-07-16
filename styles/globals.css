@@ -26,8 +26,16 @@
   --font-display: 'Archivo Black', var(--font-sans);
 
   --radius: 2px;
-  --shadow-card: 0 1px 0 rgba(244, 242, 234, 0.06) inset, 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-card: inset 0 1px 0 rgba(244, 242, 234, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+    0 8px 28px rgba(0, 0, 0, 0.45);
   --header-h: 76px;
+
+  /* Glass "block" treatment — tinted + blurred rather than opaque, so the
+     fixed background photo behind the app shell reads through every card. */
+  --glass-tint: rgba(17, 17, 17, 0.44);
+  --glass-tint-raised: rgba(26, 26, 26, 0.48);
+  --glass-blur: 18px;
+  --glass-edge: rgba(244, 242, 234, 0.42);
 }
 
 * {
@@ -211,15 +219,59 @@ p {
 /* Cards / surfaces                                                        */
 /* ---------------------------------------------------------------------- */
 .card {
-  background: var(--surface);
+  position: relative;
+  background: linear-gradient(195deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 34%),
+    radial-gradient(120% 90% at 82% 108%, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 60%),
+    var(--glass-tint);
   border: 1px solid var(--border);
+  border-top-color: var(--glass-edge);
   border-radius: var(--radius);
   padding: 20px;
   box-shadow: var(--shadow-card);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.05);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.05);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Diagonal sheen — light raking across the pane at an angle, the way it
+   catches a real sheet of glass rather than sitting flat on a surface. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0) 26%,
+    rgba(255, 255, 255, 0) 64%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Specular glints — a bright one upper-left, a dimmer echo lower-right, the
+   way a single light source throws two unequal highlights off a curved or
+   bevelled pane rather than one flat gleam. */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      38% 38% at 14% -6%,
+      rgba(255, 255, 255, 0.26) 0%,
+      rgba(255, 255, 255, 0) 72%
+    ),
+    radial-gradient(28% 28% at 96% 104%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 72%);
+  filter: blur(6px);
+  pointer-events: none;
 }
 
 .card--raised {
-  background: var(--surface-raised);
+  background: var(--glass-tint-raised);
+  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(170%) brightness(1.05);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(170%) brightness(1.05);
 }
 
 .card__head {
@@ -302,6 +354,8 @@ p {
   padding: 10px 16px;
   border-radius: var(--radius);
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
@@ -450,14 +504,25 @@ textarea:focus-visible {
 
 .tab-nav {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(2px, 0.6vw, 6px);
+  flex-wrap: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tab-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-nav__link {
   position: relative;
-  padding: 6px 10px;
-  font-size: 9.5px;
+  flex-shrink: 0;
+  padding: 6px clamp(5px, 1.3vw, 10px);
+  font-size: clamp(8px, 1.5vw, 9.5px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -497,6 +562,59 @@ textarea:focus-visible {
   .tab-bar__mobile-trigger {
     display: flex;
   }
+}
+
+/* Internal QA override (PreviewToggle.js) — forces one nav pattern or the
+   other regardless of the tester's real device. Higher specificity than
+   both the base rules and the media query above, in either direction, so
+   it wins whether the real device is touch or mouse. */
+:root[data-preview='mobile'] .tab-bar {
+  background: transparent;
+  border-bottom: none;
+}
+:root[data-preview='mobile'] .tab-bar__row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+:root[data-preview='mobile'] .tab-bar__desktop {
+  display: none;
+}
+:root[data-preview='mobile'] .tab-bar__mobile-trigger {
+  display: flex;
+}
+
+:root[data-preview='desktop'] .tab-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+:root[data-preview='desktop'] .tab-bar__row {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+:root[data-preview='desktop'] .tab-bar__desktop {
+  display: flex;
+}
+:root[data-preview='desktop'] .tab-bar__mobile-trigger {
+  display: none;
+}
+
+/* Mobile preview also frames the whole app to a phone-ish width, so the
+   fluid layout (grids, clamp()'d type, the tab-nav shrink-to-scroll
+   behaviour) is actually exercised, not just the nav variant. The
+   transform makes .app-shell the containing block for its position:fixed
+   background layers (DashboardBackground), confining them to the frame
+   instead of bleeding full-viewport-width behind it. */
+:root[data-preview='mobile'] body {
+  background: #050505;
+}
+:root[data-preview='mobile'] .app-shell {
+  max-width: 430px;
+  margin: 32px auto;
+  min-height: calc(100vh - 64px);
+  border-left: 1px solid var(--border-strong);
+  border-right: 1px solid var(--border-strong);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.7);
+  transform: translateZ(0);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1209,10 +1327,13 @@ textarea:focus-visible {
   cursor: default;
 }
 
-/* Global "refresh everything" control, bottom of every authenticated page */
+/* Global page-bottom controls: "refresh everything" (product) stacked
+   above the preview toggle (internal QA only, see PreviewToggle.js) */
 .page-footer {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   padding: 40px 0 56px;
 }
 
@@ -1238,6 +1359,26 @@ textarea:focus-visible {
 .btn-refresh:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.preview-toggle {
+  appearance: none;
+  cursor: pointer;
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.preview-toggle:hover {
+  color: var(--paper);
+  border-color: var(--muted);
 }
 
 /* ---------------------------------------------------------------------- */
