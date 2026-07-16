@@ -42,13 +42,19 @@ export default function IdeaCard({
         </div>
 
         <div className="idea-card__face idea-card__face--back">
-          <div className="idea-card__back-title">{idea.title}</div>
-          <p className="idea-card__back-description">{idea.description || 'No description added.'}</p>
-          <div className="idea-card__back-timeline">
-            <span>Timeline / lead time</span>
-            <strong>{idea.timeline || 'Not specified'}</strong>
+          {idea.imageUrl ? (
+            <div className="idea-card__back-bg" style={{ backgroundImage: `url(${idea.imageUrl})` }} />
+          ) : null}
+          <div className="idea-card__back-scrim" />
+          <div className="idea-card__back-content">
+            <div className="idea-card__back-title">{idea.title}</div>
+            <p className="idea-card__back-description">{idea.description || 'No description added.'}</p>
+            <div className="idea-card__back-timeline">
+              <span>Timeline / lead time</span>
+              <strong>{idea.timeline || 'Not specified'}</strong>
+            </div>
+            <div className="idea-card__back-hint">Tap to flip back</div>
           </div>
-          <div className="idea-card__back-hint">Tap to flip back</div>
         </div>
       </div>
     </div>
