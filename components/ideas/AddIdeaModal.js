@@ -71,7 +71,7 @@ export default function AddIdeaModal({ open, onClose, onAdded }) {
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="New idea">
+    <Modal open={open} onClose={handleClose} title="New idea" solid>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <label
           className="image-drop"
