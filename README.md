@@ -53,7 +53,7 @@ independent, so partial coverage is fine. What's wired up per tab:
 | Music | Spotify, MusicBrainz, Wikidata, Discogs, Kworb, Genius, Setlist.fm | mixed (see below) |
 | YouTube | YouTube Data API | key |
 | Social listening | Reddit | OAuth app |
-| Ideas | jsonblob.com (shared idea/image storage, not a third-party API) | none (auto-created) |
+| Ideas | Vercel Blob (shared idea/image storage, not a third-party API) | key |
 
 - **No key needed:** MusicBrainz, Wikidata SPARQL, Kworb (HTML scrape), Google Trends (unofficial
   internal endpoints — the same ones the Python `pytrends` wrapper uses, reimplemented directly
@@ -74,18 +74,16 @@ independent, so partial coverage is fine. What's wired up per tab:
 - **Ideas tab (swipe deck):** the only tab with shared, editable, team-wide state — everyone sees
   the same idea deck and the same liked/disliked piles, which needs real storage this project
   doesn't otherwise have (everything else is either read-only live data or per-browser
-  localStorage, see Strategy). This has gone through three backends as setup friction kept coming
-  up in practice; it currently uses jsonblob.com's anonymous JSON-store API — no signup, no token,
-  nothing to create in a dashboard. A JSON "manifest" holds the idea records, with uploaded images
-  embedded inline as base64 data URIs. It needs **zero setup to start working**: the first time
-  the server needs a board and no `IDEAS_JSONBLOB_ID` is set, it creates one automatically and
-  shows the new ID in an on-page notice. Copy that ID into `IDEAS_JSONBLOB_ID` in your deployment's
-  env vars to pin it — until you do, a fresh board can get created again on every cold start,
-  meaning different people could transiently see different decks. Worth knowing: this is a small,
-  free, unverified third-party service with no uptime guarantee and no real access control (just
-  the obscurity of the ID) — acceptable for an internal team idea board, and every add/swipe still
-  does a read-modify-write race like the earlier backends did, but don't treat it as durable
-  storage for anything that matters.
+  localStorage, see Strategy). This is the third backend this feature has tried: a GitHub Gist and
+  then jsonblob.com's anonymous API both tried to avoid the Vercel dashboard setup step below, but
+  the Gist needed a personal access token anyway, and jsonblob.com's free tier turned out to
+  garbage-collect its data within minutes in practice, making it useless as real storage. Backed by
+  a single Vercel Blob store: uploaded images, plus a JSON "manifest" blob acting as a lightweight
+  database for the idea records. Create a Blob store in the Vercel dashboard (Storage tab) and set
+  `BLOB_READ_WRITE_TOKEN`. Worth knowing: every add or swipe does a read-modify-write of the whole
+  manifest, so two people acting at the exact same instant can race and one write can clobber the
+  other — acceptable for a small team's low write volume, not a pattern to scale up without a real
+  database.
 
 ## Not included in this tier
 
