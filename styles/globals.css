@@ -564,6 +564,59 @@ textarea:focus-visible {
   }
 }
 
+/* Internal QA override (PreviewToggle.js) — forces one nav pattern or the
+   other regardless of the tester's real device. Higher specificity than
+   both the base rules and the media query above, in either direction, so
+   it wins whether the real device is touch or mouse. */
+:root[data-preview='mobile'] .tab-bar {
+  background: transparent;
+  border-bottom: none;
+}
+:root[data-preview='mobile'] .tab-bar__row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+:root[data-preview='mobile'] .tab-bar__desktop {
+  display: none;
+}
+:root[data-preview='mobile'] .tab-bar__mobile-trigger {
+  display: flex;
+}
+
+:root[data-preview='desktop'] .tab-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+:root[data-preview='desktop'] .tab-bar__row {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+:root[data-preview='desktop'] .tab-bar__desktop {
+  display: flex;
+}
+:root[data-preview='desktop'] .tab-bar__mobile-trigger {
+  display: none;
+}
+
+/* Mobile preview also frames the whole app to a phone-ish width, so the
+   fluid layout (grids, clamp()'d type, the tab-nav shrink-to-scroll
+   behaviour) is actually exercised, not just the nav variant. The
+   transform makes .app-shell the containing block for its position:fixed
+   background layers (DashboardBackground), confining them to the frame
+   instead of bleeding full-viewport-width behind it. */
+:root[data-preview='mobile'] body {
+  background: #050505;
+}
+:root[data-preview='mobile'] .app-shell {
+  max-width: 430px;
+  margin: 32px auto;
+  min-height: calc(100vh - 64px);
+  border-left: 1px solid var(--border-strong);
+  border-right: 1px solid var(--border-strong);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.7);
+  transform: translateZ(0);
+}
+
 /* ---------------------------------------------------------------------- */
 /* Mobile nav — hamburger trigger + full-screen panel that expands from it */
 /* ---------------------------------------------------------------------- */
@@ -1274,10 +1327,13 @@ textarea:focus-visible {
   cursor: default;
 }
 
-/* Global "refresh everything" control, bottom of every authenticated page */
+/* Global page-bottom controls: "refresh everything" (product) stacked
+   above the preview toggle (internal QA only, see PreviewToggle.js) */
 .page-footer {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   padding: 40px 0 56px;
 }
 
@@ -1303,6 +1359,26 @@ textarea:focus-visible {
 .btn-refresh:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.preview-toggle {
+  appearance: none;
+  cursor: pointer;
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.preview-toggle:hover {
+  color: var(--paper);
+  border-color: var(--muted);
 }
 
 /* ---------------------------------------------------------------------- */

@@ -5,6 +5,7 @@ import Header from './Header';
 import Ticker from './Ticker';
 import TabBar from './TabBar';
 import RefreshButton from './RefreshButton';
+import PreviewToggle from './PreviewToggle';
 
 export default function AppShell({ children, title }) {
   const pageTitle = title ? `${title} · ${artistConfig.wordmark}` : artistConfig.meta.title;
@@ -19,7 +20,10 @@ export default function AppShell({ children, title }) {
       <Ticker />
       <TabBar />
       <main className="container page">{children}</main>
-      <RefreshButton />
+      <footer className="page-footer container">
+        <RefreshButton />
+        <PreviewToggle />
+      </footer>
     </div>
   );
 }
