@@ -35,7 +35,7 @@ export default function SoapPage({ soap, onChange }) {
         <div className="lever-list" style={{ marginTop: 14 }}>
           {soap.growthLevers.map((lever, i) => (
             <div className="list-row" key={i}>
-              <div style={{ minWidth: 220 }}>
+              <div className="list-row__title">
                 <EditableField
                   as="div"
                   value={lever.title}

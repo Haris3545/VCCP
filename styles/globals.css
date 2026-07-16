@@ -105,6 +105,18 @@ img {
   -webkit-overflow-scrolling: touch;
 }
 
+/* On touch, every table here (segment breakdowns, phasing/budget, Kworb
+   streaming numbers) is wider than the viewport by design - a right-edge
+   fade is the standard "there's more, swipe" affordance, since otherwise
+   content just stops abruptly at the container edge with nothing to
+   suggest it's scrollable rather than cut off/broken. */
+@media (hover: none) and (pointer: coarse) {
+  .scroll-x {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%);
+  }
+}
+
 /* ---------------------------------------------------------------------- */
 /* Typography                                                              */
 /* ---------------------------------------------------------------------- */
@@ -319,6 +331,14 @@ p {
   margin-bottom: 14px;
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .card__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
 /* ---------------------------------------------------------------------- */
 /* Badges                                                                   */
 /* ---------------------------------------------------------------------- */
@@ -334,6 +354,8 @@ p {
   border-radius: 999px;
   border: 1px solid var(--border-strong);
   color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badge--simulated {
@@ -1195,6 +1217,24 @@ textarea:focus-visible {
 
 .list-row:last-child {
   border-bottom: none;
+}
+
+/* Growth-levers rows specifically (title | description) - other .list-row
+   uses (Music/YouTube/Social's compact "name — value" rows) are short
+   enough not to need this and shouldn't be forced to stack. */
+.list-row__title {
+  min-width: 220px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .lever-list .list-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .list-row__title {
+    min-width: 0;
+  }
 }
 
 .growth-diagram {
