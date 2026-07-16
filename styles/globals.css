@@ -1641,6 +1641,16 @@ textarea:focus-visible {
   max-width: 720px;
 }
 
+/* Modals sit directly over the busiest part of the page (the swipe deck,
+   ticker, etc.), so the standard card blur left too much of that visible
+   through the panel and it read as cluttered - a much heavier blur here,
+   specific to modals, keeps the rest of the site's cards untouched. */
+.modal-panel.card {
+  background: var(--glass-tint-raised);
+  backdrop-filter: blur(56px) saturate(150%) contrast(1.1) brightness(0.98);
+  -webkit-backdrop-filter: blur(56px) saturate(150%) contrast(1.1) brightness(0.98);
+}
+
 @keyframes modal-rise-in {
   from {
     opacity: 0;
@@ -1893,6 +1903,33 @@ textarea:focus-visible {
 
 .idea-card__face--back {
   transform: rotateY(180deg);
+}
+
+/* Overscanned + heavily blurred copy of the front photo, so the back
+   reads as "the same card, flipped" rather than a plain text panel. The
+   negative inset hides the blur's soft edge from ever reaching the
+   card's own border. */
+.idea-card__back-bg {
+  position: absolute;
+  inset: -30px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(36px) brightness(0.4) saturate(1.1);
+}
+
+.idea-card__back-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 6, 6, 0.62);
+}
+
+/* Positioned (not just in-flow) so it paints above the absolutely
+   positioned bg/scrim above - without this, CSS stacking rules paint
+   any positioned sibling above plain in-flow content regardless of DOM
+   order, which silently buried this text under the scrim. */
+.idea-card__back-content {
+  position: relative;
+  height: 100%;
   padding: 24px;
   display: flex;
   flex-direction: column;
