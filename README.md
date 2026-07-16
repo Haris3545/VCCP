@@ -53,7 +53,7 @@ independent, so partial coverage is fine. What's wired up per tab:
 | Music | Spotify, MusicBrainz, Wikidata, Discogs, Kworb, Genius, Setlist.fm | mixed (see below) |
 | YouTube | YouTube Data API | key |
 | Social listening | Reddit | OAuth app |
-| Ideas | Vercel Blob (shared idea/image storage, not a third-party API) | key |
+| Ideas | GitHub Gist (shared idea/image storage, not a third-party API) | token |
 
 - **No key needed:** MusicBrainz, Wikidata SPARQL, Kworb (HTML scrape), Google Trends (unofficial
   internal endpoints — the same ones the Python `pytrends` wrapper uses, reimplemented directly
@@ -74,12 +74,16 @@ independent, so partial coverage is fine. What's wired up per tab:
 - **Ideas tab (swipe deck):** the only tab with shared, editable, team-wide state — everyone sees
   the same idea deck and the same liked/disliked piles, which needs real storage this project
   doesn't otherwise have (everything else is either read-only live data or per-browser
-  localStorage, see Strategy). Backed by a single Vercel Blob store: uploaded images, plus a JSON
-  "manifest" blob acting as a lightweight database for the idea records. Create a Blob store in
-  the Vercel dashboard (Storage tab) and set `BLOB_READ_WRITE_TOKEN`. Worth knowing: every add or
-  swipe does a read-modify-write of the whole manifest, so two people acting at the exact same
-  instant can race and one write can clobber the other — acceptable for a small team's low write
-  volume, not a pattern to scale up without a real database.
+  localStorage, see Strategy). Backed by a single private GitHub Gist: a JSON "manifest" file
+  holding the idea records, with uploaded images embedded inside it as base64 data URIs — no
+  hosting dashboard or separate storage product involved, just a token. Setup: create a token at
+  `github.com/settings/tokens/new` with only the "gist" scope and set it as `IDEAS_GIST_TOKEN`;
+  create a secret gist at `gist.github.com` with one file named `ideas-manifest.json` containing
+  `[]`, and set its ID (from the gist's URL) as `IDEAS_GIST_ID`. Worth knowing: every add or swipe
+  does a read-modify-write of the whole manifest, so two people acting at the exact same instant
+  can race and one write can clobber the other, and because images live inline rather than behind
+  a CDN, keep them modest in size — acceptable for a small team's low write volume, not a pattern
+  to scale up without a real database.
 
 ## Not included in this tier
 
