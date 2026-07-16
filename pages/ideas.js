@@ -1,7 +1,8 @@
 import AppShell from '@/components/layout/AppShell';
-import PlaceholderView from '@/components/ui/PlaceholderView';
+import IdeasView from '@/components/ideas/IdeasView';
+import { listIdeas } from '@/lib/ideas/store';
 
-export default function IdeasPage() {
+export default function IdeasPage({ initialResult }) {
   return (
     <>
       <div className="page-head">
@@ -11,7 +12,7 @@ export default function IdeasPage() {
           <span className="eyebrow">Creative concepts &amp; backlog</span>
         </div>
       </div>
-      <PlaceholderView description="Creative concepts, pitches, and the idea backlog will land here once this section is built out." />
+      <IdeasView initialResult={initialResult} />
     </>
   );
 }
@@ -19,3 +20,12 @@ export default function IdeasPage() {
 IdeasPage.getLayout = function getLayout(page) {
   return <AppShell title="Ideas">{page}</AppShell>;
 };
+
+// Server-rendered rather than getStaticProps + revalidate like the other
+// tabs — ideas and swipe decisions are shared across everyone using the
+// console, so a stale ISR cache would mean people see different decks
+// depending on when the page last regenerated. Every load here is fresh.
+export async function getServerSideProps() {
+  const initialResult = await listIdeas();
+  return { props: { initialResult } };
+}
