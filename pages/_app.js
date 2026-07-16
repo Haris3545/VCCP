@@ -15,9 +15,18 @@ const themeVars = {
 };
 
 export default function App({ Component, pageProps }) {
+  // Pages that opt in define Page.getLayout, wrapping themselves in
+  // <AppShell> once here rather than in their own render. Because _app
+  // itself never unmounts between client-side navigations, and every page
+  // wraps in the same AppShell element shape, React keeps that AppShell
+  // instance alive across route changes instead of remounting it — which
+  // is what lets the ticker keep scrolling instead of snapping back to its
+  // start position on every tab switch.
+  const getLayout = Component.getLayout || ((page) => page);
+
   return (
     <div style={themeVars}>
-      <Component {...pageProps} />
+      {getLayout(<Component {...pageProps} />)}
       <PageTransitionOverlay />
     </div>
   );

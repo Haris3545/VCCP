@@ -1,7 +1,10 @@
 import TabNav from './TabNav';
 import LogoutButton from './LogoutButton';
-import MobileNav from './MobileNav';
 
+// Desktop/mouse only now — touch devices get MobileNav's fixed trigger +
+// full-screen panel instead (mounted at the AppShell level), and this
+// entire bar is hidden for them in globals.css to reclaim the vertical
+// space it would otherwise take up.
 export default function TabBar() {
   return (
     <div className="tab-bar">
@@ -9,9 +12,6 @@ export default function TabBar() {
         <div className="tab-bar__desktop">
           <TabNav />
           <LogoutButton />
-        </div>
-        <div className="tab-bar__mobile-trigger">
-          <MobileNav />
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import PlaceholderView from '@/components/ui/PlaceholderView';
 
 export default function TacticsPage() {
   return (
-    <AppShell title="Tactics">
+    <>
       <div className="page-head">
         <div className="page-head__title">
           <span className="page-head__bar" aria-hidden="true" />
@@ -12,6 +12,10 @@ export default function TacticsPage() {
         </div>
       </div>
       <PlaceholderView description="Planned and live activation tactics, with owners and status, will land here once this section is built out." />
-    </AppShell>
+    </>
   );
 }
+
+TacticsPage.getLayout = function getLayout(page) {
+  return <AppShell title="Tactics">{page}</AppShell>;
+};

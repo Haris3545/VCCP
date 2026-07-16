@@ -4,7 +4,7 @@ import { getYoutubeData } from '@/lib/dataSource';
 
 export default function YouTubePage({ data }) {
   return (
-    <AppShell title="YouTube">
+    <>
       <div className="page-head">
         <div className="page-head__title">
           <span className="page-head__bar" aria-hidden="true" />
@@ -13,9 +13,13 @@ export default function YouTubePage({ data }) {
         </div>
       </div>
       <YouTubeView data={data} />
-    </AppShell>
+    </>
   );
 }
+
+YouTubePage.getLayout = function getLayout(page) {
+  return <AppShell title="YouTube">{page}</AppShell>;
+};
 
 export async function getStaticProps() {
   const data = await getYoutubeData();

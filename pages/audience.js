@@ -4,7 +4,7 @@ import { getAudienceData } from '@/lib/dataSource';
 
 export default function AudiencePage({ data }) {
   return (
-    <AppShell title="Audience">
+    <>
       <div className="page-head">
         <div className="page-head__title">
           <span className="page-head__bar" aria-hidden="true" />
@@ -13,9 +13,13 @@ export default function AudiencePage({ data }) {
         </div>
       </div>
       <AudienceView data={data} />
-    </AppShell>
+    </>
   );
 }
+
+AudiencePage.getLayout = function getLayout(page) {
+  return <AppShell title="Audience">{page}</AppShell>;
+};
 
 export async function getStaticProps() {
   const data = await getAudienceData();

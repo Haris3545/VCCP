@@ -4,7 +4,7 @@ import { getStrategyDefaults } from '@/lib/dataSource';
 
 export default function StrategyPage({ defaults }) {
   return (
-    <AppShell title="Strategy">
+    <>
       <div className="page-head">
         <div className="page-head__title">
           <span className="page-head__bar" aria-hidden="true" />
@@ -13,9 +13,13 @@ export default function StrategyPage({ defaults }) {
         </div>
       </div>
       <StrategyView defaults={defaults} />
-    </AppShell>
+    </>
   );
 }
+
+StrategyPage.getLayout = function getLayout(page) {
+  return <AppShell title="Strategy">{page}</AppShell>;
+};
 
 export async function getStaticProps() {
   const defaults = await getStrategyDefaults();

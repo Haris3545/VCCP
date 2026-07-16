@@ -1,56 +1,24 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import TabNav from './TabNav';
 import LogoutButton from './LogoutButton';
 
+// Touch-only nav: a fixed top-right trigger that morphs from two lines
+// into an X, opening a full-screen panel with a left-aligned tab list.
+// Deliberately a plain opacity/transform fade rather than the old
+// button-position-driven clip-path circle reveal — that depended on
+// measuring the trigger's on-screen position via getBoundingClientRect at
+// the moment of toggling, which drifted whenever the page had scrolled,
+// producing the "stuck" reveal. A fade has no coordinates to get wrong.
 export default function MobileNav() {
   const [open, setOpen] = useState(false);
-  const btnRef = useRef(null);
-  const panelRef = useRef(null);
   const router = useRouter();
 
   useEffect(() => {
-    const panel = panelRef.current;
-    const btn = btnRef.current;
-    if (!panel || !btn) return undefined;
-
-    const rect = btn.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (open) {
-      document.body.style.overflow = 'hidden';
-      panel.classList.add('is-open');
-
-      if (reduce) {
-        panel.style.transition = 'none';
-        panel.style.clipPath = 'circle(150% at 50% 50%)';
-        return undefined;
-      }
-
-      const maxX = Math.max(cx, window.innerWidth - cx);
-      const maxY = Math.max(cy, window.innerHeight - cy);
-      const radius = Math.hypot(maxX, maxY);
-
-      panel.style.transition = 'none';
-      panel.style.clipPath = `circle(0px at ${cx}px ${cy}px)`;
-      panel.getBoundingClientRect();
-
-      const raf = requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          panel.style.transition = '';
-          panel.style.clipPath = `circle(${radius}px at ${cx}px ${cy}px)`;
-        });
-      });
-      return () => cancelAnimationFrame(raf);
-    }
-
-    document.body.style.overflow = '';
-    panel.style.transition = reduce ? 'none' : '';
-    panel.style.clipPath = `circle(0px at ${cx}px ${cy}px)`;
-    const timeout = setTimeout(() => panel.classList.remove('is-open'), reduce ? 0 : 550);
-    return () => clearTimeout(timeout);
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [open]);
 
   useEffect(() => {
@@ -72,21 +40,22 @@ export default function MobileNav() {
   return (
     <>
       <button
-        ref={btnRef}
         type="button"
         className={`hamburger${open ? ' is-open' : ''}`}
         aria-label={open ? 'Close menu' : 'Open menu'}
         aria-expanded={open}
+        aria-controls="mobile-nav-panel"
         onClick={() => setOpen((o) => !o)}
       >
         <span />
         <span />
-        <span />
       </button>
 
-      <div className="mobile-nav-panel" ref={panelRef} aria-hidden={!open}>
+      <div className={`mobile-nav-panel${open ? ' is-open' : ''}`} id="mobile-nav-panel" aria-hidden={!open}>
         <TabNav />
-        <LogoutButton />
+        <div className="mobile-nav-panel__foot">
+          <LogoutButton />
+        </div>
       </div>
     </>
   );
