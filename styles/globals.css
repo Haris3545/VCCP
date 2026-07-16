@@ -2163,13 +2163,177 @@ textarea:focus-visible {
   color: var(--paper);
 }
 
-.idea-pile-grid {
+.idea-board__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Pile overlay - full-screen liked/disliked review                        */
+/* ---------------------------------------------------------------------- */
+.pile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: #050505;
+  display: flex;
+  flex-direction: column;
+  animation: modal-fade-in 200ms ease;
+  overflow-y: auto;
+}
+
+.pile-overlay__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px;
+  background: rgba(5, 5, 5, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+
+.pile-overlay__header h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+}
+
+.pile-overlay__count {
+  color: var(--muted);
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.pile-overlay__select-toggle {
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 8px 16px;
+  color: var(--paper);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pile-overlay__close {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: none;
+  position: relative;
+  cursor: pointer;
+}
+
+.pile-overlay__close span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  background: var(--paper);
+  transform-origin: center;
+}
+
+.pile-overlay__close span:first-child {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.pile-overlay__close span:last-child {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.pile-overlay__select-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 24px 0;
+  animation: pile-select-bar-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes pile-select-bar-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.pile-overlay__select-all {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pile-overlay__selected-count {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pile-overlay__dropzone {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  z-index: 350;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--paper);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 100%);
+  border-bottom: 2px dashed transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease, border-color 180ms ease;
+}
+
+.pile-overlay__dropzone--active {
+  opacity: 1;
+  border-bottom-color: var(--border-strong);
+}
+
+.pile-overlay__dropzone--over {
+  border-bottom-color: var(--trend-up);
+  background: linear-gradient(180deg, rgba(20, 60, 30, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.pile-overlay__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.pile-overlay__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 14px;
+  padding: 20px 24px 100px;
 }
 
-.idea-pile-grid__item {
+.pile-grid-card {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border-strong);
@@ -2178,9 +2342,15 @@ textarea:focus-visible {
   background-size: cover;
   background-position: center;
   background-color: var(--surface-raised);
+  cursor: pointer;
+  touch-action: none;
 }
 
-.idea-pile-grid__title {
+.pile-grid-card--dimmed {
+  opacity: 0.35;
+}
+
+.pile-grid-card__title {
   position: absolute;
   left: 0;
   right: 0;
@@ -2192,24 +2362,180 @@ textarea:focus-visible {
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
-.idea-pile-grid__move {
+.pile-grid-card__check {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
+  top: 10px;
+  left: 10px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
-  border: none;
-  background: rgba(11, 11, 11, 0.7);
-  color: var(--paper);
-  cursor: pointer;
+  border: 2px solid var(--paper);
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1;
+}
+
+.pile-grid-card__check--on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.pile-grid-card__check--on::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 4px;
+  width: 10px;
+  height: 5px;
+  border-left: 2px solid var(--accent-contrast);
+  border-bottom: 2px solid var(--accent-contrast);
+  transform: rotate(-45deg);
+}
+
+@keyframes pile-jiggle {
+  0%,
+  100% {
+    transform: rotate(calc(var(--jiggle-rot, 1deg) * -1));
+  }
+  50% {
+    transform: rotate(var(--jiggle-rot, 1deg));
+  }
+}
+
+.pile-grid-card--jiggle {
+  animation: pile-jiggle 260ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pile-grid-card--jiggle {
+    animation: none;
+  }
+}
+
+.pile-overlay__action-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 360;
+  display: flex;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(10, 10, 10, 0.9);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.7);
+  animation: modal-rise-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Drag ghosts (single card, or a grouped multi-select drag)                */
+/* ---------------------------------------------------------------------- */
+.pile-overlay__drag-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 370;
+  pointer-events: none;
+}
+
+.pile-drag-ghost {
+  position: fixed;
+  width: 130px;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background-size: cover;
+  background-position: center;
+  background-color: var(--surface-raised);
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7);
+  transition: left 220ms ease, top 220ms ease;
+}
+
+.pile-drag-ghost--primary {
+  z-index: 1;
+  transition: none;
+  box-shadow: 0 26px 60px -8px rgba(0, 0, 0, 0.8);
+}
+
+.pile-drag-ghost--snap {
+  transition: left 240ms cubic-bezier(0.2, 0.8, 0.2, 1), top 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 240ms ease;
+  opacity: 0;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Enlarged idea (grid card zoomed up, flippable for detail)                */
+/* ---------------------------------------------------------------------- */
+.pile-enlarge-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 420;
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  padding: 24px;
+  animation: modal-fade-in 200ms ease;
 }
 
-.idea-pile-grid__move:hover {
+.pile-enlarge-backdrop--closing {
+  animation: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.pile-enlarge-card {
+  position: relative;
+  width: min(90vw, 400px);
+  aspect-ratio: 3 / 4;
+  cursor: pointer;
+  perspective: 1600px;
+}
+
+.pile-enlarge-card__flip {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.pile-enlarge-card--flipped .pile-enlarge-card__flip {
+  transform: rotateY(180deg);
+}
+
+.pile-enlarge-card__face {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: 0 30px 70px -14px rgba(0, 0, 0, 0.7);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.pile-enlarge-card__face--back {
+  transform: rotateY(180deg);
+}
+
+.pile-enlarge-card__switch {
+  align-self: flex-start;
   background: var(--accent);
   color: var(--accent-contrast);
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .pile-overlay__grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  }
+
+  .pile-enlarge-card {
+    width: min(88vw, 340px);
+  }
 }
