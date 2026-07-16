@@ -1782,6 +1782,18 @@ textarea:focus-visible {
   padding: 16px 0 8px;
 }
 
+.idea-board__notice {
+  max-width: 480px;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--accent, #7c5cff) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #7c5cff) 30%, transparent);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
 .idea-stack {
   position: relative;
   width: min(100%, 360px);

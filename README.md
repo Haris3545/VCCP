@@ -53,7 +53,7 @@ independent, so partial coverage is fine. What's wired up per tab:
 | Music | Spotify, MusicBrainz, Wikidata, Discogs, Kworb, Genius, Setlist.fm | mixed (see below) |
 | YouTube | YouTube Data API | key |
 | Social listening | Reddit | OAuth app |
-| Ideas | GitHub Gist (shared idea/image storage, not a third-party API) | token |
+| Ideas | jsonblob.com (shared idea/image storage, not a third-party API) | none (auto-created) |
 
 - **No key needed:** MusicBrainz, Wikidata SPARQL, Kworb (HTML scrape), Google Trends (unofficial
   internal endpoints — the same ones the Python `pytrends` wrapper uses, reimplemented directly
@@ -74,16 +74,18 @@ independent, so partial coverage is fine. What's wired up per tab:
 - **Ideas tab (swipe deck):** the only tab with shared, editable, team-wide state — everyone sees
   the same idea deck and the same liked/disliked piles, which needs real storage this project
   doesn't otherwise have (everything else is either read-only live data or per-browser
-  localStorage, see Strategy). Backed by a single private GitHub Gist: a JSON "manifest" file
-  holding the idea records, with uploaded images embedded inside it as base64 data URIs — no
-  hosting dashboard or separate storage product involved, just a token. Setup: create a token at
-  `github.com/settings/tokens/new` with only the "gist" scope and set it as `IDEAS_GIST_TOKEN`;
-  create a secret gist at `gist.github.com` with one file named `ideas-manifest.json` containing
-  `[]`, and set its ID (from the gist's URL) as `IDEAS_GIST_ID`. Worth knowing: every add or swipe
-  does a read-modify-write of the whole manifest, so two people acting at the exact same instant
-  can race and one write can clobber the other, and because images live inline rather than behind
-  a CDN, keep them modest in size — acceptable for a small team's low write volume, not a pattern
-  to scale up without a real database.
+  localStorage, see Strategy). This has gone through three backends as setup friction kept coming
+  up in practice; it currently uses jsonblob.com's anonymous JSON-store API — no signup, no token,
+  nothing to create in a dashboard. A JSON "manifest" holds the idea records, with uploaded images
+  embedded inline as base64 data URIs. It needs **zero setup to start working**: the first time
+  the server needs a board and no `IDEAS_JSONBLOB_ID` is set, it creates one automatically and
+  shows the new ID in an on-page notice. Copy that ID into `IDEAS_JSONBLOB_ID` in your deployment's
+  env vars to pin it — until you do, a fresh board can get created again on every cold start,
+  meaning different people could transiently see different decks. Worth knowing: this is a small,
+  free, unverified third-party service with no uptime guarantee and no real access control (just
+  the obscurity of the ID) — acceptable for an internal team idea board, and every add/swipe still
+  does a read-modify-write race like the earlier backends did, but don't treat it as durable
+  storage for anything that matters.
 
 ## Not included in this tier
 

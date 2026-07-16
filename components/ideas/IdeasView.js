@@ -53,6 +53,8 @@ export default function IdeasView({ initialResult }) {
   return (
     <>
       <div className="idea-board">
+        {initialResult.notice ? <div className="idea-board__notice">{initialResult.notice}</div> : null}
+
         <button type="button" className="btn btn--primary" onClick={() => setAddOpen(true)}>
           + Add idea
         </button>
