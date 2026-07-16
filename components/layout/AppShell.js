@@ -4,8 +4,10 @@ import DashboardBackground from './DashboardBackground';
 import Header from './Header';
 import Ticker from './Ticker';
 import TabBar from './TabBar';
+import MobileNav from './MobileNav';
 import RefreshButton from './RefreshButton';
 import PreviewToggle from './PreviewToggle';
+import GlassPointer from './GlassPointer';
 
 export default function AppShell({ children, title }) {
   const pageTitle = title ? `${title} · ${artistConfig.wordmark}` : artistConfig.meta.title;
@@ -17,6 +19,11 @@ export default function AppShell({ children, title }) {
       </Head>
       <DashboardBackground />
       <Header />
+      {/* Mounted at the shell level, not inside Header, so its trigger's
+          z-index competes directly with the full-screen panel's instead of
+          being capped by Header's own stacking context (position:sticky +
+          z-index create one). It self-positions with position:fixed. */}
+      <MobileNav />
       <Ticker />
       <TabBar />
       <main className="container page">{children}</main>
@@ -24,6 +31,7 @@ export default function AppShell({ children, title }) {
         <RefreshButton />
         <PreviewToggle />
       </footer>
+      <GlassPointer />
     </div>
   );
 }

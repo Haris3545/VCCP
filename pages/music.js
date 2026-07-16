@@ -4,7 +4,7 @@ import { getMusicData } from '@/lib/dataSource';
 
 export default function MusicPage({ data }) {
   return (
-    <AppShell title="Music">
+    <>
       <div className="page-head">
         <div className="page-head__title">
           <span className="page-head__bar" aria-hidden="true" />
@@ -13,9 +13,13 @@ export default function MusicPage({ data }) {
         </div>
       </div>
       <MusicView data={data} />
-    </AppShell>
+    </>
   );
 }
+
+MusicPage.getLayout = function getLayout(page) {
+  return <AppShell title="Music">{page}</AppShell>;
+};
 
 export async function getStaticProps() {
   const data = await getMusicData();

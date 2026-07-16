@@ -4,7 +4,7 @@ import { getSocialListeningData } from '@/lib/dataSource';
 
 export default function SocialListeningPage({ data }) {
   return (
-    <AppShell title="Social listening">
+    <>
       <div className="page-head">
         <div className="page-head__title">
           <span className="page-head__bar" aria-hidden="true" />
@@ -13,9 +13,13 @@ export default function SocialListeningPage({ data }) {
         </div>
       </div>
       <SocialListeningView data={data} />
-    </AppShell>
+    </>
   );
 }
+
+SocialListeningPage.getLayout = function getLayout(page) {
+  return <AppShell title="Social listening">{page}</AppShell>;
+};
 
 export async function getStaticProps() {
   const data = await getSocialListeningData();

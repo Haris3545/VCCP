@@ -3,7 +3,7 @@ import PlaceholderView from '@/components/ui/PlaceholderView';
 
 export default function CalendarPage() {
   return (
-    <AppShell title="Calendar">
+    <>
       <div className="page-head">
         <div className="page-head__title">
           <span className="page-head__bar" aria-hidden="true" />
@@ -12,6 +12,10 @@ export default function CalendarPage() {
         </div>
       </div>
       <PlaceholderView description="Upcoming content, release dates, and key cultural moments will land here once this section is built out." />
-    </AppShell>
+    </>
   );
 }
+
+CalendarPage.getLayout = function getLayout(page) {
+  return <AppShell title="Calendar">{page}</AppShell>;
+};

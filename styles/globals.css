@@ -32,10 +32,26 @@
 
   /* Glass "block" treatment — tinted + blurred rather than opaque, so the
      fixed background photo behind the app shell reads through every card. */
-  --glass-tint: rgba(17, 17, 17, 0.44);
-  --glass-tint-raised: rgba(26, 26, 26, 0.48);
+  --glass-tint: rgba(17, 17, 17, 0.36);
+  --glass-tint-raised: rgba(26, 26, 26, 0.4);
   --glass-blur: 18px;
   --glass-edge: rgba(244, 242, 234, 0.42);
+}
+
+/* Registering --mx/--my as typed <percentage> properties makes them
+   animatable — without this, changing a custom property used inside a
+   gradient() jumps instantly no matter what transition is set on it. This
+   is what lets the pointer-driven glint in .card::after glide instead of
+   snap. GlassPointer.js is what actually updates the values per card. */
+@property --mx {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 30%;
+}
+@property --my {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 15%;
 }
 
 * {
@@ -227,11 +243,22 @@ p {
   border-top-color: var(--glass-edge);
   border-radius: var(--radius);
   padding: 20px;
-  box-shadow: var(--shadow-card);
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.05);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.05);
+  /* The outer drop shadow/edge-lighting, plus a thin chromatic fringe —
+     cool on the left inner edge, warm on the right — the faint colour
+     splitting real glass throws at a bevelled edge, which is what reads
+     as "expensive" rather than a flat tinted panel. */
+  box-shadow: var(--shadow-card), inset 1px 0 0 rgba(120, 180, 255, 0.08),
+    inset -1px 0 0 rgba(255, 180, 120, 0.06);
+  /* contrast() is what makes this actually reactive to what's behind it —
+     saturate/blur alone just smear the backdrop, contrast pushes whatever
+     brightness variation survives the blur (a bright window, a dark
+     corner of the photo) further apart, so the card visibly reads
+     differently depending on what part of the scene it's sitting over. */
+  backdrop-filter: blur(var(--glass-blur)) saturate(170%) contrast(1.18) brightness(1.02);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%) contrast(1.18) brightness(1.02);
   overflow: hidden;
   isolation: isolate;
+  transition: --mx 200ms ease, --my 200ms ease;
 }
 
 /* Diagonal sheen — light raking across the pane at an angle, the way it
@@ -242,36 +269,36 @@ p {
   inset: 0;
   background: linear-gradient(
     115deg,
-    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.12) 0%,
     rgba(255, 255, 255, 0) 26%,
     rgba(255, 255, 255, 0) 64%,
-    rgba(255, 255, 255, 0.08) 100%
+    rgba(255, 255, 255, 0.06) 100%
   );
   mix-blend-mode: overlay;
   pointer-events: none;
 }
 
-/* Specular glints — a bright one upper-left, a dimmer echo lower-right, the
-   way a single light source throws two unequal highlights off a curved or
-   bevelled pane rather than one flat gleam. */
+/* Specular glint — follows the pointer (GlassPointer.js sets --mx/--my per
+   card on pointermove), the way light actually moves across a sheet of
+   glass as you move around it instead of sitting painted in one corner.
+   Defaults to a fixed upper-left position for touch/no-pointer-yet. */
 .card::after {
   content: '';
   position: absolute;
   inset: 0;
   background: radial-gradient(
-      38% 38% at 14% -6%,
-      rgba(255, 255, 255, 0.26) 0%,
-      rgba(255, 255, 255, 0) 72%
-    ),
-    radial-gradient(28% 28% at 96% 104%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 72%);
-  filter: blur(6px);
+    240px 240px at var(--mx, 30%) var(--my, 15%),
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  filter: blur(4px);
   pointer-events: none;
 }
 
 .card--raised {
   background: var(--glass-tint-raised);
-  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(170%) brightness(1.05);
-  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(170%) brightness(1.05);
+  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(180%) contrast(1.2) brightness(1.02);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(180%) contrast(1.2) brightness(1.02);
 }
 
 .card__head {
@@ -473,6 +500,53 @@ textarea:focus-visible {
   color: var(--paper);
 }
 
+/* Touch devices — stack identity above artist name with a tight gap
+   (rather than the desktop's side-by-side row), shrink the studio name so
+   it doesn't crowd the fixed hamburger/X trigger, and reserve a clear
+   zone under that trigger via padding-right. */
+@media (hover: none) and (pointer: coarse) {
+  .header__row {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 2px;
+    padding-right: 60px;
+  }
+  .header__studio-name {
+    font-size: clamp(15px, 5vw, 19px);
+  }
+  .header__artist-name {
+    font-size: clamp(14px, 4.4vw, 18px);
+  }
+}
+
+:root[data-preview='mobile'] .header__row {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  padding-right: 60px;
+}
+:root[data-preview='mobile'] .header__studio-name {
+  font-size: clamp(15px, 5vw, 19px);
+}
+:root[data-preview='mobile'] .header__artist-name {
+  font-size: clamp(14px, 4.4vw, 18px);
+}
+
+:root[data-preview='desktop'] .header__row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 0;
+}
+:root[data-preview='desktop'] .header__studio-name {
+  font-size: clamp(18px, 2.4vw, 24px);
+}
+:root[data-preview='desktop'] .header__artist-name {
+  font-size: clamp(16px, 2.2vw, 22px);
+}
+
 /* ---------------------------------------------------------------------- */
 /* Tab bar (below the ticker, deliberately separate from the brand header) */
 /* ---------------------------------------------------------------------- */
@@ -494,12 +568,6 @@ textarea:focus-visible {
   justify-content: space-between;
   gap: 16px;
   width: 100%;
-}
-
-.tab-bar__mobile-trigger {
-  display: none;
-  width: 100%;
-  justify-content: flex-end;
 }
 
 .tab-nav {
@@ -546,21 +614,15 @@ textarea:focus-visible {
 
 /* Touch devices only (phones/tablets) — a resized desktop window with a
    mouse still gets the pill row, even if it wraps, rather than the
-   full-screen takeover pattern meant for touch. */
+   full-screen takeover pattern meant for touch. The whole bar is hidden
+   (not just swapped) since its only touch-mode job, the trigger, now lives
+   as a fixed element mounted at the AppShell level (see MobileNav.js). */
 @media (hover: none) and (pointer: coarse) {
   .tab-bar {
-    background: transparent;
-    border-bottom: none;
-  }
-  .tab-bar__row {
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
-  .tab-bar__desktop {
     display: none;
   }
-  .tab-bar__mobile-trigger {
-    display: flex;
+  .page {
+    padding-top: 20px;
   }
 }
 
@@ -569,33 +631,17 @@ textarea:focus-visible {
    both the base rules and the media query above, in either direction, so
    it wins whether the real device is touch or mouse. */
 :root[data-preview='mobile'] .tab-bar {
-  background: transparent;
-  border-bottom: none;
-}
-:root[data-preview='mobile'] .tab-bar__row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-:root[data-preview='mobile'] .tab-bar__desktop {
   display: none;
 }
-:root[data-preview='mobile'] .tab-bar__mobile-trigger {
-  display: flex;
+:root[data-preview='mobile'] .page {
+  padding-top: 20px;
 }
 
 :root[data-preview='desktop'] .tab-bar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  display: block;
 }
-:root[data-preview='desktop'] .tab-bar__row {
-  padding-top: 12px;
-  padding-bottom: 12px;
-}
-:root[data-preview='desktop'] .tab-bar__desktop {
-  display: flex;
-}
-:root[data-preview='desktop'] .tab-bar__mobile-trigger {
-  display: none;
+:root[data-preview='desktop'] .page {
+  padding-top: 36px;
 }
 
 /* Mobile preview also frames the whole app to a phone-ish width, so the
@@ -618,77 +664,142 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Mobile nav — hamburger trigger + full-screen panel that expands from it */
+/* Mobile nav — fixed top-right trigger + full-screen panel                */
 /* ---------------------------------------------------------------------- */
+
+/* Hidden by default (desktop/mouse); shown for touch devices and the
+   mobile preview override below. Fixed rather than a Header child so its
+   z-index competes directly with the panel's instead of being capped by
+   Header's own stacking context (position:sticky + z-index makes one). */
 .hamburger {
-  position: relative;
+  display: none;
+  position: fixed;
+  top: 18px;
+  right: 16px;
   z-index: 110;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
 }
 
-.hamburger span {
+@media (hover: none) and (pointer: coarse) {
+  .hamburger {
+    display: block;
+  }
+}
+:root[data-preview='mobile'] .hamburger {
   display: block;
-  width: 24px;
-  height: 3px;
+}
+:root[data-preview='desktop'] .hamburger {
+  display: none;
+}
+
+/* Two lines that converge on the vertical centre and rotate into an X —
+   Apple.com's menu-toggle animation, not a third line that just fades. */
+.hamburger span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 2px;
   border-radius: 999px;
   background: var(--paper);
-  transition: transform 0.3s ease, opacity 0.2s ease;
+  transform: translate(-50%, -50%) translateY(-5px);
+  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.hamburger span:nth-child(2) {
+  transform: translate(-50%, -50%) translateY(5px);
 }
 
 .hamburger.is-open span:nth-child(1) {
-  transform: translateY(9px) rotate(45deg);
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .hamburger.is-open span:nth-child(2) {
-  opacity: 0;
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
-.hamburger.is-open span:nth-child(3) {
-  transform: translateY(-9px) rotate(-45deg);
-}
-
+/* A plain fade + slight rise, deliberately not the old clip-path circle
+   expanding from the trigger's measured position — that depended on
+   getBoundingClientRect() at toggle time and would visibly glitch or
+   "stick" if the page had scrolled since. Nothing here depends on
+   coordinates, so there's nothing to get wrong. */
 .mobile-nav-panel {
   position: fixed;
   inset: 0;
   z-index: 100;
   background: var(--bg);
-  clip-path: circle(0px at 100% 0%);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 28px;
+  justify-content: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 96px 32px 40px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
   pointer-events: none;
+  transition: opacity 300ms ease, transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0ms 300ms;
 }
 
 .mobile-nav-panel.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
   pointer-events: auto;
-  transition: clip-path 550ms cubic-bezier(0.65, 0, 0.35, 1);
+  transition: opacity 300ms ease, transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* Left-aligned list per the reference — plain text, no pill chrome, the
+   active tab distinguished by colour and a leading marker rather than a
+   filled background. */
 .mobile-nav-panel .tab-nav {
   flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  align-items: flex-start;
+  overflow: visible;
+  gap: 4px;
 }
 
 .mobile-nav-panel .tab-nav__link {
-  font-size: 15px;
-  padding: 12px 32px;
+  border: none;
+  border-radius: 0;
+  padding: 12px 0;
+  width: 100%;
+  font-size: clamp(26px, 8vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--muted);
+}
+
+.mobile-nav-panel .tab-nav__link:hover {
+  background: none;
+}
+
+.mobile-nav-panel .tab-nav__link--active {
+  background: none;
+  color: var(--paper);
+}
+
+.mobile-nav-panel__foot {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.mobile-nav-panel__foot .btn {
+  padding-left: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mobile-nav-panel.is-open {
+  .mobile-nav-panel,
+  .mobile-nav-panel.is-open,
+  .hamburger span {
     transition: none;
   }
 }

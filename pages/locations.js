@@ -3,7 +3,7 @@ import PlaceholderView from '@/components/ui/PlaceholderView';
 
 export default function LocationsPage() {
   return (
-    <AppShell title="Locations">
+    <>
       <div className="page-head">
         <div className="page-head__title">
           <span className="page-head__bar" aria-hidden="true" />
@@ -12,6 +12,10 @@ export default function LocationsPage() {
         </div>
       </div>
       <PlaceholderView description="Market-by-market performance and geographic breakdowns will land here once a location-level data source is connected." />
-    </AppShell>
+    </>
   );
 }
+
+LocationsPage.getLayout = function getLayout(page) {
+  return <AppShell title="Locations">{page}</AppShell>;
+};
