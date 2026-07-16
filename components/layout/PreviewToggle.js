@@ -1,7 +1,3 @@
-import { useEffect } from 'react';
-import { useLocalStorage } from '@/lib/useLocalStorage';
-
-const NEXT_MODE = { auto: 'mobile', mobile: 'desktop', desktop: 'auto' };
 const LABEL = {
   auto: 'Preview: mobile / desktop',
   mobile: 'Previewing mobile — tap for desktop',
@@ -14,19 +10,12 @@ const LABEL = {
 // browser without real touch hardware or devtools device emulation. Safe to
 // leave in: defaults to real device behaviour until someone clicks it, and
 // the whole console already sits behind the shared-password gate.
-export default function PreviewToggle() {
-  const [mode, setMode] = useLocalStorage('previewMode', 'auto');
-
-  useEffect(() => {
-    if (mode === 'auto') {
-      delete document.documentElement.dataset.preview;
-    } else {
-      document.documentElement.dataset.preview = mode;
-    }
-  }, [mode]);
-
+//
+// State lives in AppShell (see PreviewBanner.js for why) and is passed
+// down, so the footer button here and the top banner never disagree.
+export default function PreviewToggle({ mode, onCycle }) {
   return (
-    <button type="button" className="preview-toggle" onClick={() => setMode((m) => NEXT_MODE[m] ?? 'auto')}>
+    <button type="button" className="preview-toggle" onClick={onCycle}>
       {LABEL[mode] ?? LABEL.auto}
     </button>
   );
