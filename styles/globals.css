@@ -1851,11 +1851,6 @@ textarea:focus-visible {
 .idea-card {
   position: absolute;
   inset: 0;
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.6);
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
@@ -1867,6 +1862,12 @@ textarea:focus-visible {
   cursor: grabbing;
 }
 
+/* No overflow/border-radius on this element on purpose: putting overflow
+   other than visible on the same element as transform-style: preserve-3d
+   breaks backface-visibility in Chromium (the "hidden" face stays visible,
+   mirrored, instead of being replaced by the other face). The frame lives
+   on each .idea-card__face below instead - still reads as one rigid box
+   turning together, since only one face is ever visible at a time. */
 .idea-card__flip {
   position: absolute;
   inset: 0;
@@ -1881,13 +1882,17 @@ textarea:focus-visible {
 .idea-card__face {
   position: absolute;
   inset: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.6);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
 
 .idea-card__face--back {
   transform: rotateY(180deg);
-  background: var(--surface);
   padding: 24px;
   display: flex;
   flex-direction: column;
