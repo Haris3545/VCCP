@@ -2179,8 +2179,45 @@ textarea:focus-visible {
   background: #050505;
   display: flex;
   flex-direction: column;
-  animation: modal-fade-in 200ms ease;
   overflow-y: auto;
+  transform-origin: top center;
+  animation: pile-unfurl-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.pile-overlay--closing {
+  animation: pile-unfurl-out 300ms cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+@keyframes pile-unfurl-in {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: scaleY(0.96);
+  }
+  to {
+    clip-path: inset(0 0 0% 0);
+    transform: scaleY(1);
+  }
+}
+
+@keyframes pile-unfurl-out {
+  from {
+    clip-path: inset(0 0 0% 0);
+    transform: scaleY(1);
+  }
+  to {
+    clip-path: inset(0 0 100% 0);
+    transform: scaleY(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pile-overlay {
+    animation: none;
+  }
+
+  .pile-overlay--closing {
+    animation: none;
+  }
 }
 
 .pile-overlay__header {
@@ -2415,7 +2452,6 @@ textarea:focus-visible {
   position: fixed;
   left: 50%;
   bottom: 24px;
-  transform: translateX(-50%);
   z-index: 360;
   display: flex;
   gap: 12px;
@@ -2424,7 +2460,29 @@ textarea:focus-visible {
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.7);
-  animation: modal-rise-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* This static transform is the fallback for once the animation below
+     finishes (animations don't have fill-mode: forwards here, so the
+     centering would otherwise disappear the moment it settled) - and the
+     same translateX(-50%) also has to be repeated inside the keyframes
+     themselves, since a running animation replaces the whole transform
+     value for its duration rather than composing with this one. */
+  transform: translateX(-50%);
+  animation: pile-action-bar-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.pile-overlay__action-bar .btn {
+  border-radius: 999px;
+}
+
+@keyframes pile-action-bar-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -2447,7 +2505,7 @@ textarea:focus-visible {
   background-position: center;
   background-color: var(--surface-raised);
   box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7);
-  transition: left 220ms ease, top 220ms ease;
+  transition: left 90ms ease-out, top 90ms ease-out, transform 90ms ease-out;
 }
 
 .pile-drag-ghost--primary {
@@ -2528,6 +2586,28 @@ textarea:focus-visible {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.pile-enlarge-card__row {
+  display: flex;
+  gap: 10px;
+}
+
+.pile-enlarge-card__edit,
+.pile-enlarge-card__delete {
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--paper);
+}
+
+.pile-enlarge-card__delete {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 @media (max-width: 640px) {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import EditIdeaModal from './EditIdeaModal';
 
 const DROPZONE_HEIGHT = 120;
 const MOVE_THRESHOLD = 6;
@@ -18,7 +19,10 @@ function clamp(n, min, max) {
 
 function GridCard({ idea, selectMode, selected, dimmed, jiggleDelay, onCardClick, onPointerDown, cardRef }) {
   const seed = seedFromId(idea.id);
-  const jiggleRotate = ((seed % 7) - 3) * 0.6; // -1.8..1.8deg base, varies per card
+  // (seed % 5) - 2 can land on exactly 0 for ~1 in 5 cards, leaving them
+  // visibly still - keep the magnitude strictly positive and vary sign
+  // and size separately instead.
+  const jiggleRotate = (0.35 + (seed % 4) * 0.1) * (seed % 2 === 0 ? 1 : -1); // ±0.35..0.65deg
 
   return (
     <div
@@ -40,20 +44,41 @@ function GridCard({ idea, selectMode, selected, dimmed, jiggleDelay, onCardClick
   );
 }
 
-export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onReturnToStack }) {
+export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onReturnToStack, onEditIdea, onDeleteIdea }) {
+  const [renderedPile, setRenderedPile] = useState(pile);
+  const [closingOverlay, setClosingOverlay] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [enlarged, setEnlarged] = useState(null); // { idea, fromRect, closing }
   const [flippedEnlarged, setFlippedEnlarged] = useState(false);
   const [drag, setDrag] = useState(null); // { ids, primaryId, x, y, rotate, snapBack, offsets }
   const [overDropzone, setOverDropzone] = useState(false);
+  const [editingIdea, setEditingIdea] = useState(null);
 
   const cardRefs = useRef(new Map());
   const dragStateRef = useRef(null);
   const justDraggedRef = useRef(false);
 
+  // The overlay itself needs to keep rendering for a moment after `pile`
+  // goes null, so the "furl" close animation has something to animate -
+  // same lagging-state trick as the enlarge view's own open/close.
   useEffect(() => {
-    if (!pile) return undefined;
+    if (pile) {
+      setRenderedPile(pile);
+      setClosingOverlay(false);
+      return undefined;
+    }
+    if (renderedPile) {
+      setClosingOverlay(true);
+      const t = setTimeout(() => setRenderedPile(null), 320);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pile]);
+
+  useEffect(() => {
+    if (!renderedPile) return undefined;
     document.body.style.overflow = 'hidden';
     function handleKey(e) {
       if (e.key === 'Escape') {
@@ -67,19 +92,20 @@ export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onR
       window.removeEventListener('keydown', handleKey);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pile, enlarged]);
+  }, [renderedPile, enlarged]);
 
   useEffect(() => {
     setSelectMode(false);
     setSelectedIds(new Set());
     setEnlarged(null);
+    setEditingIdea(null);
   }, [pile]);
 
-  if (!pile) return null;
+  if (!renderedPile) return null;
 
-  const label = pile === 'liked' ? 'Liked ideas' : 'Disliked ideas';
-  const otherStatus = pile === 'liked' ? 'disliked' : 'liked';
-  const otherLabel = pile === 'liked' ? 'Disliked' : 'Liked';
+  const label = renderedPile === 'liked' ? 'Liked ideas' : 'Disliked ideas';
+  const otherStatus = renderedPile === 'liked' ? 'disliked' : 'liked';
+  const otherLabel = renderedPile === 'liked' ? 'Disliked' : 'Liked';
 
   function toggleSelectMode() {
     setSelectMode((v) => !v);
@@ -236,10 +262,22 @@ export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onR
     setSelectedIds(new Set());
   }
 
+  function handleEditSaved(idea) {
+    onEditIdea(idea);
+    setEditingIdea(null);
+  }
+
+  function handleDeleteEnlarged() {
+    if (!enlarged) return;
+    if (!window.confirm('Delete this idea? This cannot be undone.')) return;
+    onDeleteIdea(enlarged.idea.id);
+    closeEnlarge();
+  }
+
   const draggedIds = new Set(drag?.ids || []);
 
   return (
-    <div className="pile-overlay">
+    <div className={`pile-overlay${closingOverlay ? ' pile-overlay--closing' : ''}`}>
       <div className="pile-overlay__header">
         <button type="button" className="pile-overlay__select-toggle" onClick={toggleSelectMode}>
           {selectMode ? 'Done' : 'Select'}
@@ -277,7 +315,7 @@ export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onR
               selectMode={selectMode}
               selected={selectedIds.has(idea.id)}
               dimmed={draggedIds.has(idea.id)}
-              jiggleDelay={(seedFromId(idea.id) % 9) * 90}
+              jiggleDelay={(seedFromId(idea.id) % 5) * 40}
               onCardClick={handleCardClick}
               onPointerDown={handlePointerDown}
               cardRef={(el) => {
@@ -336,13 +374,24 @@ export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onR
             closeEnlarge();
           }}
           switchLabel={`Switch to ${otherLabel}`}
+          onEdit={() => {
+            // Close the enlarge view outright (no shrink animation) rather
+            // than via closeEnlarge() - its backdrop sits at a higher
+            // z-index than the edit modal, which otherwise silently
+            // intercepts every click meant for the modal underneath it.
+            setEditingIdea(enlarged.idea);
+            setEnlarged(null);
+          }}
+          onDelete={handleDeleteEnlarged}
         />
       ) : null}
+
+      <EditIdeaModal idea={editingIdea} onClose={() => setEditingIdea(null)} onSaved={handleEditSaved} />
     </div>
   );
 }
 
-function EnlargedIdea({ idea, fromRect, closing, flipped, onFlip, onDismiss, onSwitchVerdict, switchLabel }) {
+function EnlargedIdea({ idea, fromRect, closing, flipped, onFlip, onDismiss, onSwitchVerdict, switchLabel, onEdit, onDelete }) {
   const ref = useRef(null);
   const [entered, setEntered] = useState(false);
 
@@ -429,6 +478,28 @@ function EnlargedIdea({ idea, fromRect, closing, flipped, onFlip, onDismiss, onS
               >
                 {switchLabel}
               </button>
+              <div className="pile-enlarge-card__row">
+                <button
+                  type="button"
+                  className="pile-enlarge-card__edit"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="pile-enlarge-card__delete"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
               <div className="idea-card__back-hint">Tap to flip back</div>
             </div>
           </div>

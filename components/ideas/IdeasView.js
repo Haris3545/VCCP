@@ -67,6 +67,20 @@ export default function IdeasView({ initialResult }) {
     setIdeas((prev) => [...prev, idea]);
   }
 
+  function handleEdited(idea) {
+    setIdeas((prev) => prev.map((i) => (i.id === idea.id ? idea : i)));
+  }
+
+  async function handleDelete(id) {
+    setIdeas((prev) => prev.filter((i) => i.id !== id));
+    try {
+      const res = await fetch(`/api/ideas/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('delete failed');
+    } catch (err) {
+      console.error('Failed to delete idea', err);
+    }
+  }
+
   async function handleReset() {
     if (!window.confirm('Reset all liked/disliked ideas back to the main stack? This clears every verdict.')) {
       return;
@@ -105,6 +119,8 @@ export default function IdeasView({ initialResult }) {
         onClose={() => setOpenPile(null)}
         onSwitchVerdict={handleBulkStatus}
         onReturnToStack={(ids) => handleBulkStatus(ids, 'pending')}
+        onEditIdea={handleEdited}
+        onDeleteIdea={handleDelete}
       />
     </>
   );
