@@ -168,7 +168,17 @@ p {
 /* ---------------------------------------------------------------------- */
 .container {
   width: 100%;
-  max-width: 1240px;
+  /* Fixed at 1240px, this looked fine on a laptop but left a huge dead
+     margin on anything bigger (a TV, an ultrawide) since the header/ticker
+     bars behind it already stretch edge to edge. Scales with the viewport
+     instead: holds at 1240px through normal laptop widths (clamp's floor
+     wins until 92vw exceeds it, around ~1350px viewport), then grows most
+     of the way to the edges, capped so it never gets close to edge-to-edge
+     even on a huge display. Paragraph text has its own max-width (560-
+     760px, see DashboardView/SourceSection/PlaceholderView) independent of
+     this, so widening it only gives grids more room - it doesn't stretch
+     body copy into unreadably long lines. */
+  max-width: clamp(1240px, 92vw, 2400px);
   margin: 0 auto;
   padding: 0 24px;
 }
