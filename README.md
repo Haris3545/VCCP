@@ -53,6 +53,7 @@ independent, so partial coverage is fine. What's wired up per tab:
 | Music | Spotify, MusicBrainz, Wikidata, Discogs, Kworb, Genius, Setlist.fm | mixed (see below) |
 | YouTube | YouTube Data API | key |
 | Social listening | Reddit | OAuth app |
+| Ideas | Vercel Blob (shared idea/image storage, not a third-party API) | key |
 
 - **No key needed:** MusicBrainz, Wikidata SPARQL, Kworb (HTML scrape), Google Trends (unofficial
   internal endpoints — the same ones the Python `pytrends` wrapper uses, reimplemented directly
@@ -70,10 +71,19 @@ independent, so partial coverage is fine. What's wired up per tab:
   account, so verify endpoint paths against current docs before trusting the output.
 - **Deliberately not attempted:** Songkick (partner-approval only) and Bandsintown (API closed to
   new developers) — Setlist.fm covers tour/setlist history instead.
+- **Ideas tab (swipe deck):** the only tab with shared, editable, team-wide state — everyone sees
+  the same idea deck and the same liked/disliked piles, which needs real storage this project
+  doesn't otherwise have (everything else is either read-only live data or per-browser
+  localStorage, see Strategy). Backed by a single Vercel Blob store: uploaded images, plus a JSON
+  "manifest" blob acting as a lightweight database for the idea records. Create a Blob store in
+  the Vercel dashboard (Storage tab) and set `BLOB_READ_WRITE_TOKEN`. Worth knowing: every add or
+  swipe does a read-modify-write of the whole manifest, so two people acting at the exact same
+  instant can race and one write can clobber the other — acceptable for a small team's low write
+  volume, not a pattern to scale up without a real database.
 
 ## Not included in this tier
 
-Media/Tactics/Ideas/Calendar/Locations/Research tabs, exports, real auth, cross-device sync,
+Media/Tactics/Calendar/Locations/Research tabs, exports, real auth, cross-device sync,
 Chartmetric/Soundcharts wired into a page. See the build plan for the full "Recording Studio"
 spec these would follow if/when this grows beyond Lite.
 
