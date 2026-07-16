@@ -26,8 +26,16 @@
   --font-display: 'Archivo Black', var(--font-sans);
 
   --radius: 2px;
-  --shadow-card: 0 1px 0 rgba(244, 242, 234, 0.06) inset, 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-card: inset 0 1px 0 rgba(244, 242, 234, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+    0 8px 28px rgba(0, 0, 0, 0.45);
   --header-h: 76px;
+
+  /* Glass "block" treatment — tinted + blurred rather than opaque, so the
+     fixed background photo behind the app shell reads through every card. */
+  --glass-tint: rgba(17, 17, 17, 0.44);
+  --glass-tint-raised: rgba(26, 26, 26, 0.48);
+  --glass-blur: 18px;
+  --glass-edge: rgba(244, 242, 234, 0.42);
 }
 
 * {
@@ -211,15 +219,59 @@ p {
 /* Cards / surfaces                                                        */
 /* ---------------------------------------------------------------------- */
 .card {
-  background: var(--surface);
+  position: relative;
+  background: linear-gradient(195deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 34%),
+    radial-gradient(120% 90% at 82% 108%, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 60%),
+    var(--glass-tint);
   border: 1px solid var(--border);
+  border-top-color: var(--glass-edge);
   border-radius: var(--radius);
   padding: 20px;
   box-shadow: var(--shadow-card);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.05);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.05);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Diagonal sheen — light raking across the pane at an angle, the way it
+   catches a real sheet of glass rather than sitting flat on a surface. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0) 26%,
+    rgba(255, 255, 255, 0) 64%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Specular glints — a bright one upper-left, a dimmer echo lower-right, the
+   way a single light source throws two unequal highlights off a curved or
+   bevelled pane rather than one flat gleam. */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      38% 38% at 14% -6%,
+      rgba(255, 255, 255, 0.26) 0%,
+      rgba(255, 255, 255, 0) 72%
+    ),
+    radial-gradient(28% 28% at 96% 104%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 72%);
+  filter: blur(6px);
+  pointer-events: none;
 }
 
 .card--raised {
-  background: var(--surface-raised);
+  background: var(--glass-tint-raised);
+  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(170%) brightness(1.05);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(170%) brightness(1.05);
 }
 
 .card__head {
