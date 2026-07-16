@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import IdeaCard from './IdeaCard';
 
 const SWIPE_THRESHOLD = 110;
-const IDLE_DELAY_MS = 4000;
+const IDLE_DELAY_MS = 7000;
 const FLY_OUT_MS = 260;
 
 // Drag lives entirely on pointer events (covers mouse and touch alike) so
@@ -11,11 +11,12 @@ const FLY_OUT_MS = 260;
 // (hidden on touch via CSS) reuse the exact same resolveSwipe() path a
 // drag would take, just with a synthetic drag distance, so a click and a
 // full drag animate identically.
-export default function SwipeStack({ ideas, onDecide, onOpenDetail }) {
+export default function SwipeStack({ ideas, onDecide }) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [flying, setFlying] = useState(null);
   const [idleHint, setIdleHint] = useState(false);
+  const [flipped, setFlipped] = useState(false);
 
   const startXRef = useRef(0);
   const movedRef = useRef(false);
@@ -26,6 +27,7 @@ export default function SwipeStack({ ideas, onDecide, onOpenDetail }) {
 
   useEffect(() => {
     resetIdleTimer();
+    setFlipped(false);
     return () => clearTimeout(idleTimerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [top?.id]);
@@ -59,7 +61,7 @@ export default function SwipeStack({ ideas, onDecide, onOpenDetail }) {
 
     if (!movedRef.current) {
       setDragX(0);
-      if (top) onOpenDetail(top);
+      setFlipped((f) => !f);
       return;
     }
 
@@ -146,6 +148,7 @@ export default function SwipeStack({ ideas, onDecide, onOpenDetail }) {
         idea={top}
         dragX={effectiveX}
         dragRotate={effectiveRotate}
+        flipped={flipped}
         className={idleHint && !dragging && !flying ? 'idea-card--idle-hint' : ''}
         style={{
           zIndex: 2,

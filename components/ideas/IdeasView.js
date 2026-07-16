@@ -3,13 +3,11 @@ import EmptyState from '@/components/ui/EmptyState';
 import SwipeStack from './SwipeStack';
 import IdeaPiles from './IdeaPiles';
 import AddIdeaModal from './AddIdeaModal';
-import IdeaDetailModal from './IdeaDetailModal';
 import PileReviewModal from './PileReviewModal';
 
 export default function IdeasView({ initialResult }) {
   const [ideas, setIdeas] = useState(initialResult.ideas || []);
   const [addOpen, setAddOpen] = useState(false);
-  const [detailIdea, setDetailIdea] = useState(null);
   const [openPile, setOpenPile] = useState(null);
 
   if (initialResult.source === 'unavailable') {
@@ -59,12 +57,11 @@ export default function IdeasView({ initialResult }) {
           + Add idea
         </button>
 
-        <SwipeStack ideas={pending} onDecide={handleDecide} onOpenDetail={setDetailIdea} />
+        <SwipeStack ideas={pending} onDecide={handleDecide} />
         <IdeaPiles liked={liked} disliked={disliked} onOpenPile={setOpenPile} />
       </div>
 
       <AddIdeaModal open={addOpen} onClose={() => setAddOpen(false)} onAdded={handleAdded} />
-      <IdeaDetailModal idea={detailIdea} onClose={() => setDetailIdea(null)} />
       <PileReviewModal
         pile={openPile}
         ideas={openPile === 'liked' ? liked : disliked}
