@@ -3,7 +3,6 @@ import EditIdeaModal from './EditIdeaModal';
 
 const DROPZONE_HEIGHT = 120;
 const MOVE_THRESHOLD = 6;
-const GROUP_SETTLE_MS = 220;
 
 // Stable per-card "personality" for the group-drag cluster and jiggle, so
 // the same card always fans out to the same spot/angle/delay rather than
@@ -181,12 +180,6 @@ export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onR
       grabOffsetX,
       cardW: rect.width,
       moved: false,
-      // A lone card is already "grouped" (nothing to ease into). A
-      // multi-card drag briefly animates the others into formation, then
-      // flips this true so every subsequent frame moves the whole cluster
-      // as one rigid unit with zero transition - see the note below on
-      // why a CSS transition can't just stay on for the full drag.
-      grouped: groupIds.length === 1,
       offsets,
       originRects: new Map(groupIds.map((gid) => [gid, cardRefs.current.get(gid)?.getBoundingClientRect()])),
     };
@@ -201,22 +194,7 @@ export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onR
     if (!state) return;
     const dx = e.clientX - state.startX;
     const dy = e.clientY - state.startY;
-    if (!state.moved && Math.hypot(dx, dy) > MOVE_THRESHOLD) {
-      state.moved = true;
-      if (!state.grouped) {
-        // One-time "ease into a cluster" window for a multi-card drag.
-        // A CSS transition can't just stay on for the whole drag: it
-        // re-triggers on every pointermove, and since those fire far
-        // faster than the transition can finish, each new one interrupts
-        // the last mid-flight - that's what reads as constant lag/shake
-        // rather than a smooth follow. So it only runs once, here, and
-        // every frame after this is instant 1:1 tracking, same as the
-        // primary card already does.
-        setTimeout(() => {
-          if (dragStateRef.current === state) state.grouped = true;
-        }, GROUP_SETTLE_MS);
-      }
-    }
+    if (!state.moved && Math.hypot(dx, dy) > MOVE_THRESHOLD) state.moved = true;
     if (!state.moved) return;
 
     const velocityRot = clamp((e.clientX - state.lastX) * 1.6, -14, 14);
@@ -234,7 +212,6 @@ export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onR
       y,
       rotate: velocityRot + biasRot,
       offsets: state.offsets,
-      grouped: state.grouped,
     });
 
     setOverDropzone(e.clientY < DROPZONE_HEIGHT);
@@ -368,18 +345,29 @@ export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onR
             if (!idea) return null;
             const offset = drag.offsets.get(id) || { dx: 0, dy: 0, rot: 0 };
             const isPrimary = id === drag.primaryId;
-            const grouping = !isPrimary && !drag.grouped;
             return (
+              // Position/rotation here is always instant (no transition,
+              // ever) - it updates on every pointermove, and transitioning
+              // it would mean re-triggering a CSS transition every single
+              // frame, which permanently chases rather than follows. The
+              // "ease into a cluster" feel instead comes entirely from the
+              // inner element below: a one-time mount animation on scale/
+              // opacity that doesn't touch position at all, so it can play
+              // out smoothly no matter how fast the cursor is moving.
               <div
                 key={id}
-                className={`pile-drag-ghost${isPrimary ? ' pile-drag-ghost--primary' : ''}${grouping ? ' pile-drag-ghost--grouping' : ''}${drag.snapBack ? ' pile-drag-ghost--snap' : ''}`}
+                className={`pile-drag-ghost${isPrimary ? ' pile-drag-ghost--primary' : ''}${drag.snapBack ? ' pile-drag-ghost--snap' : ''}`}
                 style={{
-                  backgroundImage: idea.imageUrl ? `url(${idea.imageUrl})` : undefined,
                   left: drag.x + offset.dx,
                   top: drag.y + offset.dy,
                   transform: `translate(-50%, -50%) rotate(${drag.rotate + offset.rot}deg)`,
                 }}
-              />
+              >
+                <div
+                  className={`pile-drag-ghost__inner${!isPrimary ? ' pile-drag-ghost__inner--pop-in' : ''}`}
+                  style={{ backgroundImage: idea.imageUrl ? `url(${idea.imageUrl})` : undefined }}
+                />
+              </div>
             );
           })}
         </div>

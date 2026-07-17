@@ -2495,32 +2495,57 @@ textarea:focus-visible {
   pointer-events: none;
 }
 
+/* Position/rotation lives here, always untransitioned - it's driven by
+   real pointermove samples, and transitioning it means re-triggering a
+   CSS transition on every single frame, which just chases rather than
+   follows (this was the actual cause of the group-drag lag, twice). The
+   "ease into a cluster" feel comes entirely from .pile-drag-ghost__inner
+   below instead - a one-time scale/opacity animation on mount that never
+   touches position, so it can't be interrupted by cursor movement. */
 .pile-drag-ghost {
   position: fixed;
   width: 130px;
   aspect-ratio: 3 / 4;
+}
+
+.pile-drag-ghost--primary {
+  z-index: 1;
+}
+
+.pile-drag-ghost__inner {
+  width: 100%;
+  height: 100%;
   border-radius: 12px;
   border: 1px solid var(--border-strong);
   background-size: cover;
   background-position: center;
   background-color: var(--surface-raised);
   box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7);
-  /* No transition by default - every drag frame is a real pointermove
-     sample, and animating toward each one in turn just means constantly
-     playing catch-up with wherever the cursor already was a moment ago.
-     Only .pile-drag-ghost--grouping (a one-time window right as a
-     multi-card drag starts) gets one. */
-  transition: none;
 }
 
-.pile-drag-ghost--primary {
-  z-index: 1;
+.pile-drag-ghost--primary .pile-drag-ghost__inner {
   box-shadow: 0 26px 60px -8px rgba(0, 0, 0, 0.8);
 }
 
-.pile-drag-ghost--grouping {
-  transition: left 220ms cubic-bezier(0.2, 0.8, 0.2, 1), top 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+@keyframes pile-ghost-pop-in {
+  from {
+    transform: scale(0.55);
+    opacity: 0.5;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.pile-drag-ghost__inner--pop-in {
+  animation: pile-ghost-pop-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pile-drag-ghost__inner--pop-in {
+    animation: none;
+  }
 }
 
 .pile-drag-ghost--snap {
