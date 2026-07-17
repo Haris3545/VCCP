@@ -644,6 +644,99 @@ textarea:focus-visible {
   border-color: var(--accent);
 }
 
+/* -------------------------------------------------------------- */
+/* Console rail (ConsoleTabNav, desktop only): a slim strip with a  */
+/* sliding "fader puck" behind the active link instead of a filled  */
+/* pill per item. Spans whatever width TabBar__desktop's flex gives */
+/* it (uncapped) rather than scrolling - a script trims one shared  */
+/* font size down just enough that every link fits in a single row, */
+/* falling back to short abbreviations only once the rail is        */
+/* genuinely narrow. Scoped under .tab-nav--console (higher          */
+/* specificity than the plain .tab-nav/.tab-nav__link rules above)  */
+/* so the mobile panel's TabNav, which keeps those, is untouched.   */
+/* -------------------------------------------------------------- */
+.tab-nav--console {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: clamp(2px, 1vw, 22px);
+  padding: 4px;
+  overflow: visible;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.22));
+  border-radius: 12px;
+  --tab-font: 9.5px;
+}
+
+.tab-nav__puck {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  height: calc(100% - 8px);
+  width: 0;
+  background: var(--accent);
+  border-radius: 8px;
+  cursor: grab;
+  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1), width 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, width;
+  z-index: 0;
+  touch-action: none;
+}
+
+/* A short, fixed-length stretch (not a span across the whole burst
+   distance) with a brief, near-instant transition - one small comet
+   tail per hop, not one ever-growing bar. */
+.tab-nav__puck--fast {
+  transition: transform 55ms linear, width 55ms linear;
+}
+
+.tab-nav__puck--dragging {
+  cursor: grabbing;
+  transition: none;
+  box-shadow: 0 8px 18px -4px rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-nav__puck,
+  .tab-nav__puck--fast {
+    transition: none;
+  }
+}
+
+.tab-nav--console .tab-nav__link {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px clamp(4px, 1.4vw, 22px);
+  font-size: var(--tab-font);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: none;
+  border-radius: 8px;
+  white-space: nowrap;
+  transition: color 200ms ease, transform 120ms ease;
+}
+
+.tab-nav--console .tab-nav__link:hover {
+  color: var(--paper);
+  border-color: transparent;
+}
+
+.tab-nav--console .tab-nav__link--active {
+  color: var(--accent-contrast);
+  background: none;
+  border-color: transparent;
+}
+
 /* Touch devices only (phones/tablets) — a resized desktop window with a
    mouse still gets the pill row, even if it wraps, rather than the
    full-screen takeover pattern meant for touch. The whole bar is hidden
