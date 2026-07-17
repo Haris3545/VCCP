@@ -2,10 +2,11 @@ import { isAuthedRequestCookie } from '@/lib/auth';
 import { updateIdea, deleteIdea } from '@/lib/ideas/store';
 
 // Same size ceiling reasoning as pages/api/ideas/index.js's create route -
-// base64 images inflate ~33% over raw bytes.
+// capped below Vercel's own hard ~4.5MB serverless function request-body
+// limit, which rejects anything larger before this code ever runs.
 export const config = {
   api: {
-    bodyParser: { sizeLimit: '8mb' },
+    bodyParser: { sizeLimit: '4mb' },
   },
 };
 

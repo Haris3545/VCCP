@@ -3,6 +3,21 @@ import Modal from '@/components/ui/Modal';
 
 const initialForm = { title: '', description: '', timeline: '' };
 
+// A response that never reaches our own API code (Vercel rejects request
+// bodies over its own hard ~4.5MB serverless function limit before this
+// route runs) comes back as plain text, not JSON - res.json() throws a
+// raw, unreadable "Unexpected token" parse error in that case, which is
+// exactly what surfaced when this had no fallback.
+async function parseResponse(res) {
+  try {
+    return await res.json();
+  } catch {
+    throw new Error(
+      res.status === 413 ? 'That image is too large — try a smaller photo.' : `Something went wrong (status ${res.status}). Try again.`
+    );
+  }
+}
+
 export default function AddIdeaModal({ open, onClose, onAdded }) {
   const [form, setForm] = useState(initialForm);
   const [imageFile, setImageFile] = useState(null);
@@ -57,7 +72,7 @@ export default function AddIdeaModal({ open, onClose, onAdded }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, imageBase64, imageType }),
       });
-      const data = await res.json();
+      const data = await parseResponse(res);
       if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to add idea');
 
       onAdded(data.idea);
