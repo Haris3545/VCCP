@@ -2505,13 +2505,22 @@ textarea:focus-visible {
   background-position: center;
   background-color: var(--surface-raised);
   box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7);
-  transition: left 90ms ease-out, top 90ms ease-out, transform 90ms ease-out;
+  /* No transition by default - every drag frame is a real pointermove
+     sample, and animating toward each one in turn just means constantly
+     playing catch-up with wherever the cursor already was a moment ago.
+     Only .pile-drag-ghost--grouping (a one-time window right as a
+     multi-card drag starts) gets one. */
+  transition: none;
 }
 
 .pile-drag-ghost--primary {
   z-index: 1;
-  transition: none;
   box-shadow: 0 26px 60px -8px rgba(0, 0, 0, 0.8);
+}
+
+.pile-drag-ghost--grouping {
+  transition: left 220ms cubic-bezier(0.2, 0.8, 0.2, 1), top 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .pile-drag-ghost--snap {
