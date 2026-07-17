@@ -8,6 +8,8 @@ export default function IdeaCard({
   onPointerDown,
   onPointerMove,
   onPointerUp,
+  onEdit,
+  onDelete,
 }) {
   const likeOpacity = Math.min(1, Math.max(0, dragX / 90));
   const dislikeOpacity = Math.min(1, Math.max(0, -dragX / 90));
@@ -55,6 +57,43 @@ export default function IdeaCard({
             </div>
             <div className="idea-card__back-hint">Tap to flip back</div>
           </div>
+
+          {onEdit || onDelete ? (
+            <div className="idea-card__back-actions" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
+              {onEdit ? (
+                <button
+                  type="button"
+                  className="idea-card__back-action idea-card__back-action--edit"
+                  aria-label={`Edit "${idea.title}"`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 20h4L18.5 9.5a2 2 0 0 0 0-2.83l-1.17-1.17a2 2 0 0 0-2.83 0L4 15v5z" />
+                    <path d="M13 6.5l4.5 4.5" />
+                  </svg>
+                </button>
+              ) : null}
+              {onDelete ? (
+                <button
+                  type="button"
+                  className="idea-card__back-action idea-card__back-action--delete"
+                  aria-label={`Delete "${idea.title}"`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M10 11v6M14 11v6" />
+                    <path d="M6.5 7l.8 12a1 1 0 0 0 1 1h7.4a1 1 0 0 0 1-1l.8-12" />
+                  </svg>
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

@@ -1997,6 +1997,48 @@ textarea:focus-visible {
   text-align: center;
 }
 
+/* A separate sibling of .idea-card__back-content (not a child) so it stays
+   pinned to the corner regardless of that panel's own overflow-y: auto
+   scrolling, and paints above the bg/scrim beneath it like the content
+   panel does, per the same positioned-sibling stacking rule. */
+.idea-card__back-actions {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+}
+
+.idea-card__back-action {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: rgba(6, 6, 6, 0.55);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.idea-card__back-action svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.idea-card__back-action--delete {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .idea-card__flip {
     transition: none;

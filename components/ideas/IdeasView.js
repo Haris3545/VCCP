@@ -3,12 +3,14 @@ import EmptyState from '@/components/ui/EmptyState';
 import SwipeStack from './SwipeStack';
 import IdeaPiles from './IdeaPiles';
 import AddIdeaModal from './AddIdeaModal';
+import EditIdeaModal from './EditIdeaModal';
 import PileOverlay from './PileOverlay';
 
 export default function IdeasView({ initialResult }) {
   const [ideas, setIdeas] = useState(initialResult.ideas || []);
   const [addOpen, setAddOpen] = useState(false);
   const [openPile, setOpenPile] = useState(null);
+  const [editingIdea, setEditingIdea] = useState(null);
 
   if (initialResult.source === 'unavailable') {
     return (
@@ -81,6 +83,11 @@ export default function IdeasView({ initialResult }) {
     }
   }
 
+  function requestDelete(id) {
+    if (!window.confirm('Delete this idea? This cannot be undone.')) return;
+    handleDelete(id);
+  }
+
   async function handleReset() {
     if (!window.confirm('Reset all liked/disliked ideas back to the main stack? This clears every verdict.')) {
       return;
@@ -108,11 +115,19 @@ export default function IdeasView({ initialResult }) {
           </button>
         </div>
 
-        <SwipeStack ideas={pending} onDecide={handleDecide} />
+        <SwipeStack ideas={pending} onDecide={handleDecide} onEditIdea={setEditingIdea} onDeleteIdea={requestDelete} />
         <IdeaPiles liked={liked} disliked={disliked} onOpenPile={setOpenPile} />
       </div>
 
       <AddIdeaModal open={addOpen} onClose={() => setAddOpen(false)} onAdded={handleAdded} />
+      <EditIdeaModal
+        idea={editingIdea}
+        onClose={() => setEditingIdea(null)}
+        onSaved={(idea) => {
+          handleEdited(idea);
+          setEditingIdea(null);
+        }}
+      />
       <PileOverlay
         pile={openPile}
         ideas={openPile === 'liked' ? liked : disliked}
