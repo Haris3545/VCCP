@@ -88,19 +88,6 @@ export default function IdeasView({ initialResult }) {
     handleDelete(id);
   }
 
-  async function handleReset() {
-    if (!window.confirm('Reset all liked/disliked ideas back to the main stack? This clears every verdict.')) {
-      return;
-    }
-    setIdeas((prev) => prev.map((i) => ({ ...i, status: 'pending' })));
-    try {
-      const res = await fetch('/api/ideas/reset', { method: 'POST' });
-      if (!res.ok) throw new Error('reset failed');
-    } catch (err) {
-      console.error('Failed to reset ideas', err);
-    }
-  }
-
   return (
     <>
       <div className="idea-board">
@@ -109,9 +96,6 @@ export default function IdeasView({ initialResult }) {
         <div className="idea-board__actions">
           <button type="button" className="btn btn--primary" onClick={() => setAddOpen(true)}>
             + Add idea
-          </button>
-          <button type="button" className="btn" onClick={handleReset}>
-            Reset ideas
           </button>
         </div>
 
