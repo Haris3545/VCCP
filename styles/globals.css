@@ -1577,11 +1577,22 @@ textarea:focus-visible {
 /* ---------------------------------------------------------------------- */
 /* Page transition — circular reveal used when leaving the login screen    */
 /* ---------------------------------------------------------------------- */
+/* The same dashboard photo (preloaded on the login page itself so it's
+   already decoded by the time this fires) plus a static grain layer,
+   instead of a flat colour - so the expanding circle reads as the studio's
+   own imagery arriving, not a fade through blackness. */
 .page-transition {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: #0a0a0a;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/></svg>"),
+    url('/media/dashboard-bg.jpg');
+  background-size: auto, cover;
+  background-position: 0 0, 78% 22%;
+  background-repeat: repeat, no-repeat;
+  background-blend-mode: overlay, normal;
+  filter: contrast(1.05) brightness(0.86);
   clip-path: circle(0px at 50% 50%);
   transition: clip-path 900ms cubic-bezier(0.65, 0, 0.35, 1);
   will-change: clip-path;
