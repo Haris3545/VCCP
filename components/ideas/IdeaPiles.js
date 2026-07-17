@@ -31,8 +31,8 @@ function PileStack({ label, ideas, onClick }) {
 export default function IdeaPiles({ liked, disliked, onOpenPile }) {
   return (
     <div className="idea-piles">
-      <PileStack label="Liked" ideas={liked} onClick={() => onOpenPile('liked')} />
       <PileStack label="Disliked" ideas={disliked} onClick={() => onOpenPile('disliked')} />
+      <PileStack label="Liked" ideas={liked} onClick={() => onOpenPile('liked')} />
     </div>
   );
 }
