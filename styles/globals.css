@@ -196,7 +196,10 @@ p {
 }
 
 .page {
-  padding-top: 36px;
+  /* Nothing sits in-flow above .page now except the header and ticker, so
+     content can sit much closer to them than when the tab bar (and its own
+     internal padding) used to occupy this space. */
+  padding-top: 22px;
   padding-bottom: 96px;
 }
 
@@ -498,13 +501,13 @@ textarea:focus-visible {
 }
 
 .header__row {
-  min-height: var(--header-h);
+  min-height: calc(var(--header-h) - 16px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: 8px;
+  padding-bottom: 8px;
   flex-wrap: wrap;
 }
 
@@ -533,16 +536,13 @@ textarea:focus-visible {
 }
 
 /* Touch devices — stack identity above artist name with a tight gap
-   (rather than the desktop's side-by-side row), shrink the studio name so
-   it doesn't crowd the fixed hamburger/X trigger, and reserve a clear
-   zone under that trigger via padding-right. */
+   rather than the desktop's side-by-side row. */
 @media (hover: none) and (pointer: coarse) {
   .header__row {
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
     gap: 2px;
-    padding-right: 60px;
   }
   .header__studio-name {
     font-size: clamp(15px, 5vw, 19px);
@@ -557,7 +557,6 @@ textarea:focus-visible {
   align-items: flex-start;
   justify-content: flex-start;
   gap: 2px;
-  padding-right: 60px;
 }
 :root[data-preview='mobile'] .header__studio-name {
   font-size: clamp(15px, 5vw, 19px);
@@ -570,7 +569,6 @@ textarea:focus-visible {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding-right: 0;
 }
 :root[data-preview='desktop'] .header__studio-name {
   font-size: clamp(18px, 2.4vw, 24px);
@@ -580,201 +578,286 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Tab bar (below the ticker, deliberately separate from the brand header) */
+/* Liquid glass — shared by the ticker and the floating nav. The backdrop-  */
+/* filter references GlassFilterDefs' feDisplacementMap for lensing/       */
+/* refraction; browsers that ignore an SVG filter reference inside         */
+/* backdrop-filter (mainly Safari) just fall back to the plain blur.       */
+/* --gx/--gy (driven by lib/glassHighlight.js on pointermove + scroll)     */
+/* position the specular highlight so it visibly shifts as you move the    */
+/* pointer or scroll — a stand-in for real content-sampling, not literal   */
+/* pixel-adaptive tinting. */
 /* ---------------------------------------------------------------------- */
-.tab-bar {
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+.glass {
+  position: relative;
+  --gx: 30%;
+  --gy: 20%;
+  background: linear-gradient(180deg, rgba(244, 242, 234, 0.24), rgba(244, 242, 234, 0.1));
+  backdrop-filter: blur(18px) url(#glass-distortion) saturate(1.7) brightness(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.7) brightness(1.08);
+  isolation: isolate;
 }
 
-.tab-bar__row {
-  display: flex;
-  align-items: center;
-  padding-top: 12px;
-  padding-bottom: 12px;
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(160px 120px at var(--gx) var(--gy), rgba(255, 255, 255, 0.65), transparent 65%);
+  mix-blend-mode: overlay;
+  z-index: 0;
+  transition: background-position 200ms ease;
 }
 
-.tab-bar__desktop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
+.glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -8px 16px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  z-index: 0;
 }
 
-.tab-nav {
+.glass > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Floating tab nav — one fixed glass pill, every breakpoint, always on     */
+/* screen. A white puck slides (and can be dragged) behind the active tab; */
+/* below the collapse breakpoint it's replaced by the current tab's name   */
+/* plus a Menu trigger that unfurls the rest above the pill.                */
+/* ---------------------------------------------------------------------- */
+.floatnav {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 110;
   display: flex;
   align-items: center;
-  gap: clamp(2px, 0.6vw, 6px);
-  flex-wrap: nowrap;
-  flex-shrink: 1;
-  min-width: 0;
+  gap: 4px;
+  max-width: calc(100vw - 24px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  padding: 6px;
+  box-shadow: 0 10px 0 rgba(11, 11, 11, 0.1), 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.floatnav__mark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border: 2px solid var(--accent-contrast);
+  border-radius: 999px;
+  color: var(--accent-contrast);
+}
+
+.floatnav__eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.floatnav__eq i {
+  display: block;
+  width: 3px;
+  background: var(--accent-contrast);
+  animation: floatnav-eq 900ms ease-in-out infinite;
+}
+.floatnav__eq i:nth-child(1) {
+  animation-delay: 0ms;
+}
+.floatnav__eq i:nth-child(2) {
+  animation-delay: 180ms;
+}
+.floatnav__eq i:nth-child(3) {
+  animation-delay: 360ms;
+}
+@keyframes floatnav-eq {
+  0%, 100% { height: 3px; }
+  50% { height: 12px; }
+}
+
+.floatnav__mark-text {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.floatnav__items {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  touch-action: pan-x;
 }
-
-.tab-nav::-webkit-scrollbar {
+.floatnav__items::-webkit-scrollbar {
   display: none;
 }
 
-.tab-nav__link {
-  position: relative;
-  flex-shrink: 0;
-  padding: 6px clamp(5px, 1.3vw, 10px);
-  font-size: clamp(8px, 1.5vw, 9.5px);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  white-space: nowrap;
-  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
-}
-
-.tab-nav__link:hover {
-  color: var(--paper);
-  border-color: var(--muted);
-}
-
-.tab-nav__link--active {
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-/* -------------------------------------------------------------- */
-/* Console rail (ConsoleTabNav, desktop only): a slim strip with a  */
-/* sliding "fader puck" behind the active link instead of a filled  */
-/* pill per item. Spans whatever width TabBar__desktop's flex gives */
-/* it (uncapped) rather than scrolling - a script trims one shared  */
-/* font size down just enough that every link fits in a single row, */
-/* falling back to short abbreviations only once the rail is        */
-/* genuinely narrow. Scoped under .tab-nav--console (higher          */
-/* specificity than the plain .tab-nav/.tab-nav__link rules above)  */
-/* so the mobile panel's TabNav, which keeps those, is untouched.   */
-/* -------------------------------------------------------------- */
-.tab-nav--console {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  flex-wrap: nowrap;
-  gap: clamp(2px, 1vw, 22px);
-  padding: 4px;
-  overflow: visible;
-  border: 1px solid var(--border-strong);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.22));
-  border-radius: 12px;
-  --tab-font: 9.5px;
-}
-
-.tab-nav__puck {
+.floatnav__puck {
   position: absolute;
   top: 4px;
-  left: 4px;
+  left: 0;
   height: calc(100% - 8px);
   width: 0;
-  background: var(--accent);
-  border-radius: 8px;
-  cursor: grab;
-  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1), width 420ms cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, width;
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1), width 320ms cubic-bezier(0.65, 0, 0.35, 1);
   z-index: 0;
-  touch-action: none;
+  /* Always sits fully behind the active Link, so it can never be the actual
+     pointer target — dragging is handled by .floatnav__items hit-testing
+     this rect instead (see FloatingTabNav.js). */
+  pointer-events: none;
 }
 
-/* A short, fixed-length stretch (not a span across the whole burst
-   distance) with a brief, near-instant transition - one small comet
-   tail per hop, not one ever-growing bar. */
-.tab-nav__puck--fast {
-  transition: transform 55ms linear, width 55ms linear;
+.floatnav__link {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent-contrast);
+  white-space: nowrap;
 }
 
-.tab-nav__puck--dragging {
-  cursor: grabbing;
-  transition: none;
-  box-shadow: 0 8px 18px -4px rgba(0, 0, 0, 0.55);
+.floatnav__current {
+  padding: 12px 16px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent-contrast);
+  white-space: nowrap;
+}
+
+.floatnav__menu-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--accent-contrast);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.floatnav__menu-btn:hover {
+  background: rgba(11, 11, 11, 0.08);
+}
+
+.floatnav__menu-glyph {
+  display: inline-block;
+  font-size: 15px;
+  line-height: 1;
+  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.floatnav__menu-btn[aria-expanded='true'] .floatnav__menu-glyph {
+  transform: rotate(135deg);
+}
+
+.floatnav__unfurl {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  transform: translateX(-50%);
+  width: max-content;
+  min-width: 200px;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 480ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.floatnav__unfurl[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.floatnav__unfurl-inner {
+  overflow: hidden;
+  min-height: 0;
+  background: var(--paper);
+  border: 1px solid rgba(11, 11, 11, 0.15);
+  border-radius: 18px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.floatnav__unfurl-link {
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent-contrast);
+  transition: background 120ms ease;
+}
+.floatnav__unfurl-link:hover {
+  background: rgba(11, 11, 11, 0.08);
+}
+
+.floatnav__logout.btn.btn--ghost {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  margin-left: 4px;
+  padding: 8px 12px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: rgba(11, 11, 11, 0.55);
+}
+.floatnav__logout.btn.btn--ghost:hover {
+  color: var(--accent-contrast);
+}
+
+@media (max-width: 640px) {
+  .floatnav__mark-text {
+    display: none;
+  }
+  .floatnav__link,
+  .floatnav__current {
+    padding: 10px 12px;
+    font-size: 11.5px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tab-nav__puck,
-  .tab-nav__puck--fast {
+  .floatnav__eq i {
+    animation: none;
+  }
+  .floatnav__puck {
     transition: none;
   }
 }
 
-.tab-nav--console .tab-nav__link {
-  position: relative;
-  z-index: 1;
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px clamp(4px, 1.4vw, 22px);
-  font-size: var(--tab-font);
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--muted);
-  border: none;
-  border-radius: 8px;
-  white-space: nowrap;
-  transition: color 200ms ease, transform 120ms ease;
-}
-
-.tab-nav--console .tab-nav__link:hover {
-  color: var(--paper);
-  border-color: transparent;
-}
-
-.tab-nav--console .tab-nav__link--active {
-  color: var(--accent-contrast);
-  background: none;
-  border-color: transparent;
-}
-
-/* Touch devices only (phones/tablets) — a resized desktop window with a
-   mouse still gets the pill row, even if it wraps, rather than the
-   full-screen takeover pattern meant for touch. The whole bar is hidden
-   (not just swapped) since its only touch-mode job, the trigger, now lives
-   as a fixed element mounted at the AppShell level (see MobileNav.js). */
-@media (hover: none) and (pointer: coarse) {
-  .tab-bar {
-    display: none;
-  }
-  .page {
-    padding-top: 20px;
-  }
-}
-
-/* Internal QA override (PreviewToggle.js) — forces one nav pattern or the
-   other regardless of the tester's real device. Higher specificity than
-   both the base rules and the media query above, in either direction, so
-   it wins whether the real device is touch or mouse. */
-:root[data-preview='mobile'] .tab-bar {
-  display: none;
-}
-:root[data-preview='mobile'] .page {
-  padding-top: 20px;
-}
-
-:root[data-preview='desktop'] .tab-bar {
-  display: block;
-}
-:root[data-preview='desktop'] .page {
-  padding-top: 36px;
-}
-
 /* Mobile preview also frames the whole app to a phone-ish width, so the
-   fluid layout (grids, clamp()'d type, the tab-nav shrink-to-scroll
-   behaviour) is actually exercised, not just the nav variant. The
-   transform makes .app-shell the containing block for its position:fixed
-   background layers (DashboardBackground), confining them to the frame
-   instead of bleeding full-viewport-width behind it. */
+   fluid layout (grids, clamp()'d type) is actually exercised. The transform
+   makes .app-shell the containing block for its position:fixed descendants
+   (DashboardBackground, .floatnav), confining them to the frame instead of
+   bleeding full-viewport-width behind/below it. */
 :root[data-preview='mobile'] body {
   background: #050505;
 }
@@ -787,186 +870,46 @@ textarea:focus-visible {
   box-shadow: 0 40px 100px rgba(0, 0, 0, 0.7);
   transform: translateZ(0);
 }
-
 /* ---------------------------------------------------------------------- */
-/* Mobile nav — fixed top-right trigger + full-screen panel                */
-/* ---------------------------------------------------------------------- */
-
-/* Hidden by default (desktop/mouse); shown for touch devices and the
-   mobile preview override below. Fixed rather than a Header child so its
-   z-index competes directly with the panel's instead of being capped by
-   Header's own stacking context (position:sticky + z-index makes one). */
-.hamburger {
-  display: none;
-  position: fixed;
-  top: 18px;
-  right: 16px;
-  z-index: 110;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-@media (hover: none) and (pointer: coarse) {
-  .hamburger {
-    display: block;
-  }
-}
-:root[data-preview='mobile'] .hamburger {
-  display: block;
-}
-:root[data-preview='desktop'] .hamburger {
-  display: none;
-}
-
-/* Two lines that converge on the vertical centre and rotate into an X —
-   Apple.com's menu-toggle animation, not a third line that just fades. */
-.hamburger span {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 22px;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--paper);
-  transform: translate(-50%, -50%) translateY(-5px);
-  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1);
-}
-
-.hamburger span:nth-child(2) {
-  transform: translate(-50%, -50%) translateY(5px);
-}
-
-.hamburger.is-open span:nth-child(1) {
-  transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.hamburger.is-open span:nth-child(2) {
-  transform: translate(-50%, -50%) rotate(-45deg);
-}
-
-/* A plain fade + slight rise, deliberately not the old clip-path circle
-   expanding from the trigger's measured position — that depended on
-   getBoundingClientRect() at toggle time and would visibly glitch or
-   "stick" if the page had scrolled since. Nothing here depends on
-   coordinates, so there's nothing to get wrong. */
-.mobile-nav-panel {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 96px 32px 40px;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(10px);
-  pointer-events: none;
-  transition: opacity 300ms ease, transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    visibility 0ms 300ms;
-}
-
-.mobile-nav-panel.is-open {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
-  transition: opacity 300ms ease, transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* Left-aligned list per the reference — plain text, no pill chrome, the
-   active tab distinguished by colour and a leading marker rather than a
-   filled background. */
-.mobile-nav-panel .tab-nav {
-  flex-direction: column;
-  align-items: flex-start;
-  overflow: visible;
-  gap: 4px;
-}
-
-.mobile-nav-panel .tab-nav__link {
-  border: none;
-  border-radius: 0;
-  padding: 12px 0;
-  width: 100%;
-  font-size: clamp(26px, 8vw, 34px);
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  text-transform: none;
-  color: var(--muted);
-}
-
-.mobile-nav-panel .tab-nav__link:hover {
-  background: none;
-}
-
-.mobile-nav-panel .tab-nav__link--active {
-  background: none;
-  color: var(--paper);
-}
-
-.mobile-nav-panel__foot {
-  margin-top: 32px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-}
-
-.mobile-nav-panel__foot .btn {
-  padding-left: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mobile-nav-panel,
-  .mobile-nav-panel.is-open,
-  .hamburger span {
-    transition: none;
-  }
-}
-
-/* ---------------------------------------------------------------------- */
-/* Ticker                                                                   */
+/* Ticker — the same glass surface as the floating nav, so the scrolling    */
+/* headline strip reads as a matching piece of glass chrome rather than an  */
+/* opaque bar with a flat colour fill.                                      */
 /* ---------------------------------------------------------------------- */
 .ticker {
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
   overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .ticker__track {
   display: flex;
   gap: 40px;
   white-space: nowrap;
-  padding: 8px 0;
+  padding: 10px 0;
   width: max-content;
   will-change: transform;
 }
 
 .ticker__item {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--muted);
+  color: var(--accent-contrast);
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
 .ticker__item strong {
-  color: var(--paper);
-  font-weight: 700;
+  color: var(--accent-contrast);
+  font-weight: 800;
 }
 
 .ticker__dot {
   width: 4px;
   height: 4px;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--accent-contrast);
+  opacity: 0.55;
 }
 
 
@@ -1079,6 +1022,163 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .kpi-flip__inner {
     transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Dashboard hero — bigger, more graphic content unit, tested here first    */
+/* before it goes anywhere else. Hairline-bordered blocks over the same     */
+/* photo/scrim background every other page uses, rather than the flat card  */
+/* system, so it reads as a poster rather than a spreadsheet.               */
+/* ---------------------------------------------------------------------- */
+.dash-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dash-hero__grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.dash-hero__wordmark-wrap {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: rgba(11, 11, 11, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  min-height: 260px;
+}
+
+.dash-hero__wordmark {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+  text-align: center;
+  color: var(--paper);
+}
+
+.dash-hero__wordmark-line {
+  display: block;
+  font-size: clamp(28px, 5vw, 52px);
+  white-space: nowrap;
+}
+
+.dash-hero__wobble-letter {
+  display: inline-block;
+}
+
+.dash-hero__panel {
+  flex: 1;
+  background: rgba(11, 11, 11, 0.82);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 26px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  min-height: 260px;
+}
+
+.dash-hero__kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dash-hero__headline {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(24px, 3.2vw, 38px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--paper);
+  text-wrap: balance;
+}
+
+.dash-hero__body {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 60ch;
+}
+
+.dash-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(var(--stat-count, 3), 1fr);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.dash-hero__stat {
+  padding: 22px 24px;
+  background: rgba(11, 11, 11, 0.5);
+  border-left: 1px solid var(--border-strong);
+}
+.dash-hero__stat:first-child {
+  border-left: none;
+}
+
+.dash-hero__stat-value {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(30px, 4.4vw, 50px);
+  line-height: 1;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-hero__stat-unit {
+  margin-left: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.dash-hero__stat-label {
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dash-hero__stat-delta {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--trend-up);
+}
+.dash-hero__stat-delta--down {
+  color: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .dash-hero__grid {
+    grid-template-columns: 1fr;
+  }
+  .dash-hero__stats {
+    grid-template-columns: 1fr;
+  }
+  .dash-hero__stat {
+    border-left: none;
+    border-top: 1px solid var(--border-strong);
+  }
+  .dash-hero__stat:first-child {
+    border-top: none;
   }
 }
 
@@ -1588,7 +1688,9 @@ textarea:focus-visible {
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  padding: 40px 0 56px;
+  /* Extra bottom clearance so these buttons don't sit under the fixed
+     .floatnav pill, which floats independently of normal document flow. */
+  padding: 40px 0 132px;
 }
 
 .btn-refresh {

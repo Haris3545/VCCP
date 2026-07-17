@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { attachGlassHighlight } from '@/lib/glassHighlight';
 
 // Decorative, always-on strip. Explicitly labelled SIMULATED — nothing here
 // should ever be mistaken for a live feed by someone in the room.
@@ -34,6 +35,7 @@ function TickerItem({ item }) {
 
 export default function Ticker() {
   const loop = [...ITEMS, ...ITEMS];
+  const rootRef = useRef(null);
   const trackRef = useRef(null);
   const stateRef = useRef({
     x: 0,
@@ -85,6 +87,8 @@ export default function Ticker() {
     };
   }, []);
 
+  useEffect(() => attachGlassHighlight(rootRef.current), []);
+
   function setTarget(target) {
     const s = stateRef.current;
     s.from = s.speed;
@@ -93,7 +97,12 @@ export default function Ticker() {
   }
 
   return (
-    <div className="ticker" onMouseEnter={() => setTarget(HOVER_SPEED)} onMouseLeave={() => setTarget(BASE_SPEED)}>
+    <div
+      className="ticker glass"
+      ref={rootRef}
+      onMouseEnter={() => setTarget(HOVER_SPEED)}
+      onMouseLeave={() => setTarget(BASE_SPEED)}
+    >
       <div className="ticker__track" ref={trackRef}>
         {loop.map((item, i) => (
           <TickerItem item={item} key={i} />

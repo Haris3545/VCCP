@@ -5,8 +5,7 @@ import { useLocalStorage } from '@/lib/useLocalStorage';
 import DashboardBackground from './DashboardBackground';
 import Header from './Header';
 import Ticker from './Ticker';
-import TabBar from './TabBar';
-import MobileNav from './MobileNav';
+import FloatingTabNav from './FloatingTabNav';
 import RefreshButton from './RefreshButton';
 import PreviewToggle from './PreviewToggle';
 import PreviewBanner from './PreviewBanner';
@@ -43,19 +42,18 @@ export default function AppShell({ children, title }) {
         </Head>
         <DashboardBackground />
         <Header />
-        {/* Mounted at the shell level, not inside Header, so its trigger's
-            z-index competes directly with the full-screen panel's instead of
-            being capped by Header's own stacking context (position:sticky +
-            z-index create one). It self-positions with position:fixed. */}
-        <MobileNav />
         <Ticker />
-        <TabBar />
         <main className="container page">{children}</main>
         <footer className="page-footer container">
           <RefreshButton />
           <PreviewToggle mode={previewMode} onCycle={() => setPreviewMode((m) => NEXT_PREVIEW_MODE[m] ?? 'auto')} />
         </footer>
         <GlassPointer />
+        {/* Inside .app-shell (not a PreviewBanner-style sibling) so mobile
+            preview's transform confines it to the simulated phone frame the
+            same way it confines DashboardBackground, rather than floating
+            it over the tester's real full-width viewport. */}
+        <FloatingTabNav />
       </div>
     </>
   );
