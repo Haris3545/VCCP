@@ -1,5 +1,6 @@
 import { isAuthedRequestCookie } from '@/lib/auth';
 import { clearCache } from '@/lib/integrations/http';
+import { resetIdeas } from '@/lib/ideas/store';
 
 // Every ISR-backed page that pulls from lib/dataSource.js — kept as a
 // literal list because res.revalidate() needs each path up front, same
@@ -25,6 +26,16 @@ export default async function handler(req, res) {
     } catch (err) {
       failed.push(`${path} (${err.message})`);
     }
+  }
+
+  // "Refresh everything" is the site's one catch-all restore action, so it
+  // also puts every idea's verdict back to pending - same effect the old,
+  // ideas-only "Reset ideas" button had, without a separate confirm dialog
+  // to ask for since this button already reloads the whole page on success.
+  try {
+    await resetIdeas();
+  } catch (err) {
+    failed.push(`ideas reset (${err.message})`);
   }
 
   if (failed.length) {

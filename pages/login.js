@@ -45,6 +45,11 @@ export default function LoginPage() {
     <>
       <Head>
         <title>{artistConfig.meta.title}</title>
+        {/* Warms the browser's cache for the circle-reveal transition below,
+            so the image is already decoded and ready by the time the Enter
+            click fires it - otherwise the first paint inside the growing
+            circle would flash in empty rather than showing the photo. */}
+        <link rel="preload" as="image" href="/media/dashboard-bg.jpg" />
       </Head>
       <div className="login-screen">
         <video className="login-bg-video" autoPlay muted loop playsInline>
