@@ -4,11 +4,15 @@ import { listIdeas, addIdea } from '@/lib/ideas/store';
 // Base64-encoded images inflate ~33% over raw bytes and ride inside the
 // JSON body rather than a multipart upload — simpler to get right than
 // hand-rolling multipart parsing, at the cost of this ceiling being lower
-// than the image's actual byte size. 8mb of base64 is roughly a 6mb photo,
-// generous for a card image but not for an uncompressed original.
+// than the image's actual byte size. Capped below Vercel's own hard
+// ~4.5MB request-body limit for serverless functions, which isn't
+// configurable here and rejects anything over it before this code ever
+// runs, with a plain-text "Request Entity Too Large" response rather than
+// JSON — the 8mb this used to be set to was already unreachable in
+// practice. 4mb of base64 is roughly a 3mb photo.
 export const config = {
   api: {
-    bodyParser: { sizeLimit: '8mb' },
+    bodyParser: { sizeLimit: '4mb' },
   },
 };
 
