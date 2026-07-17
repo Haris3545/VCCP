@@ -1,4 +1,4 @@
-import TabNav from './TabNav';
+import ConsoleTabNav from './ConsoleTabNav';
 import LogoutButton from './LogoutButton';
 
 // Desktop/mouse only now — touch devices get MobileNav's fixed trigger +
@@ -10,7 +10,7 @@ export default function TabBar() {
     <div className="tab-bar">
       <div className="container tab-bar__row">
         <div className="tab-bar__desktop">
-          <TabNav />
+          <ConsoleTabNav />
           <LogoutButton />
         </div>
       </div>
