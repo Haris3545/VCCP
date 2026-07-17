@@ -1,19 +1,9 @@
 import AppShell from '@/components/layout/AppShell';
-import DashboardView from '@/components/dashboard/DashboardView';
+import DashboardHero from '@/components/dashboard/DashboardHero';
 import { getDashboardData } from '@/lib/dataSource';
 
 export default function DashboardPage({ data }) {
-  return (
-    <>
-      <div className="page-head">
-        <div className="page-head__title">
-          <span className="page-head__bar" aria-hidden="true" />
-          <h1>Dashboard</h1>
-        </div>
-      </div>
-      <DashboardView data={data} />
-    </>
-  );
+  return <DashboardHero data={data} />;
 }
 
 DashboardPage.getLayout = function getLayout(page) {

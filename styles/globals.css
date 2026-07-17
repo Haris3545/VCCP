@@ -196,10 +196,10 @@ p {
 }
 
 .page {
-  /* A bit more than before the tab bar was removed — that in-flow bar used
-     to supply its own breathing room below the ticker; now Ticker sits
-     directly above .page, so the top gap has to make up for it here. */
-  padding-top: 56px;
+  /* Nothing sits in-flow above .page now except the header and ticker, so
+     content can sit much closer to them than when the tab bar (and its own
+     internal padding) used to occupy this space. */
+  padding-top: 22px;
   padding-bottom: 96px;
 }
 
@@ -501,13 +501,13 @@ textarea:focus-visible {
 }
 
 .header__row {
-  min-height: var(--header-h);
+  min-height: calc(var(--header-h) - 16px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: 8px;
+  padding-bottom: 8px;
   flex-wrap: wrap;
 }
 
@@ -578,7 +578,58 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Floating tab nav — one fixed pill, every breakpoint, always on screen   */
+/* Liquid glass — shared by the ticker and the floating nav. The backdrop-  */
+/* filter references GlassFilterDefs' feDisplacementMap for lensing/       */
+/* refraction; browsers that ignore an SVG filter reference inside         */
+/* backdrop-filter (mainly Safari) just fall back to the plain blur.       */
+/* --gx/--gy (driven by lib/glassHighlight.js on pointermove + scroll)     */
+/* position the specular highlight so it visibly shifts as you move the    */
+/* pointer or scroll — a stand-in for real content-sampling, not literal   */
+/* pixel-adaptive tinting. */
+/* ---------------------------------------------------------------------- */
+.glass {
+  position: relative;
+  --gx: 30%;
+  --gy: 20%;
+  background: linear-gradient(180deg, rgba(244, 242, 234, 0.24), rgba(244, 242, 234, 0.1));
+  backdrop-filter: blur(18px) url(#glass-distortion) saturate(1.7) brightness(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.7) brightness(1.08);
+  isolation: isolate;
+}
+
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(160px 120px at var(--gx) var(--gy), rgba(255, 255, 255, 0.65), transparent 65%);
+  mix-blend-mode: overlay;
+  z-index: 0;
+  transition: background-position 200ms ease;
+}
+
+.glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -8px 16px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  z-index: 0;
+}
+
+.glass > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Floating tab nav — one fixed glass pill, every breakpoint, always on     */
+/* screen. A white puck slides (and can be dragged) behind the active tab; */
+/* below the collapse breakpoint it's replaced by the current tab's name   */
+/* plus a Menu trigger that unfurls the rest above the pill.                */
 /* ---------------------------------------------------------------------- */
 .floatnav {
   position: fixed;
@@ -590,11 +641,10 @@ textarea:focus-visible {
   align-items: center;
   gap: 4px;
   max-width: calc(100vw - 24px);
-  background: var(--paper);
-  border: 3px solid var(--accent-contrast);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 999px;
   padding: 6px;
-  box-shadow: 0 10px 0 rgba(11, 11, 11, 0.14), 0 18px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 10px 0 rgba(11, 11, 11, 0.1), 0 18px 40px rgba(0, 0, 0, 0.45);
 }
 
 .floatnav__mark {
@@ -645,18 +695,39 @@ textarea:focus-visible {
 }
 
 .floatnav__items {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  touch-action: pan-x;
 }
 .floatnav__items::-webkit-scrollbar {
   display: none;
 }
 
+.floatnav__puck {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  height: calc(100% - 8px);
+  width: 0;
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1), width 320ms cubic-bezier(0.65, 0, 0.35, 1);
+  z-index: 0;
+  /* Always sits fully behind the active Link, so it can never be the actual
+     pointer target — dragging is handled by .floatnav__items hit-testing
+     this rect instead (see FloatingTabNav.js). */
+  pointer-events: none;
+}
+
 .floatnav__link {
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
   padding: 12px 18px;
   border-radius: 999px;
@@ -666,19 +737,91 @@ textarea:focus-visible {
   text-transform: uppercase;
   color: var(--accent-contrast);
   white-space: nowrap;
-  transition: background 140ms ease, color 140ms ease;
 }
 
-.floatnav__link:hover {
+.floatnav__current {
+  padding: 12px 16px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent-contrast);
+  white-space: nowrap;
+}
+
+.floatnav__menu-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--accent-contrast);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.floatnav__menu-btn:hover {
   background: rgba(11, 11, 11, 0.08);
 }
 
-.floatnav__link--active {
-  background: var(--accent-contrast);
-  color: var(--paper);
+.floatnav__menu-glyph {
+  display: inline-block;
+  font-size: 15px;
+  line-height: 1;
+  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.floatnav__menu-btn[aria-expanded='true'] .floatnav__menu-glyph {
+  transform: rotate(135deg);
+}
+
+.floatnav__unfurl {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  transform: translateX(-50%);
+  width: max-content;
+  min-width: 200px;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 480ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.floatnav__unfurl[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.floatnav__unfurl-inner {
+  overflow: hidden;
+  min-height: 0;
+  background: var(--paper);
+  border: 1px solid rgba(11, 11, 11, 0.15);
+  border-radius: 18px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.floatnav__unfurl-link {
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent-contrast);
+  transition: background 120ms ease;
+}
+.floatnav__unfurl-link:hover {
+  background: rgba(11, 11, 11, 0.08);
 }
 
 .floatnav__logout.btn.btn--ghost {
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
   margin-left: 4px;
   padding: 8px 12px;
@@ -694,7 +837,8 @@ textarea:focus-visible {
   .floatnav__mark-text {
     display: none;
   }
-  .floatnav__link {
+  .floatnav__link,
+  .floatnav__current {
     padding: 10px 12px;
     font-size: 11.5px;
   }
@@ -703,6 +847,9 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .floatnav__eq i {
     animation: none;
+  }
+  .floatnav__puck {
+    transition: none;
   }
 }
 
@@ -724,43 +871,45 @@ textarea:focus-visible {
   transform: translateZ(0);
 }
 /* ---------------------------------------------------------------------- */
-/* Ticker                                                                   */
+/* Ticker — the same glass surface as the floating nav, so the scrolling    */
+/* headline strip reads as a matching piece of glass chrome rather than an  */
+/* opaque bar with a flat colour fill.                                      */
 /* ---------------------------------------------------------------------- */
 .ticker {
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
   overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .ticker__track {
   display: flex;
   gap: 40px;
   white-space: nowrap;
-  padding: 8px 0;
+  padding: 10px 0;
   width: max-content;
   will-change: transform;
 }
 
 .ticker__item {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--muted);
+  color: var(--accent-contrast);
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
 .ticker__item strong {
-  color: var(--paper);
-  font-weight: 700;
+  color: var(--accent-contrast);
+  font-weight: 800;
 }
 
 .ticker__dot {
   width: 4px;
   height: 4px;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--accent-contrast);
+  opacity: 0.55;
 }
 
 
@@ -873,6 +1022,163 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .kpi-flip__inner {
     transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Dashboard hero — bigger, more graphic content unit, tested here first    */
+/* before it goes anywhere else. Hairline-bordered blocks over the same     */
+/* photo/scrim background every other page uses, rather than the flat card  */
+/* system, so it reads as a poster rather than a spreadsheet.               */
+/* ---------------------------------------------------------------------- */
+.dash-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dash-hero__grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.dash-hero__wordmark-wrap {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: rgba(11, 11, 11, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  min-height: 260px;
+}
+
+.dash-hero__wordmark {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+  text-align: center;
+  color: var(--paper);
+}
+
+.dash-hero__wordmark-line {
+  display: block;
+  font-size: clamp(28px, 5vw, 52px);
+  white-space: nowrap;
+}
+
+.dash-hero__wobble-letter {
+  display: inline-block;
+}
+
+.dash-hero__panel {
+  flex: 1;
+  background: rgba(11, 11, 11, 0.82);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 26px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  min-height: 260px;
+}
+
+.dash-hero__kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dash-hero__headline {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(24px, 3.2vw, 38px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--paper);
+  text-wrap: balance;
+}
+
+.dash-hero__body {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 60ch;
+}
+
+.dash-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(var(--stat-count, 3), 1fr);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.dash-hero__stat {
+  padding: 22px 24px;
+  background: rgba(11, 11, 11, 0.5);
+  border-left: 1px solid var(--border-strong);
+}
+.dash-hero__stat:first-child {
+  border-left: none;
+}
+
+.dash-hero__stat-value {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(30px, 4.4vw, 50px);
+  line-height: 1;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-hero__stat-unit {
+  margin-left: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.dash-hero__stat-label {
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dash-hero__stat-delta {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--trend-up);
+}
+.dash-hero__stat-delta--down {
+  color: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .dash-hero__grid {
+    grid-template-columns: 1fr;
+  }
+  .dash-hero__stats {
+    grid-template-columns: 1fr;
+  }
+  .dash-hero__stat {
+    border-left: none;
+    border-top: 1px solid var(--border-strong);
+  }
+  .dash-hero__stat:first-child {
+    border-top: none;
   }
 }
 
