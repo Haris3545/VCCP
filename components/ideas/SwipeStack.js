@@ -32,7 +32,7 @@ export default function SwipeStack({ ideas, onDecide, onEditIdea, onDeleteIdea }
   const idleTimerRef = useRef(null);
 
   const top = ideas[0];
-  const behind = ideas.slice(1, 4);
+  const visible = ideas.slice(0, 4);
 
   useEffect(() => {
     resetIdleTimer();
@@ -134,42 +134,41 @@ export default function SwipeStack({ ideas, onDecide, onEditIdea, onDeleteIdea }
         </svg>
       </button>
 
-      {behind
+      {visible
         .slice()
         .reverse()
         .map((idea, i) => {
-          const depth = behind.length - i;
-          const t = BEHIND_TRANSFORMS[depth - 1];
+          const depth = visible.length - 1 - i;
+          const isTop = depth === 0;
+          const t = isTop ? { x: effectiveX, y: 0, rotate: effectiveRotate, scale: 1 } : { x: 0, ...BEHIND_TRANSFORMS[depth - 1] };
+
           return (
             <IdeaCard
               key={idea.id}
               idea={idea}
+              dragX={isTop ? effectiveX : 0}
+              flipped={isTop && flipped}
+              className={isTop && idleHint && !dragging && !flying ? 'idea-card--idle-hint' : ''}
               style={{
-                transform: `translateY(${t.y}px) rotate(${t.rotate}deg) scale(${t.scale})`,
-                zIndex: 1,
-                transition: 'transform 260ms ease',
+                // Always the same transform function order (translateX,
+                // translateY, rotate, scale) for every depth, top included -
+                // so when a behind card is promoted to top, it's the same
+                // DOM node (matched by key) animating a property change
+                // rather than a fresh mount snapping straight into place,
+                // and the browser can interpolate cleanly between the two
+                // shapes instead of falling back to matrix decomposition.
+                transform: `translateX(${t.x}px) translateY(${t.y}px) rotate(${t.rotate}deg) scale(${t.scale})`,
+                zIndex: visible.length - depth,
+                transition: isTop && dragging ? 'none' : 'transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)',
               }}
+              onPointerDown={isTop ? handlePointerDown : undefined}
+              onPointerMove={isTop ? handlePointerMove : undefined}
+              onPointerUp={isTop ? handlePointerUp : undefined}
+              onEdit={isTop && onEditIdea ? () => onEditIdea(idea) : undefined}
+              onDelete={isTop && onDeleteIdea ? () => onDeleteIdea(idea.id) : undefined}
             />
           );
         })}
-
-      <IdeaCard
-        key={top.id}
-        idea={top}
-        dragX={effectiveX}
-        dragRotate={effectiveRotate}
-        flipped={flipped}
-        className={idleHint && !dragging && !flying ? 'idea-card--idle-hint' : ''}
-        style={{
-          zIndex: 2,
-          transition: dragging ? 'none' : 'transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-        }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onEdit={onEditIdea ? () => onEditIdea(top) : undefined}
-        onDelete={onDeleteIdea ? () => onDeleteIdea(top.id) : undefined}
-      />
     </div>
   );
 }
