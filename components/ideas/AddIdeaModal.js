@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
+import { compressImage } from './compressImage';
 
 const initialForm = { title: '', description: '', timeline: '' };
 
@@ -22,6 +23,7 @@ export default function AddIdeaModal({ open, onClose, onAdded }) {
   const [form, setForm] = useState(initialForm);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [compressing, setCompressing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -37,13 +39,22 @@ export default function AddIdeaModal({ open, onClose, onAdded }) {
     onClose();
   }
 
-  function handleImageChange(e) {
+  async function handleImageChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = () => setImagePreview(reader.result);
-    reader.readAsDataURL(file);
+    setCompressing(true);
+    setError('');
+    try {
+      const compressed = await compressImage(file);
+      setImageFile(compressed);
+      const reader = new FileReader();
+      reader.onload = () => setImagePreview(reader.result);
+      reader.readAsDataURL(compressed);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCompressing(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -90,10 +101,10 @@ export default function AddIdeaModal({ open, onClose, onAdded }) {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <label
           className="image-drop"
-          style={imagePreview ? { backgroundImage: `url(${imagePreview})`, color: 'transparent' } : undefined}
+          style={imagePreview && !compressing ? { backgroundImage: `url(${imagePreview})`, color: 'transparent' } : undefined}
         >
-          {imagePreview ? '' : 'Add an image (optional) — tap to choose'}
-          <input type="file" accept="image/*" onChange={handleImageChange} />
+          {compressing ? 'Compressing…' : imagePreview ? '' : 'Add an image (optional) — tap to choose'}
+          <input type="file" accept="image/*" onChange={handleImageChange} disabled={compressing} />
         </label>
 
         <div className="field-group">
@@ -139,7 +150,7 @@ export default function AddIdeaModal({ open, onClose, onAdded }) {
 
         {error ? <div className="field-error">{error}</div> : null}
 
-        <button type="submit" className="btn btn--primary" disabled={submitting}>
+        <button type="submit" className="btn btn--primary" disabled={submitting || compressing}>
           {submitting ? 'Adding…' : 'Add idea'}
         </button>
       </form>
