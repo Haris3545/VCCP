@@ -20,7 +20,7 @@ const BEHIND_TRANSFORMS = [
 // (hidden on touch via CSS) reuse the exact same resolveSwipe() path a
 // drag would take, just with a synthetic drag distance, so a click and a
 // full drag animate identically.
-export default function SwipeStack({ ideas, onDecide }) {
+export default function SwipeStack({ ideas, onDecide, onEditIdea, onDeleteIdea }) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [flying, setFlying] = useState(null);
@@ -167,6 +167,8 @@ export default function SwipeStack({ ideas, onDecide }) {
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onEdit={onEditIdea ? () => onEditIdea(top) : undefined}
+        onDelete={onDeleteIdea ? () => onDeleteIdea(top.id) : undefined}
       />
     </div>
   );
