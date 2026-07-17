@@ -64,6 +64,12 @@ export default function PageTransitionOverlay() {
   }, [state.active, state.closing, state.x, state.y]);
 
   useEffect(() => {
+    // router.events is a stable singleton for the app's lifetime even though
+    // the `router` object itself gets a new identity on every navigation —
+    // depending on [router] here would re-subscribe on each route change,
+    // and that re-subscription's cleanup would cancel the close timeout
+    // below moments after scheduling it, so the overlay would arm the fade
+    // but never actually run it.
     function handleDone() {
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const elapsed = performance.now() - startTimeRef.current;
@@ -80,7 +86,8 @@ export default function PageTransitionOverlay() {
       router.events.off('routeChangeError', handleDone);
       clearTimeout(closeTimeoutRef.current);
     };
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!state.closing) return undefined;
