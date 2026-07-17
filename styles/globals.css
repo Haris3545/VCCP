@@ -1933,13 +1933,16 @@ textarea:focus-visible {
   inset: -30px;
   background-size: cover;
   background-position: center;
-  filter: blur(26px) brightness(0.4) saturate(1.1);
+  filter: blur(26px) brightness(0.85) saturate(1.05);
 }
 
+/* Lighter + warmer than the front's near-black scrim on purpose, so the
+   back reads as a distinct, different surface (the "back of the card")
+   rather than just a dimmer copy of the front photo. */
 .idea-card__back-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(6, 6, 6, 0.62);
+  background: rgba(52, 48, 40, 0.42);
 }
 
 /* Positioned (not just in-flow) so it paints above the absolutely
@@ -1954,6 +1957,13 @@ textarea:focus-visible {
   flex-direction: column;
   gap: 14px;
   overflow-y: auto;
+}
+
+.idea-card__back-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .idea-card__back-title {
@@ -1997,31 +2007,28 @@ textarea:focus-visible {
   text-align: center;
 }
 
-/* A separate sibling of .idea-card__back-content (not a child) so it stays
-   pinned to the corner regardless of that panel's own overflow-y: auto
-   scrolling, and paints above the bg/scrim beneath it like the content
-   panel does, per the same positioned-sibling stacking rule. */
+/* Laid out inline next to the title in .idea-card__back-header (flex,
+   space-between) rather than absolutely positioned over it - an overlay
+   here doesn't reserve space, so a long/wrapping title just runs under it. */
 .idea-card__back-actions {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 2;
+  flex-shrink: 0;
   display: flex;
   gap: 8px;
 }
 
 .idea-card__back-action {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 1px solid var(--border-strong);
-  background: rgba(6, 6, 6, 0.55);
+  background: rgba(6, 6, 6, 0.4);
   color: var(--paper);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .idea-card__back-action svg {
