@@ -5,6 +5,15 @@ const SWIPE_THRESHOLD = 110;
 const IDLE_DELAY_MS = 7000;
 const FLY_OUT_MS = 260;
 
+// Alternating tilt per depth (indexed by depth - 1) so the stack behind
+// the top card reads as a loosely fanned pile rather than a straight,
+// perfectly centered stack peeking out symmetrically.
+const BEHIND_TRANSFORMS = [
+  { rotate: -6, y: 10, scale: 0.97 },
+  { rotate: 8, y: 18, scale: 0.94 },
+  { rotate: -11, y: 26, scale: 0.91 },
+];
+
 // Drag lives entirely on pointer events (covers mouse and touch alike) so
 // the same code path handles a real swipe and a mouse drag - no separate
 // touch/mouse branches to keep in sync. The desktop-only circle buttons
@@ -23,7 +32,7 @@ export default function SwipeStack({ ideas, onDecide }) {
   const idleTimerRef = useRef(null);
 
   const top = ideas[0];
-  const behind = ideas.slice(1, 3);
+  const behind = ideas.slice(1, 4);
 
   useEffect(() => {
     resetIdleTimer();
@@ -130,12 +139,13 @@ export default function SwipeStack({ ideas, onDecide }) {
         .reverse()
         .map((idea, i) => {
           const depth = behind.length - i;
+          const t = BEHIND_TRANSFORMS[depth - 1];
           return (
             <IdeaCard
               key={idea.id}
               idea={idea}
               style={{
-                transform: `translateY(${depth * 8}px) scale(${1 - depth * 0.03})`,
+                transform: `translateY(${t.y}px) rotate(${t.rotate}deg) scale(${t.scale})`,
                 zIndex: 1,
                 transition: 'transform 260ms ease',
               }}
