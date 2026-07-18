@@ -574,24 +574,25 @@ textarea:focus-visible {
   transform: translateZ(0);
 }
 /* ---------------------------------------------------------------------- */
-/* Ticker — inset within the page's normal container margins rather than    */
-/* running edge-to-edge, with the same frosted-outline surface as a card.   */
+/* Ticker — plain scrolling text over the background photo, no panel/box.   */
+/* A thick solid rule sits above it; the scroller itself fades out at both  */
+/* edges (a mask, not a hard clip) rather than being boxed in.              */
 /* ---------------------------------------------------------------------- */
 .ticker {
+  border-top: 3px solid var(--paper);
+}
+
+.ticker__viewport {
   overflow: hidden;
-  margin-top: 16px;
-  background: var(--glass-tint);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 80px, #000 calc(100% - 80px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 80px, #000 calc(100% - 80px), transparent 100%);
 }
 
 .ticker__track {
   display: flex;
   gap: 32px;
   white-space: nowrap;
-  padding: 9px 20px;
+  padding: 12px 0;
   width: max-content;
   will-change: transform;
 }

@@ -87,15 +87,13 @@ export default function Ticker() {
   }
 
   return (
-    <div
-      className="ticker container"
-      onMouseEnter={() => setTarget(HOVER_SPEED)}
-      onMouseLeave={() => setTarget(BASE_SPEED)}
-    >
-      <div className="ticker__track" ref={trackRef}>
-        {loop.map((item, i) => (
-          <TickerItem item={item} key={i} />
-        ))}
+    <div className="ticker" onMouseEnter={() => setTarget(HOVER_SPEED)} onMouseLeave={() => setTarget(BASE_SPEED)}>
+      <div className="ticker__viewport">
+        <div className="ticker__track" ref={trackRef}>
+          {loop.map((item, i) => (
+            <TickerItem item={item} key={i} />
+          ))}
+        </div>
       </div>
     </div>
   );
