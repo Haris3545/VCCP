@@ -3,6 +3,17 @@ import SourceBadge from '@/components/ui/SourceBadge';
 import { CATEGORIES, deriveCategory, formatDate, cleanOutletName } from '@/lib/media/helpers';
 import { MediaTrendIndex } from './MediaView';
 
+// One intuitive colour per topic, picked so a whole grid of these reads
+// at a glance without a legend - deliberately clear of green/red, which
+// are reserved for trend up/down elsewhere in the app (artist.config.js).
+const CATEGORY_COLORS = {
+  music: '#6c8bff',
+  film: '#ff9d5c',
+  style: '#e37cc9',
+  celebrity: '#b78cff',
+  culture: '#7fd8d0',
+};
+
 // Same underlying feed and derivation as MediaView (see lib/media/helpers)
 // but none of the newspaper aesthetic - flat, rounded pill cards in a
 // grid instead of a tilted paper stack, each one expanding in place on
@@ -65,7 +76,11 @@ export default function Media2View({ data }) {
           const outletName = cleanOutletName(article.outlet);
 
           return (
-            <article key={article.link} className={`media2-pill${isOpen ? ' media2-pill--open' : ''}`}>
+            <article
+              key={article.link}
+              className={`media2-pill${isOpen ? ' media2-pill--open' : ''}`}
+              style={{ '--cat-color': CATEGORY_COLORS[article.category] || CATEGORY_COLORS.culture }}
+            >
               <button
                 type="button"
                 className="media2-pill__toggle"
@@ -85,8 +100,8 @@ export default function Media2View({ data }) {
                   <p className="media2-pill__snippet">
                     {article.snippet || 'No preview text was returned for this article — read it in full at the source.'}
                   </p>
-                  <a className="media2-pill__link" href={article.link} target="_blank" rel="noreferrer">
-                    Read full article at {outletName} →
+                  <a className="media2-pill__go" href={article.link} target="_blank" rel="noreferrer">
+                    Go to article
                   </a>
                 </div>
               </div>

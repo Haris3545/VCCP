@@ -967,34 +967,25 @@ html.custom-cursor-active textarea {
 /* opaque bar with a flat colour fill.                                      */
 /* ---------------------------------------------------------------------- */
 /* The scrolling track fades into the edges instead of hard-clipping mid-
-   character, and the single flat border-bottom is replaced with a double
-   rule - a thicker line, then a thinner one just underneath it, both
-   inset with matching side margins rather than running full-bleed - the
-   same "thick rule, thin rule below it" motif as the Media masthead,
-   just applied to the chrome instead of newsprint. */
+   character. The dividing line underneath does the same rather than
+   being a flat, uniform low-opacity bar - it's one line whose own
+   gradient fades to nothing at each end, echoing the track's fade
+   instead of just looking like a translucent bar drawn across it. */
 .ticker {
   position: relative;
   overflow: hidden;
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 64px, #000 calc(100% - 64px), transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0, #000 64px, #000 calc(100% - 64px), transparent 100%);
 }
-.ticker::before,
-.ticker::after {
+.ticker::before {
   content: '';
   position: absolute;
   left: 24px;
   right: 24px;
-  pointer-events: none;
-}
-.ticker::before {
-  bottom: 6px;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.2);
-}
-.ticker::after {
-  bottom: 3px;
+  bottom: 4px;
   height: 1px;
-  background: rgba(255, 255, 255, 0.09);
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.24) 18%, rgba(255, 255, 255, 0.24) 82%, transparent 100%);
+  pointer-events: none;
 }
 
 .ticker__track {
@@ -3065,6 +3056,10 @@ html.custom-cursor-active textarea {
    state instead of that nav's hover-preview mechanic (there's nothing to
    preview here, only one thing is ever "active"). Used for both the trend
    card's period switch and the category filter tabs. */
+/* Matched to .floatnav/.floatnav__link (the bottom floating tab bar) -
+   same container radius/padding/shadow and same button font-size/padding,
+   so this reads as the same chrome family rather than a smaller, flatter
+   cousin of it. */
 .pill-toggle {
   display: inline-flex;
   align-items: center;
@@ -3073,7 +3068,7 @@ html.custom-cursor-active textarea {
   border: 1px solid var(--border-strong);
   border-radius: 18px;
   background: var(--surface-raised);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.3), 0 18px 40px rgba(0, 0, 0, 0.55);
   max-width: 100%;
   overflow-x: auto;
 }
@@ -3086,11 +3081,11 @@ html.custom-cursor-active textarea {
   all: unset;
   cursor: pointer;
   flex-shrink: 0;
-  padding: 9px 15px;
+  padding: 12px 18px;
   border-radius: 14px;
   font-family: var(--font-display);
-  font-size: 11px;
-  letter-spacing: 0.03em;
+  font-size: 13px;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--paper);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
@@ -3168,6 +3163,21 @@ html.custom-cursor-active textarea {
 }
 .media-trend__tone-fill--neg {
   background: var(--danger);
+}
+/* Neutral had no fill at all before - it just read as empty track, easy
+   to mistake for "no data" rather than "this many articles were neutral."
+   A diagonal hatch instead of a third solid colour reads as its own kind
+   of segment (neither positive nor negative) rather than one more colour
+   competing with the other two. */
+.media-trend__tone-fill--neutral {
+  background-color: rgba(255, 255, 255, 0.14);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.4) 0,
+    rgba(255, 255, 255, 0.4) 2px,
+    transparent 2px,
+    transparent 5px
+  );
 }
 
 .media-trend__tone-label {
@@ -3658,10 +3668,17 @@ html.custom-cursor-active textarea {
   gap: 20px;
 }
 
+/* flex-wrap rather than CSS grid - grid-column spans (the obvious way to
+   make one card claim a whole row) aren't animatable, so an expanding
+   card would just snap wider with no transition. flex-basis and max-width
+   both interpolate smoothly, and as a card's basis grows toward 100% the
+   browser keeps re-flowing the row in real time, so neighbours slide out
+   of the way as it grows rather than leaving a static gap where they used
+   to be. */
 .media2__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 16px;
 }
 
@@ -3671,15 +3688,28 @@ html.custom-cursor-active textarea {
    need to hold multi-line headlines and, once expanded, a paragraph. */
 .media2-pill {
   position: relative;
+  flex: 1 1 300px;
+  max-width: 420px;
   background: var(--glass-tint);
   border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--cat-color, var(--border-strong));
   border-radius: 20px;
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   isolation: isolate;
   overflow: hidden;
-  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease;
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease,
+    flex-basis 460ms cubic-bezier(0.65, 0, 0.35, 1), max-width 460ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Claims the entire row on its own (100% basis always wins a wrap) rather
+   than a fixed size, so it grows to whatever width that row actually has -
+   this is the "expand horizontally too" half of the open state; the
+   height side is the grid-template-rows accordion further down. */
+.media2-pill--open {
+  flex-basis: 100%;
+  max-width: 100%;
 }
 
 /* Same lift-on-hover bump as the newspaper strips (.news-strip:hover) -
@@ -3711,18 +3741,19 @@ html.custom-cursor-active textarea {
   margin-bottom: 10px;
 }
 
-/* One plain neutral tone for every tag rather than a colour per category -
-   green/red are reserved for trend up/down elsewhere in the app (see
-   artist.config.js), so this deliberately doesn't invent a second colour-
-   coding scheme on top of that. */
+/* Coloured per category (see CATEGORY_COLORS in Media2View.js, applied as
+   --cat-color) so the topic reads at a glance across a whole grid of
+   these without needing a legend - picked to stay clear of green/red,
+   which are reserved for trend up/down elsewhere in the app (see
+   artist.config.js). */
 .media2-pill__tag {
   font-family: var(--font-sans);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--bg);
-  background: var(--paper);
+  color: #0b0b0b;
+  background: var(--cat-color, var(--paper));
   border-radius: 999px;
   padding: 3px 9px;
 }
@@ -3788,16 +3819,24 @@ html.custom-cursor-active textarea {
   color: rgba(244, 242, 234, 0.78);
 }
 
-.media2-pill__link {
-  display: inline-block;
+.media2-pill__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 20px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--paper);
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--paper);
-  border-bottom: 1px solid currentColor;
-  padding-bottom: 2px;
+  letter-spacing: 0.02em;
+  color: var(--bg);
+  transition: background 140ms ease, transform 140ms ease;
+}
+.media2-pill__go:hover {
+  background: #fff;
+  transform: translateY(-1px);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -208,8 +208,7 @@ export function MediaTrendIndex({ articles }) {
             <span className="media-trend__tone-fill media-trend__tone-fill--neg" style={{ width: `${stats.negPct}%` }} />
           </div>
           <span className="media-trend__tone-label">
-            {stats.posPct}% positive · {stats.neutralPct}% neutral · {stats.negPct}% negative tone (headline keyword
-            heuristic - praise adjectives vs. plain announcements vs. backlash/sarcasm cues, not a sentiment model)
+            {stats.posPct}% positive · {stats.neutralPct}% neutral · {stats.negPct}% negative tone
           </span>
         </div>
       ) : null}
