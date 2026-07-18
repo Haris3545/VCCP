@@ -24,7 +24,7 @@ const MASTHEAD_STYLES = [
     weight: 900,
     style: 'normal',
     tracking: '0.01em',
-    paper: 'linear-gradient(160deg, #fbf9f2, #efece0)',
+    paper: 'linear-gradient(160deg, #efe9d8, #e3dcc4)',
     accent: '#a3272c',
     align: 'center',
   },
@@ -33,7 +33,7 @@ const MASTHEAD_STYLES = [
     weight: 700,
     style: 'italic',
     tracking: '0em',
-    paper: 'linear-gradient(160deg, #fdf6ee, #f1e6d6)',
+    paper: 'linear-gradient(160deg, #f0e6d4, #e6d8bd)',
     accent: '#5c2a4d',
     align: 'left',
   },
@@ -42,7 +42,7 @@ const MASTHEAD_STYLES = [
     weight: 700,
     style: 'normal',
     tracking: '0.02em',
-    paper: 'linear-gradient(160deg, #f6f5ef, #e7e4d8)',
+    paper: 'linear-gradient(160deg, #ece7d9, #dfd9c2)',
     accent: '#1d3a5f',
     align: 'left',
   },
@@ -51,7 +51,7 @@ const MASTHEAD_STYLES = [
     weight: 700,
     style: 'normal',
     tracking: '0em',
-    paper: 'linear-gradient(160deg, #f7f8f4, #e9ebe3)',
+    paper: 'linear-gradient(160deg, #edeadb, #e0ddc5)',
     accent: '#2f5233',
     align: 'center',
   },
@@ -60,7 +60,7 @@ const MASTHEAD_STYLES = [
     weight: 600,
     style: 'normal',
     tracking: '0em',
-    paper: 'linear-gradient(160deg, #f4f6ef, #e5e9dd)',
+    paper: 'linear-gradient(160deg, #eee6d2, #e2d6b8)',
     accent: '#1f5c56',
     align: 'left',
   },
@@ -69,7 +69,7 @@ const MASTHEAD_STYLES = [
     weight: 400,
     style: 'normal',
     tracking: '0em',
-    paper: 'linear-gradient(160deg, #faf3ec, #ecdcd0)',
+    paper: 'linear-gradient(160deg, #efe3d0, #e4d3b5)',
     accent: '#b5811a',
     align: 'center',
   },
@@ -78,7 +78,7 @@ const MASTHEAD_STYLES = [
     weight: 900,
     style: 'italic',
     tracking: '0em',
-    paper: 'linear-gradient(160deg, #f9f1ec, #ecdcd2)',
+    paper: 'linear-gradient(160deg, #ebe6da, #ddd7c3)',
     accent: '#1b1710',
     align: 'left',
   },
@@ -309,6 +309,25 @@ export default function MediaView({ data }) {
 
   return (
     <div className="media-newsroom">
+      {/* Ink-bleed filters shared by every headline/nameplate on the page -
+          feDisplacementMap distorts the crisp vector text edges using
+          turbulence noise, so type reads as printed rather than perfectly
+          even, the same technique used in the broadsheet print study. */}
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+        <defs>
+          <filter id="mediaInkBleed" x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="9" result="fiber" />
+            <feDisplacementMap in="SourceGraphic" in2="fiber" scale="1.6" xChannelSelector="R" yChannelSelector="G" result="bled" />
+            <feGaussianBlur in="bled" stdDeviation="0.22" />
+          </filter>
+          <filter id="mediaInkBleedHeavy" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="17" result="fiber2" />
+            <feDisplacementMap in="SourceGraphic" in2="fiber2" scale="2.6" xChannelSelector="R" yChannelSelector="G" result="bled2" />
+            <feGaussianBlur in="bled2" stdDeviation="0.24" />
+          </filter>
+        </defs>
+      </svg>
+
       <MediaTrendIndex articles={categorized} />
 
       <div className="media-newsroom__head">
@@ -342,17 +361,18 @@ export default function MediaView({ data }) {
               <article key={article.link} className={`news-strip news-strip--${align} news-strip--open`} style={vars}>
                 <span className={`news-strip__texture news-strip__texture--${texVariant}`} aria-hidden="true" />
                 <button type="button" className="news-strip__collapse" onClick={() => setOpenLink(null)} aria-label="Collapse article">
-                  <div className="news-strip__band-top">
-                    <span className="news-strip__tag">{tagLabel}</span>
-                    <span className="news-strip__band-rule" aria-hidden="true" />
+                  <div className="news-strip__top">
+                    <div className="news-strip__masthead">
+                      <OutletLogo outlet={article.outlet} domain={article.outletDomain} />
+                    </div>
+                    <div className="news-strip__meta">
+                      <span className="news-strip__tag">{tagLabel}</span>
+                      <span className="news-strip__date">{formatDate(article.publishedAt)}</span>
+                    </div>
                   </div>
-                  <div className="news-strip__masthead">
-                    <OutletLogo outlet={article.outlet} domain={article.outletDomain} />
-                  </div>
-                  <div className="news-strip__dateline">{formatDate(article.publishedAt)}</div>
+                  <div className="news-strip__rule-thick" aria-hidden="true" />
                 </button>
-                <div className="news-strip__rule-thick" aria-hidden="true" />
-                <h2 className="news-strip__headline news-strip__headline--open ink-text">{article.headline}</h2>
+                <h2 className="news-strip__headline news-strip__headline--open ink-text--heavy">{article.headline}</h2>
                 <div className="media-article__rule" aria-hidden="true" />
                 <p className="news-strip__snippet">
                   {article.snippet || 'No preview text was returned for this article — read it in full at the source.'}
@@ -373,18 +393,18 @@ export default function MediaView({ data }) {
               onClick={() => setOpenLink(article.link)}
             >
               <span className={`news-strip__texture news-strip__texture--${texVariant}`} aria-hidden="true" />
-              <div className="news-strip__band-top">
-                <span className="news-strip__tag">{tagLabel}</span>
-                <span className="news-strip__band-rule" aria-hidden="true" />
+              <div className="news-strip__top">
+                <div className="news-strip__masthead">
+                  <OutletLogo outlet={article.outlet} domain={article.outletDomain} />
+                </div>
+                <div className="news-strip__meta">
+                  <span className="news-strip__tag">{tagLabel}</span>
+                  <span className="news-strip__date">{formatDate(article.publishedAt)}</span>
+                </div>
               </div>
-              <div className="news-strip__masthead">
-                <OutletLogo outlet={article.outlet} domain={article.outletDomain} />
-              </div>
-              <div className="news-strip__dateline">{formatDate(article.publishedAt)}</div>
               <div className="news-strip__rule-thick" aria-hidden="true" />
               {fold ? <span className={`news-strip__foldcorner news-strip__foldcorner--${fold}`} aria-hidden="true" /> : null}
-              <h3 className="news-strip__headline ink-text">{article.headline}</h3>
-              <div className="news-strip__underline" aria-hidden="true" />
+              <h3 className="news-strip__headline ink-text--heavy">{article.headline}</h3>
             </button>
           );
         })}
