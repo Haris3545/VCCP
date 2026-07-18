@@ -535,6 +535,81 @@ textarea:focus-visible {
   color: var(--paper);
 }
 
+.header__profile {
+  position: relative;
+}
+
+.header__profile-trigger {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  transition: background 140ms ease;
+}
+.header__profile-trigger:hover {
+  background: rgba(244, 242, 234, 0.06);
+}
+.header__profile-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.header__profile-glyph {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: var(--muted);
+  line-height: 1;
+  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.header__profile-trigger[aria-expanded='true'] .header__profile-glyph {
+  transform: rotate(135deg);
+}
+
+.header__profile-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 380ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.header__profile-menu[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.header__profile-menu-inner {
+  overflow: hidden;
+  min-height: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 150px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.header__profile-logout.btn.btn--ghost {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  color: var(--paper);
+}
+.header__profile-logout.btn.btn--ghost:hover {
+  color: var(--accent);
+  background: rgba(244, 242, 234, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header__profile-menu,
+  .header__profile-glyph {
+    transition: none;
+  }
+}
+
 /* Touch devices — stack identity above artist name with a tight gap
    rather than the desktop's side-by-side row. */
 @media (hover: none) and (pointer: coarse) {
@@ -578,22 +653,25 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Liquid glass — shared by the ticker and the floating nav. The backdrop-  */
-/* filter references GlassFilterDefs' feDisplacementMap for lensing/       */
-/* refraction; browsers that ignore an SVG filter reference inside         */
-/* backdrop-filter (mainly Safari) just fall back to the plain blur.       */
-/* --gx/--gy (driven by lib/glassHighlight.js on pointermove + scroll)     */
-/* position the specular highlight so it visibly shifts as you move the    */
-/* pointer or scroll — a stand-in for real content-sampling, not literal   */
-/* pixel-adaptive tinting. */
+/* Liquid glass — shared by the ticker and the floating nav. The tint is    */
+/* opaque enough on its own (no blur required) that text stays legible even */
+/* where backdrop-filter isn't supported; blur is a bonus on top of that,   */
+/* not the thing carrying contrast. Only declare the unprefixed             */
+/* backdrop-filter here — Lightning CSS (Next's minifier) auto-generates    */
+/* its own -webkit-backdrop-filter fallback, but if a manual -webkit- line  */
+/* is also written here, its autoprefixer gets confused by the duplicate    */
+/* and silently drops the *standard* property at build time, leaving only   */
+/* the (unrecognized, inert) manual webkit line — no blur ever actually     */
+/* rendered in production because of this. --gx/--gy (driven by             */
+/* lib/glassHighlight.js on pointermove + scroll) position the specular     */
+/* highlight so it visibly shifts as you move the pointer or scroll.        */
 /* ---------------------------------------------------------------------- */
 .glass {
   position: relative;
   --gx: 30%;
   --gy: 20%;
-  background: linear-gradient(180deg, rgba(244, 242, 234, 0.24), rgba(244, 242, 234, 0.1));
-  backdrop-filter: blur(18px) url(#glass-distortion) saturate(1.7) brightness(1.08);
-  -webkit-backdrop-filter: blur(18px) saturate(1.7) brightness(1.08);
+  background: linear-gradient(180deg, rgba(244, 242, 234, 0.9), rgba(244, 242, 234, 0.82));
+  backdrop-filter: blur(20px) saturate(1.5);
   isolation: isolate;
 }
 
@@ -645,53 +723,6 @@ textarea:focus-visible {
   border-radius: 999px;
   padding: 6px;
   box-shadow: 0 10px 0 rgba(11, 11, 11, 0.1), 0 18px 40px rgba(0, 0, 0, 0.45);
-}
-
-.floatnav__mark {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  padding: 10px 16px;
-  border: 2px solid var(--accent-contrast);
-  border-radius: 999px;
-  color: var(--accent-contrast);
-}
-
-.floatnav__eq {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 12px;
-}
-
-.floatnav__eq i {
-  display: block;
-  width: 3px;
-  background: var(--accent-contrast);
-  animation: floatnav-eq 900ms ease-in-out infinite;
-}
-.floatnav__eq i:nth-child(1) {
-  animation-delay: 0ms;
-}
-.floatnav__eq i:nth-child(2) {
-  animation-delay: 180ms;
-}
-.floatnav__eq i:nth-child(3) {
-  animation-delay: 360ms;
-}
-@keyframes floatnav-eq {
-  0%, 100% { height: 3px; }
-  50% { height: 12px; }
-}
-
-.floatnav__mark-text {
-  font-family: var(--font-serif);
-  font-weight: 900;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
 }
 
 .floatnav__items {
@@ -819,24 +850,7 @@ textarea:focus-visible {
   background: rgba(11, 11, 11, 0.08);
 }
 
-.floatnav__logout.btn.btn--ghost {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-  margin-left: 4px;
-  padding: 8px 12px;
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  color: rgba(11, 11, 11, 0.55);
-}
-.floatnav__logout.btn.btn--ghost:hover {
-  color: var(--accent-contrast);
-}
-
 @media (max-width: 640px) {
-  .floatnav__mark-text {
-    display: none;
-  }
   .floatnav__link,
   .floatnav__current {
     padding: 10px 12px;
@@ -845,9 +859,6 @@ textarea:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .floatnav__eq i {
-    animation: none;
-  }
   .floatnav__puck {
     transition: none;
   }
@@ -1047,7 +1058,11 @@ textarea:focus-visible {
 .dash-hero__wordmark-wrap {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  background: rgba(11, 11, 11, 0.3);
+  /* Was 0.3 — nearly transparent, so the photo showed through strongly
+     enough behind bright/detailed crops to make the wobble letters hard to
+     read. Still clearly "the photo, dimmed" rather than a solid card, just
+     dim enough to guarantee contrast regardless of what's underneath. */
+  background: rgba(11, 11, 11, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1063,6 +1078,7 @@ textarea:focus-visible {
   letter-spacing: -0.01em;
   text-align: center;
   color: var(--paper);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
 .dash-hero__wordmark-line {
@@ -1104,6 +1120,7 @@ textarea:focus-visible {
   line-height: 1.05;
   letter-spacing: -0.01em;
   color: var(--paper);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
   text-wrap: balance;
 }
 

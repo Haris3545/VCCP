@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { STUDIO_NAME } from '@/lib/constants';
 import { attachGlassHighlight } from '@/lib/glassHighlight';
-import LogoutButton from './LogoutButton';
 
 const NAV_TABS = [
   { tab: 'dashboard', label: 'Dashboard' },
@@ -17,10 +15,12 @@ const COLLAPSE_QUERY = '(max-width: 640px)';
 
 // Replaces TabBar (desktop rail) and MobileNav (touch hamburger + full-screen
 // panel) with one fixed glass pill that floats over every page at every
-// breakpoint. A white puck slides behind the active tab and can be dragged
-// by hand to any other one; once the pill is too narrow to hold all five
-// labels legibly, it collapses to just the current tab + a Menu trigger that
-// unfurls the rest above it, rather than shrinking text past reading size.
+// breakpoint — just the five section names, nothing else (logout now lives
+// in Header's profile menu instead). A white puck slides behind the active
+// tab and can be dragged by hand to any other one; once the pill is too
+// narrow to hold all five labels legibly, it collapses to just the current
+// tab + a Menu trigger that unfurls the rest above it, rather than shrinking
+// text past reading size.
 export default function FloatingTabNav() {
   const router = useRouter();
   const activeIndex = Math.max(0, NAV_TABS.findIndex(({ tab }) => router.pathname === `/${tab}`));
@@ -200,13 +200,6 @@ export default function FloatingTabNav() {
 
   return (
     <nav className="floatnav glass" aria-label="Primary" ref={navRef}>
-      <Link href="/dashboard" className="floatnav__mark">
-        <span className="floatnav__eq" aria-hidden="true">
-          <i /><i /><i />
-        </span>
-        <span className="floatnav__mark-text">{STUDIO_NAME}</span>
-      </Link>
-
       {collapsed ? (
         <>
           <span className="floatnav__current">{current.label}</span>
@@ -264,8 +257,6 @@ export default function FloatingTabNav() {
           })}
         </div>
       )}
-
-      <LogoutButton className="floatnav__logout" />
     </nav>
   );
 }
