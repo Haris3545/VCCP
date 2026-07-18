@@ -3301,11 +3301,30 @@ html.custom-cursor-active textarea {
   justify-content: center;
 }
 
+/* Real outlet logos come back as brand-colour art on a white or coloured
+   padded square (whatever logo.dev/Clearbit have on file) - fine for a
+   product UI, but it reads as a pasted-on sticker rather than a printed
+   nameplate. grayscale kills the brand colour; multiply then optically
+   drops a white/near-white backing straight into the paper underneath it
+   (multiplying by pure white is a no-op, so it reads as if there were
+   never a background there at all), while a genuinely-coloured backing
+   (a solid badge/icon-style asset rather than a plain wordmark) still
+   darkens to a solid grey/black block rather than vanishing - CSS blending
+   can optically erase a *light* background, not crop away real opaque
+   pixels, so that's an inherent limit of doing this without per-logo
+   masking. Deliberately no brightness() alongside contrast() - it would
+   dim true white just enough that multiply would stop treating it as
+   invisible and leave a faint box behind, which is exactly the artifact
+   this is trying to avoid. Sized bigger than the box the source image
+   ships with, since removing the background is what makes a bigger
+   nameplate read as confident rather than as a blown-up icon. */
 .news-strip__logo-img {
-  max-height: 46px;
-  max-width: min(280px, 78%);
+  max-height: 58px;
+  max-width: min(320px, 82%);
   object-fit: contain;
   object-position: left center;
+  filter: grayscale(1) contrast(1.5);
+  mix-blend-mode: multiply;
 }
 
 .news-strip--center .news-strip__logo-img {
