@@ -11,6 +11,10 @@
   "dependencies": {
     "@fontsource/archivo-black": "^5.2.8",
     "@fontsource/bodoni-moda": "^5.2.7",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/oswald": "^5.2.8",
+    "@fontsource/playfair-display": "^5.2.8",
+    "@fontsource/space-grotesk": "^5.2.10",
     "@vercel/blob": "^2.6.1",
     "cheerio": "^1.2.0",
     "next": "16.2.10",

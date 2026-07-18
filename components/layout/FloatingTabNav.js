@@ -16,11 +16,13 @@ const COLLAPSE_QUERY = '(max-width: 640px)';
 // Replaces TabBar (desktop rail) and MobileNav (touch hamburger + full-screen
 // panel) with one fixed glass pill that floats over every page at every
 // breakpoint — just the five section names, nothing else (logout now lives
-// in Header's profile menu instead). A white puck slides behind the active
-// tab and can be dragged by hand to any other one; once the pill is too
-// narrow to hold all five labels legibly, it collapses to just the current
-// tab + a Menu trigger that unfurls the rest above it, rather than shrinking
-// text past reading size.
+// in Header's profile menu instead). A white puck sits behind the active
+// tab at rest and glides to preview whichever tab the pointer is currently
+// over — a plain hover, no click-and-drag — snapping back the moment the
+// pointer leaves; a normal click on a Link is what actually navigates. Once
+// the pill is too narrow to hold all five labels legibly, it collapses to
+// just the current tab + a Menu trigger that unfurls the rest above it,
+// rather than shrinking text past reading size.
 export default function FloatingTabNav() {
   const router = useRouter();
   const activeIndex = Math.max(0, NAV_TABS.findIndex(({ tab }) => router.pathname === `/${tab}`));
@@ -35,8 +37,7 @@ export default function FloatingTabNav() {
 
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const suppressClickRef = useRef(false);
-  const draggingRef = useRef(false);
+  const hoveringRef = useRef(false);
 
   useEffect(() => {
     const mq = window.matchMedia(COLLAPSE_QUERY);
@@ -78,7 +79,7 @@ export default function FloatingTabNav() {
     if (collapsed) return undefined;
     movePuckTo(activeIndex, true);
     function onResize() {
-      movePuckTo(activeIndex, true);
+      if (!hoveringRef.current) movePuckTo(activeIndex, true);
     }
     window.addEventListener('resize', onResize);
     // Archivo Black may still be loading at mount, in which case the active
@@ -113,85 +114,20 @@ export default function FloatingTabNav() {
     };
   }, [menuOpen]);
 
-  // The puck renders behind the active Link (z-index 0 vs 1) so its glass
-  // stays visually under the label — which also means it's never the actual
-  // pointerdown target; the covering Link always is. So the drag listener
-  // lives on the track (an ancestor of both), and hit-tests the pointer
-  // position against the puck's own rect before deciding to start a drag,
-  // the same pattern the old ConsoleTabNav used for this exact problem.
-  function withinPuck(x, y) {
-    const puck = puckRef.current;
-    if (!puck) return false;
-    const r = puck.getBoundingClientRect();
-    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-  }
-
+  // Pure hover preview: whichever tab the pointer is currently above gets
+  // the puck glided under it. No drag, no pointer capture — just track which
+  // link element the pointer is over and glide there; leaving the row snaps
+  // the puck back to the actual active tab.
   function handleTrackPointerMove(e) {
-    if (draggingRef.current) return;
-    const track = trackRef.current;
-    if (track) track.style.cursor = withinPuck(e.clientX, e.clientY) ? 'grab' : '';
+    const index = linkRefs.current.findIndex((el) => el?.contains(e.target));
+    if (index === -1) return;
+    hoveringRef.current = true;
+    movePuckTo(index);
   }
 
-  function handleTrackPointerDown(e) {
-    if (!withinPuck(e.clientX, e.clientY)) return;
-    const track = trackRef.current;
-    const puck = puckRef.current;
-    if (!track || !puck) return;
-    e.preventDefault();
-
-    draggingRef.current = true;
-    track.style.cursor = 'grabbing';
-    const startX = e.clientX;
-    const trackRect = track.getBoundingClientRect();
-    const startLeft = puck.getBoundingClientRect().left - trackRect.left;
-    puck.style.transition = 'none';
-
-    function nearestIndexToCenter(centerX) {
-      let nearest = 0;
-      let nearestDist = Infinity;
-      linkRefs.current.forEach((el, i) => {
-        if (!el) return;
-        const r = el.getBoundingClientRect();
-        const d = Math.abs(r.left + r.width / 2 - centerX);
-        if (d < nearestDist) {
-          nearestDist = d;
-          nearest = i;
-        }
-      });
-      return nearest;
-    }
-
-    function onMove(ev) {
-      if (Math.abs(ev.clientX - startX) > 4) suppressClickRef.current = true;
-      const tRect = track.getBoundingClientRect();
-      const puckWidth = puck.getBoundingClientRect().width;
-      const dx = ev.clientX - startX;
-      const minLeft = 0;
-      const maxLeft = tRect.width - puckWidth;
-      const newLeft = Math.min(maxLeft, Math.max(minLeft, startLeft + dx));
-      puck.style.transform = `translateX(${newLeft}px)`;
-    }
-
-    function onUp(ev) {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      draggingRef.current = false;
-      track.style.cursor = '';
-      puck.style.transition = '';
-      const puckRect = puck.getBoundingClientRect();
-      const nearest = nearestIndexToCenter(puckRect.left + puckRect.width / 2);
-      movePuckTo(nearest);
-      if (nearest !== activeIndex) {
-        router.push(`/${NAV_TABS[nearest].tab}`);
-      }
-      ev.preventDefault();
-      setTimeout(() => {
-        suppressClickRef.current = false;
-      }, 0);
-    }
-
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+  function handleTrackPointerLeave() {
+    hoveringRef.current = false;
+    movePuckTo(activeIndex);
   }
 
   const current = NAV_TABS[activeIndex];
@@ -229,8 +165,8 @@ export default function FloatingTabNav() {
         <div
           className="floatnav__items"
           ref={trackRef}
-          onPointerDown={handleTrackPointerDown}
           onPointerMove={handleTrackPointerMove}
+          onPointerLeave={handleTrackPointerLeave}
         >
           <div className="floatnav__puck" ref={puckRef} aria-hidden="true" />
           {NAV_TABS.map(({ tab, label }, i) => {
@@ -245,12 +181,6 @@ export default function FloatingTabNav() {
                 }}
                 className="floatnav__link"
                 aria-current={active ? 'page' : undefined}
-                onClick={(e) => {
-                  if (suppressClickRef.current) {
-                    e.preventDefault();
-                    suppressClickRef.current = false;
-                  }
-                }}
               >
                 {label}
               </Link>

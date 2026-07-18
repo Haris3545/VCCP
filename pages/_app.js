@@ -4,8 +4,18 @@ import '@fontsource/bodoni-moda/400.css';
 import '@fontsource/bodoni-moda/400-italic.css';
 import '@fontsource/bodoni-moda/700.css';
 import '@fontsource/archivo-black';
+import '@fontsource/playfair-display/700.css';
+import '@fontsource/playfair-display/700-italic.css';
+import '@fontsource/playfair-display/900-italic.css';
+import '@fontsource/oswald/600.css';
+import '@fontsource/oswald/700.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource/ibm-plex-mono/600.css';
+import '@fontsource/space-grotesk/500.css';
+import '@fontsource/space-grotesk/700.css';
 import '@/styles/globals.css';
 import PageTransitionOverlay from '@/components/layout/PageTransitionOverlay';
+import CustomCursor from '@/components/layout/CustomCursor';
 
 const themeVars = {
   '--bg': artistConfig.theme.bg,
@@ -31,6 +41,7 @@ export default function App({ Component, pageProps }) {
     <div style={themeVars}>
       {getLayout(<Component {...pageProps} />)}
       <PageTransitionOverlay />
+      <CustomCursor />
     </div>
   );
 }
