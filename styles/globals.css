@@ -3102,7 +3102,7 @@ html.custom-cursor-active textarea {
 .media-stack {
   display: flex;
   flex-direction: column;
-  padding: 22px 16px 60px;
+  padding: 26px 16px 64px;
 }
 
 .news-strip {
@@ -3114,11 +3114,12 @@ html.custom-cursor-active textarea {
   isolation: isolate;
   display: block;
   width: 100%;
-  padding: 18px clamp(18px, 4vw, 34px) 26px;
-  margin-top: -22px;
+  padding: 16px clamp(18px, 4vw, 34px) 22px;
+  margin-top: -20px;
   background: var(--paper-bg, linear-gradient(160deg, #fbf9f2, #efece0));
   color: #17140d;
-  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3);
+  transform: rotate(var(--rot, 0deg));
+  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.42), 0 3px 6px rgba(0, 0, 0, 0.32);
   transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 260ms ease, opacity 340ms ease;
 }
 
@@ -3126,6 +3127,11 @@ html.custom-cursor-active textarea {
   margin-top: 0;
 }
 
+/* Two texture layers rather than one: ::before is fine paper-fibre grain,
+   ::after is a handful of soft diagonal light/dark bands standing in for
+   creases and worn folds — there's no bitmap asset for this (everything in
+   the app is generated, no network image fetches), so "crumpled paper" is
+   built from gradients instead of a photographed texture. */
 .news-strip::before {
   content: '';
   position: absolute;
@@ -3134,19 +3140,41 @@ html.custom-cursor-active textarea {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn)'/></svg>");
   background-size: 180px 180px;
   mix-blend-mode: multiply;
-  opacity: 0.28;
+  opacity: 0.3;
+  z-index: 2;
+}
+
+.news-strip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 22%, rgba(0, 0, 0, 0.05) 24%, transparent 27%),
+    linear-gradient(68deg, transparent 38%, rgba(255, 255, 255, 0.4) 40%, transparent 43%),
+    linear-gradient(160deg, transparent 55%, rgba(0, 0, 0, 0.06) 57%, transparent 61%),
+    linear-gradient(25deg, transparent 71%, rgba(255, 255, 255, 0.3) 73%, transparent 76%),
+    linear-gradient(100deg, transparent 86%, rgba(0, 0, 0, 0.07) 88%, transparent 92%),
+    radial-gradient(140% 100% at 50% 0%, transparent 60%, rgba(0, 0, 0, 0.12) 100%);
+  mix-blend-mode: overlay;
+  opacity: 0.85;
+  z-index: 2;
+}
+
+.news-strip > * {
+  position: relative;
+  z-index: 3;
 }
 
 .news-strip:hover {
+  transform: rotate(0deg) translateY(-5px);
   z-index: 3;
-  box-shadow: 0 20px 34px rgba(0, 0, 0, 0.48), 0 4px 10px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 22px 36px rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.34);
 }
 
-.news-strip__top {
+.news-strip__band-top {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .news-strip__tag {
@@ -3157,41 +3185,50 @@ html.custom-cursor-active textarea {
   text-transform: uppercase;
   color: #fff;
   background: var(--accent, #a3272c);
-  border-radius: 3px;
+  border-radius: 2px;
   padding: 3px 7px;
 }
 
-.news-strip__outlet {
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(23, 20, 13, 0.62);
+.news-strip__band-rule {
+  flex: 1;
+  height: 1px;
+  background: rgba(23, 20, 13, 0.4);
 }
 
 .news-strip__date {
-  margin-left: auto;
   font-family: var(--font-sans);
   font-size: 10.5px;
   letter-spacing: 0.03em;
-  color: rgba(23, 20, 13, 0.5);
+  color: rgba(23, 20, 13, 0.55);
+  white-space: nowrap;
 }
 
-.news-strip__rule {
-  margin: 10px 0 14px;
+.news-strip__masthead {
+  margin-top: 6px;
+  text-align: center;
+  font-family: var(--masthead-font, var(--font-serif));
+  font-weight: var(--masthead-weight, 900);
+  font-style: var(--masthead-style, normal);
+  letter-spacing: var(--masthead-tracking, 0.02em);
+  text-transform: uppercase;
+  font-size: clamp(18px, 2.4vw, 27px);
+  color: #14110b;
+}
+
+.news-strip__rule-thick {
+  margin: 8px 0 16px;
   height: 4px;
   background: var(--accent, #a3272c);
   position: relative;
 }
-.news-strip__rule::after {
+.news-strip__rule-thick::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   top: 7px;
   height: 1px;
-  background: rgba(23, 20, 13, 0.35);
+  background: rgba(23, 20, 13, 0.4);
 }
 
 .news-strip__body {
@@ -3203,40 +3240,60 @@ html.custom-cursor-active textarea {
 .news-strip__headline {
   flex: 1;
   margin: 0;
-  font-family: var(--headline-font, var(--font-serif));
-  font-weight: var(--headline-weight, 700);
-  font-style: var(--headline-style, normal);
-  text-transform: var(--headline-transform, none);
-  letter-spacing: var(--headline-tracking, 0);
-  font-size: clamp(20px, 2.6vw, 32px);
-  line-height: 1.14;
-  color: #14110b;
+  font-family: var(--masthead-font, var(--font-serif));
+  font-weight: 900;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  font-size: clamp(26px, 4.4vw, 48px);
+  line-height: 0.98;
+  color: #100d08;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
+.news-strip__underline {
+  margin-top: 14px;
+  height: 3px;
+  width: 72px;
+  background: #100d08;
+}
+
 .news-strip__photo {
   flex: 0 0 auto;
   position: relative;
-  width: 84px;
-  height: 84px;
-  overflow: hidden;
+  margin: 0;
+  width: 92px;
+  border: 2px solid #100d08;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
 }
 .news-strip__photo img {
+  display: block;
   width: 100%;
-  height: 100%;
+  height: 92px;
   object-fit: cover;
   object-position: 50% 30%;
   transform: scale(1.6);
-  filter: grayscale(0.15) contrast(1.05);
+  filter: grayscale(0.65) contrast(1.15);
+}
+.news-strip__photo-caption {
+  margin: 0;
+  padding: 3px 4px;
+  background: #100d08;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
 }
 .news-strip__photo-expand {
   position: absolute;
   right: 4px;
-  bottom: 4px;
+  top: 4px;
   width: 18px;
   height: 18px;
   display: flex;
@@ -3252,20 +3309,22 @@ html.custom-cursor-active textarea {
    reappears large in .media-reader) while every strip before it slides
    away to the left and every strip after it slides away to the right —
    staggered further out the further a strip sits from the one that was
-   opened, so it reads as a single "push to the side" radiating outward. */
+   opened, so it reads as a single "push to the side" radiating outward.
+   Each strip's own resting tilt (--rot) carries through so the kick away
+   still reads as an extension of how it was already sitting. */
 .news-strip--open {
   opacity: 0;
   pointer-events: none;
 }
 
 .news-strip--push-left {
-  transform: translateX(-130%) rotate(-3deg);
+  transform: translateX(-130%) rotate(calc(var(--rot, 0deg) - 6deg));
   opacity: 0.4;
   pointer-events: none;
 }
 
 .news-strip--push-right {
-  transform: translateX(130%) rotate(3deg);
+  transform: translateX(130%) rotate(calc(var(--rot, 0deg) + 6deg));
   opacity: 0.4;
   pointer-events: none;
 }
@@ -3359,6 +3418,24 @@ html.custom-cursor-active textarea {
   opacity: 0.22;
 }
 
+.media-reader__sheet::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 22%, rgba(0, 0, 0, 0.04) 24%, transparent 27%),
+    linear-gradient(68deg, transparent 38%, rgba(255, 255, 255, 0.3) 40%, transparent 43%),
+    linear-gradient(160deg, transparent 55%, rgba(0, 0, 0, 0.05) 57%, transparent 61%),
+    linear-gradient(25deg, transparent 71%, rgba(255, 255, 255, 0.22) 73%, transparent 76%);
+  mix-blend-mode: overlay;
+  opacity: 0.7;
+}
+
+.media-reader__sheet > * {
+  position: relative;
+  z-index: 1;
+}
+
 .media-reader__photo {
   margin: -46px calc(-1 * clamp(24px, 5vw, 64px)) 24px;
   height: 260px;
@@ -3450,8 +3527,10 @@ html.custom-cursor-active textarea {
   }
 
   .news-strip__photo {
-    width: 56px;
-    height: 56px;
+    width: 64px;
+  }
+  .news-strip__photo img {
+    height: 64px;
   }
 
   .media-reader__sheet {

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import SourceBadge from '@/components/ui/SourceBadge';
 
-// Deterministic string hash (djb2) so each article's masthead style/section
-// tag and the reveal-open push directions are stable across server render
-// and hydration — no Math.random(), which would mismatch between the two.
+// Deterministic string hash (djb2) so each article's masthead style, tilt,
+// section tag, and the reveal-open push directions are stable across
+// server render and hydration — no Math.random(), which would mismatch.
 function hashString(str) {
   let h = 5381;
   for (let i = 0; i < str.length; i++) {
@@ -22,8 +22,7 @@ const MASTHEAD_STYLES = [
     font: 'var(--font-serif)',
     weight: 900,
     style: 'normal',
-    transform: 'uppercase',
-    tracking: '-0.01em',
+    tracking: '0.01em',
     paper: 'linear-gradient(160deg, #fbf9f2, #efece0)',
     accent: '#a3272c',
   },
@@ -31,7 +30,6 @@ const MASTHEAD_STYLES = [
     font: "'Playfair Display', var(--font-serif)",
     weight: 700,
     style: 'italic',
-    transform: 'none',
     tracking: '0em',
     paper: 'linear-gradient(160deg, #fdf6ee, #f1e6d6)',
     accent: '#5c2a4d',
@@ -40,8 +38,7 @@ const MASTHEAD_STYLES = [
     font: "'Oswald', var(--font-sans)",
     weight: 700,
     style: 'normal',
-    transform: 'uppercase',
-    tracking: '0.015em',
+    tracking: '0.02em',
     paper: 'linear-gradient(160deg, #f6f5ef, #e7e4d8)',
     accent: '#1d3a5f',
   },
@@ -49,8 +46,7 @@ const MASTHEAD_STYLES = [
     font: "'Space Grotesk', var(--font-sans)",
     weight: 700,
     style: 'normal',
-    transform: 'none',
-    tracking: '-0.01em',
+    tracking: '0em',
     paper: 'linear-gradient(160deg, #f7f8f4, #e9ebe3)',
     accent: '#2f5233',
   },
@@ -58,7 +54,6 @@ const MASTHEAD_STYLES = [
     font: "'IBM Plex Mono', ui-monospace, monospace",
     weight: 600,
     style: 'normal',
-    transform: 'uppercase',
     tracking: '0em',
     paper: 'linear-gradient(160deg, #f4f6ef, #e5e9dd)',
     accent: '#1f5c56',
@@ -67,7 +62,6 @@ const MASTHEAD_STYLES = [
     font: 'var(--font-display)',
     weight: 400,
     style: 'normal',
-    transform: 'uppercase',
     tracking: '0em',
     paper: 'linear-gradient(160deg, #faf3ec, #ecdcd0)',
     accent: '#b5811a',
@@ -76,7 +70,6 @@ const MASTHEAD_STYLES = [
     font: "'Playfair Display', var(--font-serif)",
     weight: 900,
     style: 'italic',
-    transform: 'none',
     tracking: '0em',
     paper: 'linear-gradient(160deg, #f9f1ec, #ecdcd2)',
     accent: '#1b1710',
@@ -93,15 +86,16 @@ function formatDate(iso) {
 function stripStyleVars(article) {
   const masthead = MASTHEAD_STYLES[hashString(article.outlet) % MASTHEAD_STYLES.length];
   const tag = SECTION_TAGS[hashString(`${article.link}tag`) % SECTION_TAGS.length];
+  const rot = ((hashString(`${article.link}r`) % 100) / 100 - 0.5) * 4.5;
   return {
     vars: {
       '--paper-bg': masthead.paper,
       '--accent': masthead.accent,
-      '--headline-font': masthead.font,
-      '--headline-weight': masthead.weight,
-      '--headline-style': masthead.style,
-      '--headline-transform': masthead.transform,
-      '--headline-tracking': masthead.tracking,
+      '--masthead-font': masthead.font,
+      '--masthead-weight': masthead.weight,
+      '--masthead-style': masthead.style,
+      '--masthead-tracking': masthead.tracking,
+      '--rot': `${rot.toFixed(2)}deg`,
     },
     tag,
   };
@@ -172,24 +166,27 @@ export default function MediaView({ data }) {
               style={style}
               onClick={() => setOpenIndex(i)}
             >
-              <div className="news-strip__top">
+              <div className="news-strip__band-top">
                 <span className="news-strip__tag">{tag}</span>
-                <span className="news-strip__outlet">{article.outlet}</span>
+                <span className="news-strip__band-rule" aria-hidden="true" />
                 <span className="news-strip__date">{formatDate(article.publishedAt)}</span>
               </div>
-              <div className="news-strip__rule" aria-hidden="true" />
+              <div className="news-strip__masthead">{article.outlet}</div>
+              <div className="news-strip__rule-thick" aria-hidden="true" />
               <div className="news-strip__body">
                 <h3 className="news-strip__headline">{article.headline}</h3>
                 {article.imageUrl ? (
-                  <div className="news-strip__photo">
+                  <figure className="news-strip__photo">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={article.imageUrl} alt="" loading="lazy" />
+                    <figcaption className="news-strip__photo-caption">{tag}</figcaption>
                     <span className="news-strip__photo-expand" aria-hidden="true">
                       ⤢
                     </span>
-                  </div>
+                  </figure>
                 ) : null}
               </div>
+              <div className="news-strip__underline" aria-hidden="true" />
             </button>
           );
         })}
