@@ -3188,7 +3188,12 @@ html.custom-cursor-active textarea {
      rather than perfectly flat card stock. */
   box-shadow: 0 3px 4px rgba(0, 0, 0, 0.38), 0 16px 28px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3),
     inset 0 18px 22px -20px rgba(0, 0, 0, 0.5), inset 0 -22px 26px -22px rgba(0, 0, 0, 0.55);
-  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 260ms ease, opacity 340ms ease;
+  /* A slight overshoot-then-settle on the lift itself (still pure
+     translateY, nothing 3D) reads as the sheet being picked up and given a
+     little flick to straighten it out, rather than sliding to a dead
+     stop - the small bounce is what actually sells "unfurl" rather than
+     "slide." */
+  transition: transform 560ms cubic-bezier(0.34, 1.32, 0.64, 1), box-shadow 420ms ease, opacity 340ms ease;
 }
 
 .news-strip:first-child {
@@ -3208,24 +3213,17 @@ html.custom-cursor-active textarea {
   z-index: 2;
 }
 
-/* This sheet's own cast shadow/highlight - a bright catch-light where it's
-   "raised" nearest the viewer (its top), fading to a soft shadow at the
-   bottom, which is what's actually falling on the strip underneath. That
-   soft fade (rather than a hard box edge) is what keeps the overlap seam
-   from reading as a flat rectangle cut across the page beneath it. */
+/* This sheet's own cast shadow onto the strip underneath - a soft fade
+   (rather than a hard box edge) at the bottom is what keeps the overlap
+   seam from reading as a flat rectangle cut across the page beneath it.
+   No top catch-light anymore - it read as an odd uniform lightening across
+   the top edge of every strip rather than a believable highlight. */
 .news-strip::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.5) 0%,
-    transparent 10%,
-    transparent 78%,
-    rgba(0, 0, 0, 0.16) 94%,
-    rgba(0, 0, 0, 0.4) 100%
-  );
+  background: linear-gradient(180deg, transparent 0%, transparent 78%, rgba(0, 0, 0, 0.16) 94%, rgba(0, 0, 0, 0.4) 100%);
   mix-blend-mode: overlay;
   z-index: 2;
 }
@@ -3449,6 +3447,7 @@ html.custom-cursor-active textarea {
   display: block;
   width: calc(100% + 48px);
   margin-left: -24px;
+  cursor: default;
   transform: translateY(-20px) !important;
   padding-bottom: 40px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.42), 0 40px 34px -22px rgba(0, 0, 0, 0.5),
@@ -3462,6 +3461,78 @@ html.custom-cursor-active textarea {
   width: 100%;
   cursor: pointer;
   box-sizing: border-box;
+}
+
+/* The clamped preview headline and the full open article share one
+   toggle, driven by a CSS grid-template-rows accordion (0fr/1fr) rather
+   than a JS-measured max-height - that's the one reliable way to animate
+   to/from a height that isn't known ahead of time. They move in lockstep
+   so the compact preview shrinks away exactly as the full article grows
+   in below it, reading as one sheet unfurling rather than content
+   swapping out. Each collapses to a single grid row sized either to its
+   content (1fr, on a single-row grid that's just its natural height) or
+   to zero, and both interpolate smoothly between those two states. */
+.news-strip__preview,
+.news-strip__expand {
+  display: grid;
+  transition: grid-template-rows 520ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.news-strip__preview {
+  grid-template-rows: 1fr;
+}
+.news-strip--open .news-strip__preview {
+  grid-template-rows: 0fr;
+}
+.news-strip__expand {
+  grid-template-rows: 0fr;
+}
+.news-strip--open .news-strip__expand {
+  grid-template-rows: 1fr;
+}
+
+/* Required for the grid-rows trick: without min-height:0 the implicit
+   min-height:auto on a grid item stops it ever shrinking below its
+   content's height, so grid-template-rows: 0fr would have no visible
+   effect. overflow:hidden clips the content while its row is mid-collapse. */
+.news-strip__preview-inner,
+.news-strip__expand-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.news-strip__preview-inner > * {
+  transition: opacity 200ms ease;
+}
+.news-strip--open .news-strip__preview-inner > * {
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+/* The full article's contents cascade in one after another rather than
+   all fading in at once - headline, rule, snippet, then the link - a
+   small staggered reveal that reads as the page unfolding rather than
+   the whole block just materialising. */
+.news-strip__expand-inner > * {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 200ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.news-strip--open .news-strip__expand-inner > * {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 380ms ease var(--reveal-delay, 120ms), transform 460ms cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 120ms);
+}
+.news-strip--open .news-strip__expand-inner > *:nth-child(1) {
+  --reveal-delay: 100ms;
+}
+.news-strip--open .news-strip__expand-inner > *:nth-child(2) {
+  --reveal-delay: 160ms;
+}
+.news-strip--open .news-strip__expand-inner > *:nth-child(3) {
+  --reveal-delay: 210ms;
+}
+.news-strip--open .news-strip__expand-inner > *:nth-child(4) {
+  --reveal-delay: 260ms;
 }
 
 /* The last sheet in the pile ends the stack on a real torn edge rather

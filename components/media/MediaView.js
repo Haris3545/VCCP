@@ -410,14 +410,37 @@ export default function MediaView({ data }) {
           const tagLabel = CATEGORIES.find((c) => c.id === article.category)?.label.toUpperCase() || 'CULTURE';
           const outletName = cleanOutletName(article.outlet);
 
-          if (isOpen) {
-            return (
-              <article
-                key={article.link}
-                className={`news-strip news-strip--${align} news-strip--open${isLast ? ' news-strip--torn' : ''}`}
-                style={vars}
-              >
-                <span className={`news-strip__texture news-strip__texture--${texVariant}`} aria-hidden="true" />
+          // One persistent element for both states (rather than swapping
+          // between a <button> and an <article> depending on isOpen) - that
+          // swap used to make React unmount/remount a brand new DOM node on
+          // every toggle, so the transform/box-shadow transitions declared
+          // in CSS never actually had a "from" state to animate out of and
+          // the strip just snapped open instantly. With one node, the lift
+          // genuinely tweens, and the headline/snippet reveal below is
+          // driven by a CSS grid-template-rows accordion (0fr/1fr), which is
+          // the one reliable way to smoothly animate to/from an
+          // auto-height block without JS measuring it up front.
+          return (
+            <article
+              key={article.link}
+              className={`news-strip news-strip--${align}${isOpen ? ' news-strip--open' : ''}${isLast ? ' news-strip--torn' : ''}`}
+              style={vars}
+              onClick={isOpen ? undefined : () => setOpenLink(article.link)}
+              onKeyDown={
+                isOpen
+                  ? undefined
+                  : (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setOpenLink(article.link);
+                      }
+                    }
+              }
+              role={isOpen ? undefined : 'button'}
+              tabIndex={isOpen ? undefined : 0}
+            >
+              <span className={`news-strip__texture news-strip__texture--${texVariant}`} aria-hidden="true" />
+              {isOpen ? (
                 <button type="button" className="news-strip__collapse" onClick={() => setOpenLink(null)} aria-label="Collapse article">
                   <div className="news-strip__top">
                     <div className="news-strip__masthead">
@@ -430,40 +453,39 @@ export default function MediaView({ data }) {
                   </div>
                   <div className="news-strip__rule-thick" aria-hidden="true" />
                 </button>
-                <h2 className="news-strip__headline news-strip__headline--open ink-text--heavy">{article.headline}</h2>
-                <div className="media-article__rule" aria-hidden="true" />
-                <p className="news-strip__snippet">
-                  {article.snippet || 'No preview text was returned for this article — read it in full at the source.'}
-                </p>
-                <a className="news-strip__link" href={article.link} target="_blank" rel="noreferrer">
-                  Read full article at {outletName} →
-                </a>
-              </article>
-            );
-          }
-
-          return (
-            <button
-              key={article.link}
-              type="button"
-              className={`news-strip news-strip--${align}${isLast ? ' news-strip--torn' : ''}`}
-              style={vars}
-              onClick={() => setOpenLink(article.link)}
-            >
-              <span className={`news-strip__texture news-strip__texture--${texVariant}`} aria-hidden="true" />
-              <div className="news-strip__top">
-                <div className="news-strip__masthead">
-                  <OutletLogo outlet={article.outlet} domain={article.outletDomain} />
+              ) : (
+                <div className="news-strip__top">
+                  <div className="news-strip__masthead">
+                    <OutletLogo outlet={article.outlet} domain={article.outletDomain} />
+                  </div>
+                  <div className="news-strip__meta">
+                    <span className="news-strip__tag">{tagLabel}</span>
+                    <span className="news-strip__date">{formatDate(article.publishedAt)}</span>
+                  </div>
                 </div>
-                <div className="news-strip__meta">
-                  <span className="news-strip__tag">{tagLabel}</span>
-                  <span className="news-strip__date">{formatDate(article.publishedAt)}</span>
+              )}
+              {!isOpen ? <div className="news-strip__rule-thick" aria-hidden="true" /> : null}
+              {fold && !isLast && !isOpen ? <span className={`news-strip__foldcorner news-strip__foldcorner--${fold}`} aria-hidden="true" /> : null}
+
+              <div className="news-strip__preview">
+                <div className="news-strip__preview-inner">
+                  <h3 className="news-strip__headline ink-text--heavy">{article.headline}</h3>
                 </div>
               </div>
-              <div className="news-strip__rule-thick" aria-hidden="true" />
-              {fold && !isLast ? <span className={`news-strip__foldcorner news-strip__foldcorner--${fold}`} aria-hidden="true" /> : null}
-              <h3 className="news-strip__headline ink-text--heavy">{article.headline}</h3>
-            </button>
+
+              <div className="news-strip__expand">
+                <div className="news-strip__expand-inner">
+                  <h2 className="news-strip__headline news-strip__headline--open ink-text--heavy">{article.headline}</h2>
+                  <div className="media-article__rule" aria-hidden="true" />
+                  <p className="news-strip__snippet">
+                    {article.snippet || 'No preview text was returned for this article — read it in full at the source.'}
+                  </p>
+                  <a className="news-strip__link" href={article.link} target="_blank" rel="noreferrer">
+                    Read full article at {outletName} →
+                  </a>
+                </div>
+              </div>
+            </article>
           );
         })}
       </div>
