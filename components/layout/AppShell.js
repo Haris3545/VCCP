@@ -5,7 +5,7 @@ import { useLocalStorage } from '@/lib/useLocalStorage';
 import DashboardBackground from './DashboardBackground';
 import Header from './Header';
 import Ticker from './Ticker';
-import FloatingTabNav from './FloatingTabNav';
+import TabNav from './TabNav';
 import RefreshButton from './RefreshButton';
 import PreviewToggle from './PreviewToggle';
 import PreviewBanner from './PreviewBanner';
@@ -43,17 +43,13 @@ export default function AppShell({ children, title }) {
         <DashboardBackground />
         <Header />
         <Ticker />
+        <TabNav />
         <main className="container page">{children}</main>
         <footer className="page-footer container">
           <RefreshButton />
           <PreviewToggle mode={previewMode} onCycle={() => setPreviewMode((m) => NEXT_PREVIEW_MODE[m] ?? 'auto')} />
         </footer>
         <GlassPointer />
-        {/* Inside .app-shell (not a PreviewBanner-style sibling) so mobile
-            preview's transform confines it to the simulated phone frame the
-            same way it confines DashboardBackground, rather than floating
-            it over the tester's real full-width viewport. */}
-        <FloatingTabNav />
       </div>
     </>
   );

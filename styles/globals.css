@@ -196,11 +196,8 @@ p {
 }
 
 .page {
-  /* Nothing sits in-flow above .page now except the header and ticker, so
-     content can sit much closer to them than when the tab bar (and its own
-     internal padding) used to occupy this space. */
-  padding-top: 22px;
-  padding-bottom: 96px;
+  padding-top: 8px;
+  padding-bottom: 64px;
 }
 
 .page-head {
@@ -231,13 +228,6 @@ p {
 .grid {
   display: grid;
   gap: 16px;
-}
-
-/* .grid--kpi's column count is set inline by KpiGrid (picks a divisor of
-   the card count per breakpoint so rows are never left half-empty); this is
-   just the pre-JS fallback. */
-.grid--kpi {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .grid--2 {
@@ -535,6 +525,18 @@ textarea:focus-visible {
   color: var(--paper);
 }
 
+.header__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header__logout.btn.btn--ghost {
+  padding: 8px 12px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+}
+
 /* Touch devices — stack identity above artist name with a tight gap
    rather than the desktop's side-by-side row. */
 @media (hover: none) and (pointer: coarse) {
@@ -626,240 +628,55 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Floating tab nav — one fixed glass pill, every breakpoint, always on     */
-/* screen. A white puck slides (and can be dragged) behind the active tab; */
-/* below the collapse breakpoint it's replaced by the current tab's name   */
-/* plus a Menu trigger that unfurls the rest above the pill.                */
+/* Tab nav — a row of separate, individually-bordered pill buttons that     */
+/* wraps onto as many lines as it needs. Sits in normal document flow       */
+/* between the ticker and the page content, not fixed/floating.             */
 /* ---------------------------------------------------------------------- */
-.floatnav {
-  position: fixed;
-  left: 50%;
-  bottom: 22px;
-  transform: translateX(-50%);
-  z-index: 110;
+.tabnav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  max-width: calc(100vw - 24px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 999px;
-  padding: 6px;
-  box-shadow: 0 10px 0 rgba(11, 11, 11, 0.1), 0 18px 40px rgba(0, 0, 0, 0.45);
+  gap: 10px;
+  padding-top: 20px;
+  padding-bottom: 4px;
 }
 
-.floatnav__mark {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  padding: 10px 16px;
-  border: 2px solid var(--accent-contrast);
-  border-radius: 999px;
-  color: var(--accent-contrast);
-}
-
-.floatnav__eq {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 12px;
-}
-
-.floatnav__eq i {
-  display: block;
-  width: 3px;
-  background: var(--accent-contrast);
-  animation: floatnav-eq 900ms ease-in-out infinite;
-}
-.floatnav__eq i:nth-child(1) {
-  animation-delay: 0ms;
-}
-.floatnav__eq i:nth-child(2) {
-  animation-delay: 180ms;
-}
-.floatnav__eq i:nth-child(3) {
-  animation-delay: 360ms;
-}
-@keyframes floatnav-eq {
-  0%, 100% { height: 3px; }
-  50% { height: 12px; }
-}
-
-.floatnav__mark-text {
-  font-family: var(--font-serif);
-  font-weight: 900;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-
-.floatnav__items {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  touch-action: pan-x;
-}
-.floatnav__items::-webkit-scrollbar {
-  display: none;
-}
-
-.floatnav__puck {
-  position: absolute;
-  top: 4px;
-  left: 0;
-  height: calc(100% - 8px);
-  width: 0;
-  background: #ffffff;
-  border-radius: 999px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1), width 320ms cubic-bezier(0.65, 0, 0.35, 1);
-  z-index: 0;
-  /* Always sits fully behind the active Link, so it can never be the actual
-     pointer target — dragging is handled by .floatnav__items hit-testing
-     this rect instead (see FloatingTabNav.js). */
-  pointer-events: none;
-}
-
-.floatnav__link {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-  padding: 12px 18px;
-  border-radius: 999px;
-  font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--accent-contrast);
-  white-space: nowrap;
-}
-
-.floatnav__current {
-  padding: 12px 16px;
-  font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--accent-contrast);
-  white-space: nowrap;
-}
-
-.floatnav__menu-btn {
-  all: unset;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 16px;
-  border-radius: 999px;
-  font-family: var(--font-display);
-  font-size: 12px;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--accent-contrast);
-  cursor: pointer;
-  transition: background 140ms ease;
-}
-.floatnav__menu-btn:hover {
-  background: rgba(11, 11, 11, 0.08);
-}
-
-.floatnav__menu-glyph {
-  display: inline-block;
-  font-size: 15px;
-  line-height: 1;
-  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1);
-}
-.floatnav__menu-btn[aria-expanded='true'] .floatnav__menu-glyph {
-  transform: rotate(135deg);
-}
-
-.floatnav__unfurl {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 12px);
-  transform: translateX(-50%);
-  width: max-content;
-  min-width: 200px;
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 480ms cubic-bezier(0.65, 0, 0.35, 1);
-}
-.floatnav__unfurl[data-open='true'] {
-  grid-template-rows: 1fr;
-}
-
-.floatnav__unfurl-inner {
-  overflow: hidden;
-  min-height: 0;
-  max-height: min(60vh, 420px);
-  overflow-y: auto;
-  background: var(--paper);
-  border: 1px solid rgba(11, 11, 11, 0.15);
-  border-radius: 18px;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-}
-
-.floatnav__unfurl-link {
-  padding: 12px 18px;
+.tabnav__link {
+  padding: 13px 22px;
+  border: 2px solid var(--border-strong);
   border-radius: 12px;
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--accent-contrast);
-  transition: background 120ms ease;
+  color: var(--paper);
+  white-space: nowrap;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
 }
-.floatnav__unfurl-link:hover {
-  background: rgba(11, 11, 11, 0.08);
+.tabnav__link:hover {
+  border-color: var(--accent);
 }
-
-.floatnav__logout.btn.btn--ghost {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-  margin-left: 4px;
-  padding: 8px 12px;
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  color: rgba(11, 11, 11, 0.55);
-}
-.floatnav__logout.btn.btn--ghost:hover {
+.tabnav__link[data-active] {
+  background: var(--accent);
+  border-color: var(--accent);
   color: var(--accent-contrast);
 }
 
 @media (max-width: 640px) {
-  .floatnav__mark-text {
-    display: none;
+  .tabnav {
+    gap: 8px;
   }
-  .floatnav__link,
-  .floatnav__current {
-    padding: 10px 12px;
-    font-size: 11.5px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .floatnav__eq i {
-    animation: none;
-  }
-  .floatnav__puck {
-    transition: none;
+  .tabnav__link {
+    padding: 11px 16px;
+    font-size: 12px;
   }
 }
 
 /* Mobile preview also frames the whole app to a phone-ish width, so the
    fluid layout (grids, clamp()'d type) is actually exercised. The transform
    makes .app-shell the containing block for its position:fixed descendants
-   (DashboardBackground, .floatnav), confining them to the frame instead of
-   bleeding full-viewport-width behind/below it. */
+   (DashboardBackground), confining them to the frame instead of bleeding
+   full-viewport-width behind/below it. */
 :root[data-preview='mobile'] body {
   background: #050505;
 }
@@ -943,8 +760,22 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------- */
-/* KPI cards                                                                */
+/* Dashboard — headline stat tiles, coverage list, mentions/reach chart     */
 /* ---------------------------------------------------------------------- */
+.grid--stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .grid--stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .grid--stats {
+    grid-template-columns: 1fr;
+  }
+}
+
 .kpi-card__label {
   font-size: 11px;
   font-weight: 700;
@@ -976,61 +807,45 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   margin-top: 12px;
+  gap: 8px;
 }
 
-/* Flip mechanics: front shows just the headline number, back reveals the
-   sparkline + a derived insight line on hover (desktop) or tap (touch —
-   .is-flipped is toggled in KpiCard's onClick since touch has no :hover). */
-.kpi-flip {
-  min-height: 176px;
-  perspective: 1200px;
-  cursor: pointer;
-}
-
-.kpi-flip__inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
-  transform-style: preserve-3d;
-}
-
-.kpi-flip:hover .kpi-flip__inner,
-.kpi-flip.is-flipped .kpi-flip__inner {
-  transform: rotateY(180deg);
-}
-
-.kpi-flip__face {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-.kpi-flip__face--back {
-  transform: rotateY(180deg);
-  justify-content: space-between;
-}
-
-.kpi-flip__insight {
-  margin-top: 10px;
+.kpi-card__caption {
   font-size: 12px;
   color: var(--muted);
-  text-transform: lowercase;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .kpi-flip__inner {
-    transition: none;
-  }
+/* A slim, always-visible scroll affordance (rather than the browser
+   default, or hidden-until-scroll) for panels shorter than their content —
+   currently just the coverage list. */
+.scroll-panel {
+  max-height: 336px;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.scroll-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-panel::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
 }
 
-/* ---------------------------------------------------------------------- */
-/* Trend chart (Dashboard)                                                 */
-/* ---------------------------------------------------------------------- */
-.trend-chart__head {
+.coverage-row__category {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.mentions-chart__head {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
@@ -1039,39 +854,33 @@ textarea:focus-visible {
   margin-bottom: 18px;
 }
 
-.trend-chart__label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-}
-
-.trend-chart__source {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-
-.trend-chart__value-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.trend-chart__value {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.trend-chart__plot {
+.mentions-chart__plot {
   width: 100%;
   height: 260px;
 }
 
+.mentions-chart__legend {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.mentions-chart__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mentions-chart__legend-swatch {
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
+
 @media (max-width: 560px) {
-  .trend-chart__plot {
+  .mentions-chart__plot {
     height: 200px;
   }
 }
