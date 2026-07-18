@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useGlassHighlightOnly } from '@/lib/useGlassSurface';
 import EditIdeaModal from './EditIdeaModal';
 
 const DROPZONE_HEIGHT = 120;
@@ -59,13 +58,6 @@ export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onR
   const cardRefs = useRef(new Map());
   const dragStateRef = useRef(null);
   const justDraggedRef = useRef(false);
-  // Highlight/glow only, no adaptive tint - this overlay has its own opaque
-  // backdrop (see .pile-overlay's solid background), so sampling the app's
-  // background photo would give a tint from something that isn't actually
-  // visible behind this bar. A callback ref (not plain useRef + mount-only
-  // effect) because this bar only exists in the DOM once selectMode is on
-  // and something's selected - well after this component's own mount.
-  const actionBarRef = useGlassHighlightOnly();
 
   // The overlay itself needs to keep rendering for a moment after `pile`
   // goes null, so the "furl" close animation has something to animate -
@@ -336,7 +328,7 @@ export default function PileOverlay({ pile, ideas, onClose, onSwitchVerdict, onR
       )}
 
       {selectMode && selectedIds.size > 0 ? (
-        <div className="pile-overlay__action-bar glass" ref={actionBarRef}>
+        <div className="pile-overlay__action-bar">
           <button type="button" className="btn" onClick={handleBulkReturn}>
             Return {selectedIds.size} to stack
           </button>

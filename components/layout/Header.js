@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import artistConfig from '@/lib/artist.config';
 import { AGENCY_KICKER, STUDIO_NAME } from '@/lib/constants';
-import { useGlassSurface } from '@/lib/useGlassSurface';
 import LogoutButton from './LogoutButton';
 
 // The artist name doubles as the profile trigger — click it to unfurl a
@@ -11,7 +10,6 @@ import LogoutButton from './LogoutButton';
 export default function Header() {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
-  const logoutGlassRef = useGlassSurface();
 
   useEffect(() => {
     if (!open) return undefined;
@@ -51,7 +49,7 @@ export default function Header() {
           <div className="header__profile-menu" id="header-profile-menu" data-open={open}>
             <div className="header__profile-menu-inner">
               <div className="header__profile-menu-panel">
-                <LogoutButton ref={logoutGlassRef} className="header__profile-logout glass" />
+                <LogoutButton className="header__profile-logout" />
               </div>
             </div>
           </div>

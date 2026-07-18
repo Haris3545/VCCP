@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import SourceBadge from '@/components/ui/SourceBadge';
 
-// Deterministic string hash (djb2) so each article's tilt/jitter and each
-// outlet's masthead style are stable across server render and hydration —
-// no Math.random(), which would mismatch between the two.
+// Deterministic string hash (djb2) so each article's masthead style/section
+// tag and the reveal-open push directions are stable across server render
+// and hydration — no Math.random(), which would mismatch between the two.
 function hashString(str) {
   let h = 5381;
   for (let i = 0; i < str.length; i++) {
@@ -16,7 +16,7 @@ function hashString(str) {
 // already bundled locally (no per-outlet real branding to fetch) — each
 // outlet name deterministically hashes to one, so the same outlet always
 // reads the same way and different outlets read visibly differently, the
-// way a real stack of newspapers has different mastheads.
+// way a real stack of front pages has different mastheads, rules and ink.
 const MASTHEAD_STYLES = [
   {
     font: 'var(--font-serif)',
@@ -25,6 +25,7 @@ const MASTHEAD_STYLES = [
     transform: 'uppercase',
     tracking: '-0.01em',
     paper: 'linear-gradient(160deg, #fbf9f2, #efece0)',
+    accent: '#a3272c',
   },
   {
     font: "'Playfair Display', var(--font-serif)",
@@ -33,6 +34,7 @@ const MASTHEAD_STYLES = [
     transform: 'none',
     tracking: '0em',
     paper: 'linear-gradient(160deg, #fdf6ee, #f1e6d6)',
+    accent: '#5c2a4d',
   },
   {
     font: "'Oswald', var(--font-sans)",
@@ -41,6 +43,7 @@ const MASTHEAD_STYLES = [
     transform: 'uppercase',
     tracking: '0.015em',
     paper: 'linear-gradient(160deg, #f6f5ef, #e7e4d8)',
+    accent: '#1d3a5f',
   },
   {
     font: "'Space Grotesk', var(--font-sans)",
@@ -49,6 +52,7 @@ const MASTHEAD_STYLES = [
     transform: 'none',
     tracking: '-0.01em',
     paper: 'linear-gradient(160deg, #f7f8f4, #e9ebe3)',
+    accent: '#2f5233',
   },
   {
     font: "'IBM Plex Mono', ui-monospace, monospace",
@@ -57,6 +61,7 @@ const MASTHEAD_STYLES = [
     transform: 'uppercase',
     tracking: '0em',
     paper: 'linear-gradient(160deg, #f4f6ef, #e5e9dd)',
+    accent: '#1f5c56',
   },
   {
     font: 'var(--font-display)',
@@ -65,6 +70,7 @@ const MASTHEAD_STYLES = [
     transform: 'uppercase',
     tracking: '0em',
     paper: 'linear-gradient(160deg, #faf3ec, #ecdcd0)',
+    accent: '#b5811a',
   },
   {
     font: "'Playfair Display', var(--font-serif)",
@@ -73,29 +79,31 @@ const MASTHEAD_STYLES = [
     transform: 'none',
     tracking: '0em',
     paper: 'linear-gradient(160deg, #f9f1ec, #ecdcd2)',
+    accent: '#1b1710',
   },
 ];
+
+const SECTION_TAGS = ['MUSIC', 'CULTURE', 'POP', 'STYLE', 'CELEBRITY', 'FILM'];
 
 function formatDate(iso) {
   if (!iso) return '';
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function clippingStyleVars(article) {
+function stripStyleVars(article) {
   const masthead = MASTHEAD_STYLES[hashString(article.outlet) % MASTHEAD_STYLES.length];
-  const rot = ((hashString(article.link) % 100) / 100 - 0.5) * 7;
-  const jx = ((hashString(`${article.link}x`) % 100) / 100 - 0.5) * 10;
-  const jy = ((hashString(`${article.link}y`) % 100) / 100 - 0.5) * 14;
+  const tag = SECTION_TAGS[hashString(`${article.link}tag`) % SECTION_TAGS.length];
   return {
-    '--rot': `${rot.toFixed(2)}deg`,
-    '--jx': `${jx.toFixed(1)}px`,
-    '--jy': `${jy.toFixed(1)}px`,
-    '--paper-bg': masthead.paper,
-    '--headline-font': masthead.font,
-    '--headline-weight': masthead.weight,
-    '--headline-style': masthead.style,
-    '--headline-transform': masthead.transform,
-    '--headline-tracking': masthead.tracking,
+    vars: {
+      '--paper-bg': masthead.paper,
+      '--accent': masthead.accent,
+      '--headline-font': masthead.font,
+      '--headline-weight': masthead.weight,
+      '--headline-style': masthead.style,
+      '--headline-transform': masthead.transform,
+      '--headline-tracking': masthead.tracking,
+    },
+    tag,
   };
 }
 
@@ -147,31 +155,41 @@ export default function MediaView({ data }) {
 
       <div className={`media-stack${open ? ' media-stack--reading' : ''}`}>
         {articles.map((article, i) => {
+          const { vars, tag } = stripStyleVars(article);
           const delta = i - (openIndex ?? i);
           const pushed = open && i !== openIndex;
-          const pushDir = delta === 0 ? 0 : delta > 0 ? 1 : -1;
           const style = {
-            ...clippingStyleVars(article),
-            ...(pushed
-              ? {
-                  '--push-x': `${pushDir * (70 + Math.abs(delta) * 16)}px`,
-                  '--push-y': `${(i % 2 === 0 ? -1 : 1) * (30 + Math.abs(delta) * 6)}px`,
-                  '--push-rot': `${pushDir * (10 + Math.abs(delta) * 2)}deg`,
-                  transitionDelay: `${Math.min(Math.abs(delta) * 12, 180)}ms`,
-                }
-              : {}),
+            ...vars,
+            transitionDelay: pushed ? `${Math.min(Math.abs(delta) * 10, 160)}ms` : undefined,
           };
           return (
             <button
               key={article.link}
               type="button"
-              className={`news-clipping${i === openIndex ? ' news-clipping--open' : ''}${pushed ? ' news-clipping--pushed' : ''}`}
+              className={`news-strip${i === openIndex ? ' news-strip--open' : ''}${
+                pushed ? (delta < 0 ? ' news-strip--push-left' : ' news-strip--push-right') : ''
+              }`}
               style={style}
               onClick={() => setOpenIndex(i)}
             >
-              <span className="news-clipping__outlet">{article.outlet}</span>
-              <span className="news-clipping__headline">{article.headline}</span>
-              <span className="news-clipping__date">{formatDate(article.publishedAt)}</span>
+              <div className="news-strip__top">
+                <span className="news-strip__tag">{tag}</span>
+                <span className="news-strip__outlet">{article.outlet}</span>
+                <span className="news-strip__date">{formatDate(article.publishedAt)}</span>
+              </div>
+              <div className="news-strip__rule" aria-hidden="true" />
+              <div className="news-strip__body">
+                <h3 className="news-strip__headline">{article.headline}</h3>
+                {article.imageUrl ? (
+                  <div className="news-strip__photo">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={article.imageUrl} alt="" loading="lazy" />
+                    <span className="news-strip__photo-expand" aria-hidden="true">
+                      ⤢
+                    </span>
+                  </div>
+                ) : null}
+              </div>
             </button>
           );
         })}
@@ -188,6 +206,12 @@ export default function MediaView({ data }) {
             >
               ×
             </button>
+            {open.imageUrl ? (
+              <div className="media-reader__photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={open.imageUrl} alt="" />
+              </div>
+            ) : null}
             <div className="media-article__masthead">
               <span className="media-article__eyebrow">{open.outlet}</span>
               <span className="media-article__date">{formatDate(open.publishedAt)}</span>

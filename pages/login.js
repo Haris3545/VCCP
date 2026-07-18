@@ -1,27 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import artistConfig from '@/lib/artist.config';
 import { AGENCY_KICKER, STUDIO_NAME } from '@/lib/constants';
 import FilmGrain from '@/components/layout/FilmGrain';
 import { startPageTransition } from '@/lib/pageTransition';
-import { attachGlassHighlight } from '@/lib/glassHighlight';
 
 export default function LoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Also doubles as the page-transition circle's origin point on submit.
   const enterBtnRef = useRef(null);
-
-  // enterBtnRef already exists for the page-transition circle's origin
-  // point, so the highlight/glow are wired directly onto it here rather
-  // than via useGlassSurface (which would own a second, separate ref). No
-  // attachAdaptiveTint here — that samples the dashboard's fixed background
-  // photo specifically, which isn't what's actually behind this button; the
-  // login screen has its own video background, so the tint just falls back
-  // to .glass's static default rather than sampling the wrong image.
-  useEffect(() => attachGlassHighlight(enterBtnRef.current), []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -86,7 +77,7 @@ export default function LoginPage() {
               aria-label="Password"
             />
             {error ? <div className="login-error">{error}</div> : null}
-            <button type="submit" className="btn-sweep glass" disabled={submitting} ref={enterBtnRef}>
+            <button type="submit" className="btn-sweep" disabled={submitting} ref={enterBtnRef}>
               <span>{submitting ? 'Checking…' : 'Enter'}</span>
             </button>
           </form>

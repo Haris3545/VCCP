@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import EmptyState from '@/components/ui/EmptyState';
-import { useGlassSurface } from '@/lib/useGlassSurface';
 import SwipeStack from './SwipeStack';
 import IdeaPiles from './IdeaPiles';
 import AddIdeaModal from './AddIdeaModal';
@@ -12,7 +11,6 @@ export default function IdeasView({ initialResult }) {
   const [addOpen, setAddOpen] = useState(false);
   const [openPile, setOpenPile] = useState(null);
   const [editingIdea, setEditingIdea] = useState(null);
-  const addBtnRef = useGlassSurface();
 
   if (initialResult.source === 'unavailable') {
     return (
@@ -96,7 +94,7 @@ export default function IdeasView({ initialResult }) {
         {initialResult.notice ? <div className="idea-board__notice">{initialResult.notice}</div> : null}
 
         <div className="idea-board__actions">
-          <button type="button" className="btn btn--primary idea-board__add glass" ref={addBtnRef} onClick={() => setAddOpen(true)}>
+          <button type="button" className="btn btn--primary idea-board__add" onClick={() => setAddOpen(true)}>
             + Add idea
           </button>
         </div>

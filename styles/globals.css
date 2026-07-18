@@ -546,7 +546,7 @@ textarea:focus-visible {
   align-items: center;
   gap: 8px;
   padding: 4px 6px;
-  border-radius: var(--radius);
+  border-radius: 14px;
   transition: background 140ms ease;
 }
 .header__profile-trigger:hover {
@@ -595,7 +595,7 @@ textarea:focus-visible {
 .header__profile-menu-panel {
   background: var(--surface-raised);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: 18px;
   padding: 6px;
   min-width: 150px;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
@@ -605,16 +605,16 @@ textarea:focus-visible {
   width: 100%;
   text-align: center;
   padding: 12px 16px;
-  border-radius: 999px;
+  border-radius: 14px;
   font-family: var(--font-display);
   font-size: 12px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--paper);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-  box-shadow: var(--glow-x) var(--glow-y) 22px rgba(255, 255, 255, 0.2);
+  background: rgba(244, 242, 234, 0.06);
 }
 .header__profile-logout.btn.btn--ghost:hover {
+  background: rgba(244, 242, 234, 0.12);
   color: var(--accent);
 }
 
@@ -835,16 +835,13 @@ html.custom-cursor-active textarea {
   align-items: center;
   gap: 4px;
   max-width: calc(100vw - 24px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
   padding: 6px;
-  /* The first shadow is the cursor-glow — light spilling past the pill's
-     own edge, not just a highlight painted inside it (that part is
-     .glass::before). It has to live here rather than on the shared .glass
-     rule: a second box-shadow declaration on .glass at equal specificity
-     would just override this one instead of combining with it. */
-  box-shadow: var(--glow-x) var(--glow-y) 34px rgba(255, 255, 255, 0.22), 0 10px 0 rgba(0, 0, 0, 0.3),
-    0 18px 40px rgba(0, 0, 0, 0.55);
+  background: var(--surface-raised);
+  /* Flat, solid chrome — deliberately not .glass. A plain ambient shadow for
+     depth instead of the pointer-tracked glow that surface used to have. */
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.3), 0 18px 40px rgba(0, 0, 0, 0.55);
 }
 
 .floatnav__items {
@@ -868,7 +865,7 @@ html.custom-cursor-active textarea {
   height: calc(100% - 8px);
   width: 0;
   background: #ffffff;
-  border-radius: 999px;
+  border-radius: 14px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), width 200ms cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 0;
@@ -920,7 +917,7 @@ html.custom-cursor-active textarea {
   align-items: center;
   gap: 6px;
   padding: 12px 16px;
-  border-radius: 999px;
+  border-radius: 14px;
   font-family: var(--font-display);
   font-size: 12px;
   letter-spacing: 0.03em;
@@ -972,12 +969,14 @@ html.custom-cursor-active textarea {
   padding: 6px;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--glow-x) var(--glow-y) 28px rgba(255, 255, 255, 0.2), 0 18px 40px rgba(0, 0, 0, 0.5);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
 }
 
 .floatnav__unfurl-link {
   padding: 12px 18px;
-  border-radius: 12px;
+  border-radius: 14px;
   font-family: var(--font-display);
   font-size: 14px;
   letter-spacing: 0.02em;
@@ -1801,7 +1800,7 @@ html.custom-cursor-active textarea {
   text-transform: uppercase;
   cursor: pointer;
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid rgba(244, 242, 234, 0.5);
   background: transparent;
   color: var(--paper);
@@ -1820,27 +1819,6 @@ html.custom-cursor-active textarea {
   transform-origin: left;
   transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1);
   z-index: -1;
-}
-
-/* .glass also wants ::before for its pointer-tracked highlight, but a
-   pseudo-element can only run one set of rules — the higher-specificity
-   compound selector here keeps the established sweep-fill instead of
-   letting it lose to .glass::before's highlight bloom, since the sweep is
-   this button's own established interaction (it also fires the page-
-   transition circle on submit). The blur/imperfections/dark tint from
-   .glass still apply underneath; overflow:hidden here (needed to clip the
-   sweep to the pill's rounded corners) also means the cursor-glow
-   box-shadow the other glass surfaces get would just be clipped away, so
-   it's not added here either. */
-.btn-sweep.glass::before {
-  background: var(--paper);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1);
-  mix-blend-mode: normal;
-}
-.btn-sweep.glass:hover::before {
-  transform: scaleX(1);
 }
 
 .btn-sweep span {
@@ -1884,24 +1862,9 @@ html.custom-cursor-active textarea {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   padding: 14px 28px;
-  border-radius: 999px;
+  border-radius: 14px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
   transition: opacity 150ms ease;
-}
-
-/* The one glass surface that stays white rather than black — everything
-   else about .glass (blur, adaptive tint, imperfections, cursor glow)
-   still applies, just against a light base instead of dark. Needs its own
-   background/color/border here at higher specificity than either .glass
-   or .btn-refresh alone, since neither single-class rule can be relied on
-   to win by source order over the other. */
-.btn-refresh.glass {
-  /* Bright on purpose, no adaptive-tint mixed in — this is the one glass
-     surface meant to still read as a crisp, solid white button rather than
-     a coloured or dimmed one, so it stands out against the dark shell. */
-  background: linear-gradient(180deg, rgba(244, 242, 234, 0.94), rgba(244, 242, 234, 0.88));
-  color: var(--accent-contrast);
-  border-color: rgba(11, 11, 11, 0.15);
-  box-shadow: var(--glow-x) var(--glow-y) 26px rgba(255, 255, 255, 0.4);
 }
 
 .btn-refresh:hover:not(:disabled) {
@@ -2620,22 +2583,9 @@ html.custom-cursor-active textarea {
   gap: 12px;
 }
 
-/* .glass's background/imperfections/highlight override .btn--primary's
-   plain accent fill (declared later in the cascade), but the border and
-   the hover state both need their own override here at matching or higher
-   specificity, or .btn--primary's accent-coloured versions would win back. */
 .idea-board__add.btn.btn--primary {
-  border-radius: 999px;
+  border-radius: 14px;
   font-family: var(--font-display);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: var(--paper);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-  box-shadow: var(--glow-x) var(--glow-y) 26px rgba(255, 255, 255, 0.2);
-}
-.idea-board__add.btn.btn--primary:hover {
-  background: rgba(var(--tint-r), var(--tint-g), var(--tint-b), 0.3);
-  border-color: rgba(255, 255, 255, 0.32);
-  color: var(--paper);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -2925,9 +2875,10 @@ html.custom-cursor-active textarea {
   display: flex;
   gap: 12px;
   padding: 14px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
-  box-shadow: var(--glow-x) var(--glow-y) 30px rgba(255, 255, 255, 0.2), 0 20px 50px -12px rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  background: var(--surface-raised);
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.7);
   /* This static transform is the fallback for once the animation below
      finishes (animations don't have fill-mode: forwards here, so the
      centering would otherwise disappear the moment it settled) - and the
@@ -2939,7 +2890,7 @@ html.custom-cursor-active textarea {
 }
 
 .pile-overlay__action-bar .btn {
-  border-radius: 999px;
+  border-radius: 14px;
 }
 
 @keyframes pile-action-bar-in {
@@ -3149,35 +3100,33 @@ html.custom-cursor-active textarea {
 }
 
 .media-stack {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(216px, 1fr));
-  gap: 30px 20px;
-  padding: 22px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 16px 60px;
 }
 
-.news-clipping {
+.news-strip {
   appearance: none;
   border: none;
   text-align: left;
   cursor: pointer;
   position: relative;
   isolation: isolate;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 128px;
-  padding: 16px 18px 16px;
-  margin: -10px -4px;
-  border-radius: 2px;
+  display: block;
+  width: 100%;
+  padding: 18px clamp(18px, 4vw, 34px) 26px;
+  margin-top: -22px;
   background: var(--paper-bg, linear-gradient(160deg, #fbf9f2, #efece0));
   color: #17140d;
-  transform: rotate(var(--rot, 0deg)) translate(var(--jx, 0), var(--jy, 0));
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.4), 0 2px 5px rgba(0, 0, 0, 0.28);
-  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 260ms ease, opacity 320ms ease,
-    filter 320ms ease;
+  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 260ms ease, opacity 340ms ease;
 }
 
-.news-clipping::before {
+.news-strip:first-child {
+  margin-top: 0;
+}
+
+.news-strip::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -3185,61 +3134,139 @@ html.custom-cursor-active textarea {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn)'/></svg>");
   background-size: 180px 180px;
   mix-blend-mode: multiply;
-  opacity: 0.3;
+  opacity: 0.28;
 }
 
-.news-clipping:hover {
-  transform: rotate(0deg) translate(var(--jx, 0), calc(var(--jy, 0) - 6px)) scale(1.045);
-  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.48), 0 4px 8px rgba(0, 0, 0, 0.3);
+.news-strip:hover {
   z-index: 3;
+  box-shadow: 0 20px 34px rgba(0, 0, 0, 0.48), 0 4px 10px rgba(0, 0, 0, 0.32);
 }
 
-.news-clipping__outlet {
+.news-strip__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.news-strip__tag {
   font-family: var(--font-sans);
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(23, 20, 13, 0.55);
+  color: #fff;
+  background: var(--accent, #a3272c);
+  border-radius: 3px;
+  padding: 3px 7px;
 }
 
-.news-clipping__headline {
+.news-strip__outlet {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(23, 20, 13, 0.62);
+}
+
+.news-strip__date {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  color: rgba(23, 20, 13, 0.5);
+}
+
+.news-strip__rule {
+  margin: 10px 0 14px;
+  height: 4px;
+  background: var(--accent, #a3272c);
+  position: relative;
+}
+.news-strip__rule::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 7px;
+  height: 1px;
+  background: rgba(23, 20, 13, 0.35);
+}
+
+.news-strip__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.news-strip__headline {
+  flex: 1;
+  margin: 0;
   font-family: var(--headline-font, var(--font-serif));
   font-weight: var(--headline-weight, 700);
   font-style: var(--headline-style, normal);
   text-transform: var(--headline-transform, none);
   letter-spacing: var(--headline-tracking, 0);
-  font-size: 15px;
-  line-height: 1.28;
-  color: #17140d;
+  font-size: clamp(20px, 2.6vw, 32px);
+  line-height: 1.14;
+  color: #14110b;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.news-clipping__date {
-  margin-top: auto;
-  font-family: var(--font-sans);
-  font-size: 10px;
-  color: rgba(23, 20, 13, 0.5);
+.news-strip__photo {
+  flex: 0 0 auto;
+  position: relative;
+  width: 84px;
+  height: 84px;
+  overflow: hidden;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+.news-strip__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 30%;
+  transform: scale(1.6);
+  filter: grayscale(0.15) contrast(1.05);
+}
+.news-strip__photo-expand {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 50%;
 }
 
-/* Reading state: the clicked clipping fades out in place (its content
-   reappears large in .media-reader) while every other clipping scatters
-   away from it — direction/rotation baked into --push-* by MediaView.js,
-   staggered slightly further out the further a clipping sits from the one
-   that was opened, so it reads as a single "push" radiating outward. */
-.news-clipping--open {
+/* Reading state: the clicked strip fades out in place (its content
+   reappears large in .media-reader) while every strip before it slides
+   away to the left and every strip after it slides away to the right —
+   staggered further out the further a strip sits from the one that was
+   opened, so it reads as a single "push to the side" radiating outward. */
+.news-strip--open {
   opacity: 0;
   pointer-events: none;
 }
 
-.news-clipping--pushed {
-  transform: rotate(calc(var(--rot, 0deg) + var(--push-rot, 0deg)))
-    translate(calc(var(--jx, 0px) + var(--push-x, 0px)), calc(var(--jy, 0px) + var(--push-y, 0px)));
-  opacity: 0.35;
-  filter: blur(1px);
+.news-strip--push-left {
+  transform: translateX(-130%) rotate(-3deg);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.news-strip--push-right {
+  transform: translateX(130%) rotate(3deg);
+  opacity: 0.4;
   pointer-events: none;
 }
 
@@ -3332,6 +3359,17 @@ html.custom-cursor-active textarea {
   opacity: 0.22;
 }
 
+.media-reader__photo {
+  margin: -46px calc(-1 * clamp(24px, 5vw, 64px)) 24px;
+  height: 260px;
+  overflow: hidden;
+}
+.media-reader__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .media-reader__close {
   all: unset;
   position: absolute;
@@ -3406,18 +3444,27 @@ html.custom-cursor-active textarea {
 }
 
 @media (max-width: 640px) {
-  .media-stack {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 22px 14px;
+  .news-strip {
+    padding: 14px 16px 20px;
+    margin-top: -16px;
+  }
+
+  .news-strip__photo {
+    width: 56px;
+    height: 56px;
   }
 
   .media-reader__sheet {
     padding: 40px 20px 32px;
   }
+
+  .media-reader__photo {
+    height: 160px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .news-clipping,
+  .news-strip,
   .media-reader,
   .media-reader__sheet {
     transition: none;

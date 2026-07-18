@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import { useGlassSurface } from '@/lib/useGlassSurface';
 
 export default function RefreshButton() {
   const [status, setStatus] = useState('idle');
-  const btnRef = useGlassSurface();
 
   async function handleRefresh() {
     setStatus('loading');
@@ -20,13 +18,7 @@ export default function RefreshButton() {
     status === 'loading' ? 'Refreshing…' : status === 'error' ? 'Refresh failed — retry' : 'Refresh everything';
 
   return (
-    <button
-      type="button"
-      className="btn-refresh glass"
-      ref={btnRef}
-      onClick={handleRefresh}
-      disabled={status === 'loading'}
-    >
+    <button type="button" className="btn-refresh" onClick={handleRefresh} disabled={status === 'loading'}>
       {label}
     </button>
   );

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useGlassSurface } from '@/lib/useGlassSurface';
 
 const NAV_TABS = [
   { tab: 'dashboard', label: 'Dashboard' },
@@ -14,21 +13,19 @@ const NAV_TABS = [
 const COLLAPSE_QUERY = '(max-width: 640px)';
 
 // Replaces TabBar (desktop rail) and MobileNav (touch hamburger + full-screen
-// panel) with one fixed glass pill that floats over every page at every
-// breakpoint — just the five section names, nothing else (logout now lives
-// in Header's profile menu instead). A white puck sits behind the active
-// tab at rest and glides to preview whichever tab the pointer is currently
-// over — a plain hover, no click-and-drag — snapping back the moment the
-// pointer leaves; a normal click on a Link is what actually navigates. Once
-// the pill is too narrow to hold all five labels legibly, it collapses to
-// just the current tab + a Menu trigger that unfurls the rest above it,
-// rather than shrinking text past reading size.
+// panel) with one fixed solid rounded-rect chrome bar that floats over every
+// page at every breakpoint — just the five section names, nothing else
+// (logout now lives in Header's profile menu instead). A white puck sits
+// behind the active tab at rest and glides to preview whichever tab the
+// pointer is currently over — a plain hover, no click-and-drag — snapping
+// back the moment the pointer leaves; a normal click on a Link is what
+// actually navigates. Once the pill is too narrow to hold all five labels
+// legibly, it collapses to just the current tab + a Menu trigger that
+// unfurls the rest above it, rather than shrinking text past reading size.
 export default function FloatingTabNav() {
   const router = useRouter();
   const activeIndex = Math.max(0, NAV_TABS.findIndex(({ tab }) => router.pathname === `/${tab}`));
 
-  const navRef = useGlassSurface();
-  const unfurlPanelRef = useGlassSurface();
   const trackRef = useRef(null);
   const puckRef = useRef(null);
   const linkRefs = useRef([]);
@@ -134,7 +131,7 @@ export default function FloatingTabNav() {
   const otherTabs = NAV_TABS.filter((_, i) => i !== activeIndex);
 
   return (
-    <nav className="floatnav glass" aria-label="Primary" ref={navRef}>
+    <nav className="floatnav" aria-label="Primary">
       {collapsed ? (
         <>
           <span className="floatnav__current">{current.label}</span>
@@ -151,7 +148,7 @@ export default function FloatingTabNav() {
           </button>
           <div className="floatnav__unfurl" id="floatnav-unfurl" data-open={menuOpen} ref={unfurlRef}>
             <div className="floatnav__unfurl-inner">
-              <div className="floatnav__unfurl-panel glass" ref={unfurlPanelRef}>
+              <div className="floatnav__unfurl-panel">
                 {otherTabs.map(({ tab, label }) => (
                   <Link key={tab} href={`/${tab}`} className="floatnav__unfurl-link" onClick={() => setMenuOpen(false)}>
                     {label}
