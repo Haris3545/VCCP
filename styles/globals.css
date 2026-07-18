@@ -581,9 +581,18 @@ textarea:focus-visible {
   grid-template-rows: 1fr;
 }
 
+/* overflow+min-height live on -inner (the grid item that must reach true
+   0 height when closed); background/border/padding live one level deeper
+   on -panel instead of directly on -inner. Padding or a border on the
+   collapsing element itself would put a floor under how far it can shrink
+   (min-height:0 only zeroes the content box, not padding/border), leaving
+   a persistent few-pixel sliver visible even fully "closed". */
 .header__profile-menu-inner {
   overflow: hidden;
   min-height: 0;
+}
+
+.header__profile-menu-panel {
   background: var(--surface-raised);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -653,26 +662,43 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Liquid glass — shared by the ticker and the floating nav. The tint is    */
-/* opaque enough on its own (no blur required) that text stays legible even */
-/* where backdrop-filter isn't supported; blur is a bonus on top of that,   */
-/* not the thing carrying contrast. Only declare the unprefixed             */
-/* backdrop-filter here — Lightning CSS (Next's minifier) auto-generates    */
-/* its own -webkit-backdrop-filter fallback, but if a manual -webkit- line  */
-/* is also written here, its autoprefixer gets confused by the duplicate    */
-/* and silently drops the *standard* property at build time, leaving only   */
-/* the (unrecognized, inert) manual webkit line — no blur ever actually     */
-/* rendered in production because of this. --gx/--gy (driven by             */
-/* lib/glassHighlight.js on pointermove + scroll) position the specular     */
-/* highlight so it visibly shifts as you move the pointer or scroll.        */
+/* Liquid glass — shared by the ticker and the floating nav. Registering    */
+/* --gx/--gy as typed <percentage> properties (like GlassPointer's --mx/    */
+/* --my below) is what makes them animatable — a plain custom property     */
+/* can't be transitioned, so without this the highlight would always snap  */
+/* between positions no matter what transition was declared. Tracking      */
+/* itself stays instant (glassHighlight.js removes .is-resetting the       */
+/* moment the pointer moves again), and only the return-to-rest glides.    */
+/* Backdrop-filter: only declare the unprefixed property — Lightning CSS   */
+/* (Next's minifier) auto-generates its own -webkit- fallback, but a manual */
+/* -webkit-backdrop-filter line alongside it confuses that autoprefixer     */
+/* into dropping the standard property at build time, so no blur actually   */
+/* renders in production. The tint sits midway between opaque and fully    */
+/* transparent on purpose — enough to still see through it, backed by a     */
+/* text-shadow on the text that sits on top for legibility insurance.       */
 /* ---------------------------------------------------------------------- */
+@property --gx {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 30%;
+}
+@property --gy {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 20%;
+}
+
 .glass {
   position: relative;
   --gx: 30%;
   --gy: 20%;
-  background: linear-gradient(180deg, rgba(244, 242, 234, 0.9), rgba(244, 242, 234, 0.82));
+  background: linear-gradient(180deg, rgba(244, 242, 234, 0.58), rgba(244, 242, 234, 0.46));
   backdrop-filter: blur(20px) saturate(1.5);
   isolation: isolate;
+}
+
+.glass.is-resetting {
+  transition: --gx 480ms cubic-bezier(0.22, 1, 0.36, 1), --gy 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .glass::before {
@@ -681,10 +707,15 @@ textarea:focus-visible {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: radial-gradient(160px 120px at var(--gx) var(--gy), rgba(255, 255, 255, 0.65), transparent 65%);
+  /* Three off-centre colour blooms (blue, pink, green) plus the white
+     specular highlight, all riding the same --gx/--gy — light scattering
+     internally into a faint spectrum rather than a single clean glint. */
+  background: radial-gradient(130px 100px at calc(var(--gx) - 10%) calc(var(--gy) - 8%), rgba(90, 160, 255, 0.3), transparent 62%),
+    radial-gradient(130px 100px at calc(var(--gx) + 11%) calc(var(--gy) + 4%), rgba(255, 100, 165, 0.26), transparent 62%),
+    radial-gradient(140px 110px at calc(var(--gx) + 3%) calc(var(--gy) + 10%), rgba(110, 255, 185, 0.22), transparent 62%),
+    radial-gradient(160px 120px at var(--gx) var(--gy), rgba(255, 255, 255, 0.68), transparent 65%);
   mix-blend-mode: overlay;
   z-index: 0;
-  transition: background-position 200ms ease;
 }
 
 .glass::after {
@@ -767,6 +798,7 @@ textarea:focus-visible {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--accent-contrast);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
   white-space: nowrap;
 }
 
@@ -777,6 +809,7 @@ textarea:focus-visible {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--accent-contrast);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
   white-space: nowrap;
 }
 
@@ -792,6 +825,7 @@ textarea:focus-visible {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--accent-contrast);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
   cursor: pointer;
   transition: background 140ms ease;
 }
@@ -824,9 +858,15 @@ textarea:focus-visible {
   grid-template-rows: 1fr;
 }
 
+/* Same split as .header__profile-menu-inner/-panel above, for the same
+   reason: padding/border directly on the min-height:0 element would leave
+   a persistent sliver visible even when "closed". */
 .floatnav__unfurl-inner {
   overflow: hidden;
   min-height: 0;
+}
+
+.floatnav__unfurl-panel {
   background: var(--paper);
   border: 1px solid rgba(11, 11, 11, 0.15);
   border-radius: 18px;
@@ -905,6 +945,7 @@ textarea:focus-visible {
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--accent-contrast);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
   display: inline-flex;
   align-items: center;
   gap: 8px;

@@ -48,7 +48,9 @@ export default function Header() {
           </button>
           <div className="header__profile-menu" id="header-profile-menu" data-open={open}>
             <div className="header__profile-menu-inner">
-              <LogoutButton className="header__profile-logout" />
+              <div className="header__profile-menu-panel">
+                <LogoutButton className="header__profile-logout" />
+              </div>
             </div>
           </div>
         </div>

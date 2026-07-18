@@ -216,11 +216,13 @@ export default function FloatingTabNav() {
           </button>
           <div className="floatnav__unfurl" id="floatnav-unfurl" data-open={menuOpen} ref={unfurlRef}>
             <div className="floatnav__unfurl-inner">
-              {otherTabs.map(({ tab, label }) => (
-                <Link key={tab} href={`/${tab}`} className="floatnav__unfurl-link" onClick={() => setMenuOpen(false)}>
-                  {label}
-                </Link>
-              ))}
+              <div className="floatnav__unfurl-panel">
+                {otherTabs.map(({ tab, label }) => (
+                  <Link key={tab} href={`/${tab}`} className="floatnav__unfurl-link" onClick={() => setMenuOpen(false)}>
+                    {label}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </>
