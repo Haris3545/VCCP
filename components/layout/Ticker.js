@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { attachGlassHighlight } from '@/lib/glassHighlight';
-import { attachAdaptiveTint } from '@/lib/adaptiveGlassTint';
+import { useGlassSurface } from '@/lib/useGlassSurface';
 
 // Decorative, always-on strip. Explicitly labelled SIMULATED — nothing here
 // should ever be mistaken for a live feed by someone in the room.
@@ -36,7 +35,7 @@ function TickerItem({ item }) {
 
 export default function Ticker() {
   const loop = [...ITEMS, ...ITEMS];
-  const rootRef = useRef(null);
+  const rootRef = useGlassSurface();
   const trackRef = useRef(null);
   const stateRef = useRef({
     x: 0,
@@ -87,9 +86,6 @@ export default function Ticker() {
       window.removeEventListener('resize', measure);
     };
   }, []);
-
-  useEffect(() => attachGlassHighlight(rootRef.current), []);
-  useEffect(() => attachAdaptiveTint(rootRef.current), []);
 
   function setTarget(target) {
     const s = stateRef.current;

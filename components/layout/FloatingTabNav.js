@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { attachGlassHighlight } from '@/lib/glassHighlight';
-import { attachAdaptiveTint } from '@/lib/adaptiveGlassTint';
+import { useGlassSurface } from '@/lib/useGlassSurface';
 
 const NAV_TABS = [
   { tab: 'dashboard', label: 'Dashboard' },
@@ -26,7 +25,8 @@ export default function FloatingTabNav() {
   const router = useRouter();
   const activeIndex = Math.max(0, NAV_TABS.findIndex(({ tab }) => router.pathname === `/${tab}`));
 
-  const navRef = useRef(null);
+  const navRef = useGlassSurface();
+  const unfurlPanelRef = useGlassSurface();
   const trackRef = useRef(null);
   const puckRef = useRef(null);
   const linkRefs = useRef([]);
@@ -37,9 +37,6 @@ export default function FloatingTabNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const suppressClickRef = useRef(false);
   const draggingRef = useRef(false);
-
-  useEffect(() => attachGlassHighlight(navRef.current), []);
-  useEffect(() => attachAdaptiveTint(navRef.current), []);
 
   useEffect(() => {
     const mq = window.matchMedia(COLLAPSE_QUERY);
@@ -218,7 +215,7 @@ export default function FloatingTabNav() {
           </button>
           <div className="floatnav__unfurl" id="floatnav-unfurl" data-open={menuOpen} ref={unfurlRef}>
             <div className="floatnav__unfurl-inner">
-              <div className="floatnav__unfurl-panel">
+              <div className="floatnav__unfurl-panel glass" ref={unfurlPanelRef}>
                 {otherTabs.map(({ tab, label }) => (
                   <Link key={tab} href={`/${tab}`} className="floatnav__unfurl-link" onClick={() => setMenuOpen(false)}>
                     {label}

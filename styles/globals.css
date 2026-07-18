@@ -605,11 +605,13 @@ textarea:focus-visible {
   width: 100%;
   text-align: left;
   padding: 10px 12px;
+  border-radius: 8px;
   color: var(--paper);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--glow-x) var(--glow-y) 22px rgba(255, 255, 255, 0.2);
 }
 .header__profile-logout.btn.btn--ghost:hover {
   color: var(--accent);
-  background: rgba(244, 242, 234, 0.06);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -749,12 +751,12 @@ textarea:focus-visible {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  /* Baked-in, static (not pointer-driven) imperfections — fine dust via the
+  /* Baked-in, static (not pointer-driven) imperfection — fine dust via the
      same feTurbulence technique GrainOverlay.js already uses elsewhere in
-     the app, plus a handful of thin, faint scratches at varying angles —
-     tiled at a fixed pixel size so the grain stays fine regardless of how
-     big the element it's applied to is, rather than stretching to fit. */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='100'><filter id='d'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='11' stitchTiles='stitch' result='n'/><feColorMatrix in='n' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23d)'/><g stroke='%23ffffff' stroke-linecap='round' fill='none'><line x1='14' y1='10' x2='62' y2='38' stroke-width='0.6' stroke-opacity='0.13'/><line x1='150' y1='6' x2='176' y2='24' stroke-width='0.5' stroke-opacity='0.1'/><line x1='76' y1='64' x2='128' y2='84' stroke-width='0.5' stroke-opacity='0.11'/><line x1='205' y1='44' x2='226' y2='76' stroke-width='0.4' stroke-opacity='0.08'/><line x1='34' y1='78' x2='50' y2='56' stroke-width='0.4' stroke-opacity='0.07'/><line x1='110' y1='14' x2='118' y2='34' stroke-width='0.35' stroke-opacity='0.09'/><line x1='190' y1='8' x2='212' y2='16' stroke-width='0.3' stroke-opacity='0.06'/></g></svg>");
+     the app, tiled at a fixed pixel size so the grain stays fine regardless
+     of how big the element it's applied to is, rather than stretching to
+     fit. No scratch lines — they read as drawn-on rather than tactile. */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='100'><filter id='d'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='11' stitchTiles='stitch' result='n'/><feColorMatrix in='n' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.075 0'/></filter><rect width='100%25' height='100%25' filter='url(%23d)'/></svg>");
   background-size: 240px 100px;
   background-repeat: repeat;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -8px 16px rgba(0, 0, 0, 0.4),
@@ -915,13 +917,11 @@ textarea:focus-visible {
 }
 
 .floatnav__unfurl-panel {
-  background: var(--paper);
-  border: 1px solid rgba(11, 11, 11, 0.15);
   border-radius: 18px;
   padding: 6px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--glow-x) var(--glow-y) 28px rgba(255, 255, 255, 0.2), 0 18px 40px rgba(0, 0, 0, 0.5);
 }
 
 .floatnav__unfurl-link {
@@ -931,11 +931,12 @@ textarea:focus-visible {
   font-size: 14px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--accent-contrast);
+  color: var(--paper);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   transition: background 120ms ease;
 }
 .floatnav__unfurl-link:hover {
-  background: rgba(11, 11, 11, 0.08);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 @media (max-width: 640px) {
@@ -1770,6 +1771,27 @@ textarea:focus-visible {
   z-index: -1;
 }
 
+/* .glass also wants ::before for its pointer-tracked highlight, but a
+   pseudo-element can only run one set of rules — the higher-specificity
+   compound selector here keeps the established sweep-fill instead of
+   letting it lose to .glass::before's highlight bloom, since the sweep is
+   this button's own established interaction (it also fires the page-
+   transition circle on submit). The blur/imperfections/dark tint from
+   .glass still apply underneath; overflow:hidden here (needed to clip the
+   sweep to the pill's rounded corners) also means the cursor-glow
+   box-shadow the other glass surfaces get would just be clipped away, so
+   it's not added here either. */
+.btn-sweep.glass::before {
+  background: var(--paper);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1);
+  mix-blend-mode: normal;
+}
+.btn-sweep.glass:hover::before {
+  transform: scaleX(1);
+}
+
 .btn-sweep span {
   position: relative;
   transition: color 260ms ease 60ms;
@@ -1813,6 +1835,20 @@ textarea:focus-visible {
   padding: 14px 28px;
   border-radius: 999px;
   transition: opacity 150ms ease;
+}
+
+/* The one glass surface that stays white rather than black — everything
+   else about .glass (blur, adaptive tint, imperfections, cursor glow)
+   still applies, just against a light base instead of dark. Needs its own
+   background/color/border here at higher specificity than either .glass
+   or .btn-refresh alone, since neither single-class rule can be relied on
+   to win by source order over the other. */
+.btn-refresh.glass {
+  background: linear-gradient(180deg, rgba(244, 242, 234, 0.72), rgba(244, 242, 234, 0.6)),
+    rgba(var(--tint-r), var(--tint-g), var(--tint-b), 0.12);
+  color: var(--accent-contrast);
+  border-color: rgba(11, 11, 11, 0.15);
+  box-shadow: var(--glow-x) var(--glow-y) 26px rgba(255, 255, 255, 0.4);
 }
 
 .btn-refresh:hover:not(:disabled) {
@@ -2531,6 +2567,22 @@ textarea:focus-visible {
   gap: 12px;
 }
 
+/* .glass's background/imperfections/highlight override .btn--primary's
+   plain accent fill (declared later in the cascade), but the border and
+   the hover state both need their own override here at matching or higher
+   specificity, or .btn--primary's accent-coloured versions would win back. */
+.idea-board__add.btn.btn--primary {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--paper);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--glow-x) var(--glow-y) 26px rgba(255, 255, 255, 0.2);
+}
+.idea-board__add.btn.btn--primary:hover {
+  background: rgba(var(--tint-r), var(--tint-g), var(--tint-b), 0.3);
+  border-color: rgba(255, 255, 255, 0.32);
+  color: var(--paper);
+}
+
 /* ---------------------------------------------------------------------- */
 /* Pile overlay - full-screen liked/disliked review                        */
 /* ---------------------------------------------------------------------- */
@@ -2818,10 +2870,9 @@ textarea:focus-visible {
   display: flex;
   gap: 12px;
   padding: 14px 18px;
-  background: rgba(10, 10, 10, 0.9);
-  border: 1px solid var(--border-strong);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
-  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.7);
+  box-shadow: var(--glow-x) var(--glow-y) 30px rgba(255, 255, 255, 0.2), 0 20px 50px -12px rgba(0, 0, 0, 0.7);
   /* This static transform is the fallback for once the animation below
      finishes (animations don't have fill-mode: forwards here, so the
      centering would otherwise disappear the moment it settled) - and the

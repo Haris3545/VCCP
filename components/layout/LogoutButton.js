@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 import { useRouter } from 'next/router';
 
-export default function LogoutButton({ className = '' }) {
+const LogoutButton = forwardRef(function LogoutButton({ className = '' }, ref) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -16,6 +16,7 @@ export default function LogoutButton({ className = '' }) {
 
   return (
     <button
+      ref={ref}
       type="button"
       className={`btn btn--ghost${className ? ` ${className}` : ''}`}
       onClick={handleLogout}
@@ -24,4 +25,6 @@ export default function LogoutButton({ className = '' }) {
       {loading ? 'Logging out…' : 'Log out'}
     </button>
   );
-}
+});
+
+export default LogoutButton;
