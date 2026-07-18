@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import artistConfig from '@/lib/artist.config';
-import { attachGlassHighlight } from '@/lib/glassHighlight';
 
 // Decorative, always-on strip mirroring the Dashboard tab's own headline
 // stats — every item carries its own "Simulated" pill (rather than one
@@ -29,7 +28,6 @@ function TickerItem({ item }) {
 
 export default function Ticker() {
   const loop = [...ITEMS, ...ITEMS];
-  const rootRef = useRef(null);
   const trackRef = useRef(null);
   const stateRef = useRef({
     x: 0,
@@ -81,8 +79,6 @@ export default function Ticker() {
     };
   }, []);
 
-  useEffect(() => attachGlassHighlight(rootRef.current), []);
-
   function setTarget(target) {
     const s = stateRef.current;
     s.from = s.speed;
@@ -92,8 +88,7 @@ export default function Ticker() {
 
   return (
     <div
-      className="ticker glass"
-      ref={rootRef}
+      className="ticker container"
       onMouseEnter={() => setTarget(HOVER_SPEED)}
       onMouseLeave={() => setTarget(BASE_SPEED)}
     >

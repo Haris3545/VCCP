@@ -25,33 +25,16 @@
   --font-serif: 'Bodoni Moda', 'Times New Roman', serif;
   --font-display: 'Archivo Black', var(--font-sans);
 
-  --radius: 2px;
+  --radius: 10px;
   --shadow-card: inset 0 1px 0 rgba(244, 242, 234, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.4),
     0 8px 28px rgba(0, 0, 0, 0.45);
   --header-h: 76px;
 
-  /* Glass "block" treatment — tinted + blurred rather than opaque, so the
+  /* Frosted "block" treatment — tinted + blurred rather than opaque, so the
      fixed background photo behind the app shell reads through every card. */
   --glass-tint: rgba(17, 17, 17, 0.36);
   --glass-tint-raised: rgba(26, 26, 26, 0.4);
   --glass-blur: 18px;
-  --glass-edge: rgba(244, 242, 234, 0.42);
-}
-
-/* Registering --mx/--my as typed <percentage> properties makes them
-   animatable — without this, changing a custom property used inside a
-   gradient() jumps instantly no matter what transition is set on it. This
-   is what lets the pointer-driven glint in .card::after glide instead of
-   snap. GlassPointer.js is what actually updates the values per card. */
-@property --mx {
-  syntax: '<percentage>';
-  inherits: false;
-  initial-value: 30%;
-}
-@property --my {
-  syntax: '<percentage>';
-  inherits: false;
-  initial-value: 15%;
 }
 
 * {
@@ -251,69 +234,18 @@ p {
 /* ---------------------------------------------------------------------- */
 .card {
   position: relative;
-  background: linear-gradient(195deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 34%),
-    radial-gradient(120% 90% at 82% 108%, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 60%),
-    var(--glass-tint);
-  border: 1px solid var(--border);
-  border-top-color: var(--glass-edge);
+  background: var(--glass-tint);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   padding: 20px;
-  /* The outer drop shadow/edge-lighting, plus a thin chromatic fringe —
-     cool on the left inner edge, warm on the right — the faint colour
-     splitting real glass throws at a bevelled edge, which is what reads
-     as "expensive" rather than a flat tinted panel. */
-  box-shadow: var(--shadow-card), inset 1px 0 0 rgba(120, 180, 255, 0.08),
-    inset -1px 0 0 rgba(255, 180, 120, 0.06);
-  /* contrast() is what makes this actually reactive to what's behind it —
-     saturate/blur alone just smear the backdrop, contrast pushes whatever
-     brightness variation survives the blur (a bright window, a dark
-     corner of the photo) further apart, so the card visibly reads
-     differently depending on what part of the scene it's sitting over. */
-  backdrop-filter: blur(var(--glass-blur)) saturate(170%) contrast(1.18) brightness(1.02);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%) contrast(1.18) brightness(1.02);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   overflow: hidden;
-  isolation: isolate;
-  transition: --mx 200ms ease, --my 200ms ease;
-}
-
-/* Diagonal sheen — light raking across the pane at an angle, the way it
-   catches a real sheet of glass rather than sitting flat on a surface. */
-.card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    115deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0) 26%,
-    rgba(255, 255, 255, 0) 64%,
-    rgba(255, 255, 255, 0.06) 100%
-  );
-  mix-blend-mode: overlay;
-  pointer-events: none;
-}
-
-/* Specular glint — follows the pointer (GlassPointer.js sets --mx/--my per
-   card on pointermove), the way light actually moves across a sheet of
-   glass as you move around it instead of sitting painted in one corner.
-   Defaults to a fixed upper-left position for touch/no-pointer-yet. */
-.card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    240px 240px at var(--mx, 30%) var(--my, 15%),
-    rgba(255, 255, 255, 0.22) 0%,
-    rgba(255, 255, 255, 0) 70%
-  );
-  filter: blur(4px);
-  pointer-events: none;
 }
 
 .card--raised {
   background: var(--glass-tint-raised);
-  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(180%) contrast(1.2) brightness(1.02);
-  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(180%) contrast(1.2) brightness(1.02);
 }
 
 .card__head {
@@ -580,54 +512,6 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Liquid glass — shared by the ticker and the floating nav. The backdrop-  */
-/* filter references GlassFilterDefs' feDisplacementMap for lensing/       */
-/* refraction; browsers that ignore an SVG filter reference inside         */
-/* backdrop-filter (mainly Safari) just fall back to the plain blur.       */
-/* --gx/--gy (driven by lib/glassHighlight.js on pointermove + scroll)     */
-/* position the specular highlight so it visibly shifts as you move the    */
-/* pointer or scroll — a stand-in for real content-sampling, not literal   */
-/* pixel-adaptive tinting. */
-/* ---------------------------------------------------------------------- */
-.glass {
-  position: relative;
-  --gx: 30%;
-  --gy: 20%;
-  background: linear-gradient(180deg, rgba(244, 242, 234, 0.24), rgba(244, 242, 234, 0.1));
-  backdrop-filter: blur(18px) url(#glass-distortion) saturate(1.7) brightness(1.08);
-  -webkit-backdrop-filter: blur(18px) saturate(1.7) brightness(1.08);
-  isolation: isolate;
-}
-
-.glass::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: radial-gradient(160px 120px at var(--gx) var(--gy), rgba(255, 255, 255, 0.65), transparent 65%);
-  mix-blend-mode: overlay;
-  z-index: 0;
-  transition: background-position 200ms ease;
-}
-
-.glass::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -8px 16px rgba(0, 0, 0, 0.22),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.28);
-  z-index: 0;
-}
-
-.glass > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* ---------------------------------------------------------------------- */
 /* Tab nav — a row of separate, individually-bordered pill buttons that     */
 /* wraps onto as many lines as it needs. Sits in normal document flow       */
 /* between the ticker and the page content, not fixed/floating.             */
@@ -642,11 +526,11 @@ textarea:focus-visible {
 }
 
 .tabnav__link {
-  padding: 13px 22px;
+  padding: 8px 15px;
   border: 2px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius);
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 11px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--paper);
@@ -667,8 +551,8 @@ textarea:focus-visible {
     gap: 8px;
   }
   .tabnav__link {
-    padding: 11px 16px;
-    font-size: 12px;
+    padding: 7px 12px;
+    font-size: 10.5px;
   }
 }
 
@@ -690,21 +574,24 @@ textarea:focus-visible {
   transform: translateZ(0);
 }
 /* ---------------------------------------------------------------------- */
-/* Ticker — the same glass surface as the floating nav, so the scrolling    */
-/* headline strip reads as a matching piece of glass chrome rather than an  */
-/* opaque bar with a flat colour fill.                                      */
+/* Ticker — inset within the page's normal container margins rather than    */
+/* running edge-to-edge, with the same frosted-outline surface as a card.   */
 /* ---------------------------------------------------------------------- */
 .ticker {
   overflow: hidden;
-  border-top: 1px solid rgba(255, 255, 255, 0.22);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  margin-top: 16px;
+  background: var(--glass-tint);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
 }
 
 .ticker__track {
   display: flex;
   gap: 32px;
   white-space: nowrap;
-  padding: 7px 0;
+  padding: 9px 20px;
   width: max-content;
   will-change: transform;
 }
@@ -1261,8 +1148,8 @@ textarea:focus-visible {
 
 .login-card input {
   background: rgba(255, 255, 255, 0.09);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.32);
   color: var(--paper);
   padding: 14px 16px;
@@ -1517,21 +1404,16 @@ textarea:focus-visible {
    specific to modals, keeps the rest of the site's cards untouched. */
 .modal-panel.card {
   background: var(--glass-tint-raised);
-  backdrop-filter: blur(56px) saturate(150%) contrast(1.1) brightness(0.98);
-  -webkit-backdrop-filter: blur(56px) saturate(150%) contrast(1.1) brightness(0.98);
+  backdrop-filter: blur(56px);
+  -webkit-backdrop-filter: blur(56px);
 }
 
-/* Add-idea specifically asked to drop the glass look entirely - plain
-   solid black, no blur, no sheen/glint overlays. */
+/* Add-idea specifically asked to drop the frosted look entirely - plain
+   solid black, no blur. */
 .modal-panel--solid.card {
   background: #000;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-}
-
-.modal-panel--solid.card::before,
-.modal-panel--solid.card::after {
-  display: none;
 }
 
 @keyframes modal-rise-in {

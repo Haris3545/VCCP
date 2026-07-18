@@ -9,7 +9,6 @@ import TabNav from './TabNav';
 import RefreshButton from './RefreshButton';
 import PreviewToggle from './PreviewToggle';
 import PreviewBanner from './PreviewBanner';
-import GlassPointer from './GlassPointer';
 
 const NEXT_PREVIEW_MODE = { auto: 'mobile', mobile: 'desktop', desktop: 'auto' };
 
@@ -49,7 +48,6 @@ export default function AppShell({ children, title }) {
           <RefreshButton />
           <PreviewToggle mode={previewMode} onCycle={() => setPreviewMode((m) => NEXT_PREVIEW_MODE[m] ?? 'auto')} />
         </footer>
-        <GlassPointer />
       </div>
     </>
   );
