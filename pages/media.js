@@ -1,7 +1,8 @@
 import AppShell from '@/components/layout/AppShell';
-import PlaceholderView from '@/components/ui/PlaceholderView';
+import MediaView from '@/components/media/MediaView';
+import { getMediaData } from '@/lib/dataSource';
 
-export default function MediaPage() {
+export default function MediaPage({ data }) {
   return (
     <>
       <div className="page-head">
@@ -11,7 +12,7 @@ export default function MediaPage() {
           <span className="eyebrow">Press &amp; media coverage</span>
         </div>
       </div>
-      <PlaceholderView description="Press mentions, coverage volume, and outlet breakdowns will land here once a media-monitoring source is connected." />
+      <MediaView data={data} />
     </>
   );
 }
@@ -19,3 +20,8 @@ export default function MediaPage() {
 MediaPage.getLayout = function getLayout(page) {
   return <AppShell title="Media">{page}</AppShell>;
 };
+
+export async function getStaticProps() {
+  const data = await getMediaData();
+  return { props: { data }, revalidate: 1800 };
+}

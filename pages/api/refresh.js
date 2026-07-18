@@ -5,7 +5,7 @@ import { resetIdeas } from '@/lib/ideas/store';
 // Every ISR-backed page that pulls from lib/dataSource.js — kept as a
 // literal list because res.revalidate() needs each path up front, same
 // reason proxy.js's matcher can't be derived from artistConfig.tabs.
-const REVALIDATE_PATHS = ['/dashboard', '/music', '/youtube', '/social-listening'];
+const REVALIDATE_PATHS = ['/dashboard', '/music', '/youtube', '/social-listening', '/media'];
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

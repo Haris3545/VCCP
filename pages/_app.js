@@ -1,5 +1,8 @@
 import artistConfig from '@/lib/artist.config';
 import '@fontsource/bodoni-moda/900.css';
+import '@fontsource/bodoni-moda/400.css';
+import '@fontsource/bodoni-moda/400-italic.css';
+import '@fontsource/bodoni-moda/700.css';
 import '@fontsource/archivo-black';
 import '@/styles/globals.css';
 import PageTransitionOverlay from '@/components/layout/PageTransitionOverlay';
