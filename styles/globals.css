@@ -603,9 +603,13 @@ textarea:focus-visible {
 
 .header__profile-logout.btn.btn--ghost {
   width: 100%;
-  text-align: left;
-  padding: 10px 12px;
-  border-radius: 8px;
+  text-align: center;
+  padding: 12px 16px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--paper);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   box-shadow: var(--glow-x) var(--glow-y) 22px rgba(255, 255, 255, 0.2);
@@ -1844,8 +1848,10 @@ textarea:focus-visible {
    or .btn-refresh alone, since neither single-class rule can be relied on
    to win by source order over the other. */
 .btn-refresh.glass {
-  background: linear-gradient(180deg, rgba(244, 242, 234, 0.72), rgba(244, 242, 234, 0.6)),
-    rgba(var(--tint-r), var(--tint-g), var(--tint-b), 0.12);
+  /* Bright on purpose, no adaptive-tint mixed in — this is the one glass
+     surface meant to still read as a crisp, solid white button rather than
+     a coloured or dimmed one, so it stands out against the dark shell. */
+  background: linear-gradient(180deg, rgba(244, 242, 234, 0.94), rgba(244, 242, 234, 0.88));
   color: var(--accent-contrast);
   border-color: rgba(11, 11, 11, 0.15);
   box-shadow: var(--glow-x) var(--glow-y) 26px rgba(255, 255, 255, 0.4);
@@ -2572,6 +2578,8 @@ textarea:focus-visible {
    the hover state both need their own override here at matching or higher
    specificity, or .btn--primary's accent-coloured versions would win back. */
 .idea-board__add.btn.btn--primary {
+  border-radius: 999px;
+  font-family: var(--font-display);
   border-color: rgba(255, 255, 255, 0.2);
   color: var(--paper);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
