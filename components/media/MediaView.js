@@ -179,22 +179,42 @@ function cleanOutletName(outlet) {
   return outlet.replace(/\.com$/i, '');
 }
 
-// Shows the outlet's actual logo, sourced live from their own domain via
-// Clearbit's keyless logo API (not a hand-reproduced trademark) — falls
-// back to the plain outlet name if the logo can't be found/loaded.
+// logo.dev is the actual successor to Clearbit's (now-unofficial, EOL'd)
+// logo API - same original team, actively maintained, returns real brand
+// marks rather than an upscaled favicon. Its token is a "publishable key"
+// by design (their own docs call it safe for client-side/browser
+// exposure, the same model as a Stripe pk_ key), so it's read from a
+// NEXT_PUBLIC_ var rather than a server-only secret - see .env.example.
+const LOGODEV_TOKEN = process.env.NEXT_PUBLIC_LOGODEV_TOKEN;
+
+// Shows the outlet's actual logo, sourced live from their own domain — not
+// a hand-reproduced trademark. Tries logo.dev first when a token is
+// configured, then falls back to Clearbit's older keyless endpoint (still
+// online, but unofficial/unsupported since Clearbit's 2023 acquisition —
+// kept as a free no-signup fallback rather than the primary source), and
+// finally to the plain outlet name if neither logo loads.
 function OutletLogo({ outlet, domain }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) {
+  const resolvedDomain = domain || guessDomain(outlet);
+  const sources = LOGODEV_TOKEN
+    ? [
+        `https://img.logo.dev/${resolvedDomain}?token=${LOGODEV_TOKEN}&size=300&format=png&retina=true`,
+        `https://logo.clearbit.com/${resolvedDomain}?size=300`,
+      ]
+    : [`https://logo.clearbit.com/${resolvedDomain}?size=300`];
+  const [attempt, setAttempt] = useState(0);
+
+  if (attempt >= sources.length) {
     return <span className="news-strip__masthead-text ink-text">{cleanOutletName(outlet)}</span>;
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      key={sources[attempt]}
       className="news-strip__logo-img"
-      src={`https://logo.clearbit.com/${domain || guessDomain(outlet)}?size=300`}
+      src={sources[attempt]}
       alt={cleanOutletName(outlet)}
       loading="lazy"
-      onError={() => setFailed(true)}
+      onError={() => setAttempt((a) => a + 1)}
     />
   );
 }
