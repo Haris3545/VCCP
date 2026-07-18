@@ -1,17 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import artistConfig from '@/lib/artist.config';
 import { STUDIO_NAME } from '@/lib/constants';
 import { attachGlassHighlight } from '@/lib/glassHighlight';
 import LogoutButton from './LogoutButton';
 
-const NAV_TABS = [
-  { tab: 'dashboard', label: 'Dashboard' },
-  { tab: 'media', label: 'Media' },
-  { tab: 'music', label: 'Music' },
-  { tab: 'audience', label: 'Audience' },
-  { tab: 'ideas', label: 'Ideas' },
-];
+// Mirrors each page's own <h1> text exactly (see pages/*.js) — this is the
+// only place that label has to be spelled out a second time, since deriving
+// it from the slug can't reproduce irregular casing like "YouTube".
+const TAB_LABELS = {
+  dashboard: 'Dashboard',
+  media: 'Media',
+  'social-listening': 'Social listening',
+  music: 'Music',
+  youtube: 'YouTube',
+  audience: 'Audience',
+  strategy: 'Strategy',
+  tactics: 'Tactics',
+  locations: 'Locations',
+  ideas: 'Ideas',
+  calendar: 'Calendar',
+  research: 'Research',
+};
+
+// Sourced from artistConfig.tabs (the single per-artist list of enabled
+// tabs) rather than hardcoded, so the nav can never drift out of sync with
+// which pages actually exist for this tier.
+const NAV_TABS = artistConfig.tabs.map((tab) => ({ tab, label: TAB_LABELS[tab] || tab }));
 
 const COLLAPSE_QUERY = '(max-width: 640px)';
 
