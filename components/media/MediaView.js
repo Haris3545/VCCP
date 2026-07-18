@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import SourceBadge from '@/components/ui/SourceBadge';
 
 // Deterministic string hash (djb2) so each article's masthead style, tilt,
@@ -161,17 +161,6 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-// Best-effort fallback when the RSS feed didn't give us the outlet's real
-// domain (see lib/integrations/news.js's <source url> extraction) — a
-// plain slug guess, not a lookup of anything real, so the logo may simply
-// fail to load for less common outlets (OutletLogo falls back to text).
-function guessDomain(outlet) {
-  return `${outlet
-    .toLowerCase()
-    .replace(/^the\s+/, '')
-    .replace(/[^a-z0-9]+/g, '')}.com`;
-}
-
 // Some feeds give the outlet's display name as its bare domain (e.g.
 // "billboard.com" instead of "Billboard") - strip a trailing .com so the
 // nameplate reads as a publication name rather than a URL.
@@ -179,68 +168,18 @@ function cleanOutletName(outlet) {
   return outlet.replace(/\.com$/i, '');
 }
 
-// logo.dev is the actual successor to Clearbit's (now-unofficial, EOL'd)
-// logo API - same original team, actively maintained, returns real brand
-// marks rather than an upscaled favicon. Its token is a "publishable key"
-// by design (their own docs call it safe for client-side/browser
-// exposure, the same model as a Stripe pk_ key), so it's read from a
-// NEXT_PUBLIC_ var rather than a server-only secret - see .env.example.
-const LOGODEV_TOKEN = process.env.NEXT_PUBLIC_LOGODEV_TOKEN;
-
-// Shows the outlet's actual logo, sourced live from their own domain — not
-// a hand-reproduced trademark. Tries logo.dev first when a token is
-// configured, then falls back to Clearbit's older keyless endpoint (still
-// online, but unofficial/unsupported since Clearbit's 2023 acquisition —
-// kept as a free no-signup fallback rather than the primary source), and
-// finally to the plain outlet name if neither logo loads.
-function OutletLogo({ outlet, domain }) {
-  const resolvedDomain = domain || guessDomain(outlet);
-  const sources = LOGODEV_TOKEN
-    ? [
-        `https://img.logo.dev/${resolvedDomain}?token=${LOGODEV_TOKEN}&size=300&format=png&retina=true`,
-        `https://logo.clearbit.com/${resolvedDomain}?size=300`,
-      ]
-    : [`https://logo.clearbit.com/${resolvedDomain}?size=300`];
-  const [attempt, setAttempt] = useState(0);
-  const [retryNonce, setRetryNonce] = useState(0);
-  const [wide, setWide] = useState(false);
-  const retriedRef = useRef(false);
-
-  if (attempt >= sources.length) {
-    return <span className="news-strip__masthead-text ink-text">{cleanOutletName(outlet)}</span>;
-  }
-
-  // Roughly a dozen of these all fire at once on first paint (one per
-  // visible strip) - a transient network blip or the browser's per-host
-  // connection cap can fail one that would have succeeded a moment later.
-  // That's exactly why re-opening a strip (which remounts this component
-  // fresh, giving its logo an uncontested second attempt) so often "just
-  // works" when the first load didn't - so give the same URL one real
-  // retry after a short pause before writing it off and moving on.
-  function handleError() {
-    if (!retriedRef.current) {
-      retriedRef.current = true;
-      setTimeout(() => setRetryNonce((n) => n + 1), 600);
-      return;
-    }
-    retriedRef.current = false;
-    setAttempt((a) => a + 1);
-  }
-
-  return (
-    <span className="news-strip__logo-crop">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        key={`${sources[attempt]}#${retryNonce}`}
-        className={`news-strip__logo-img${wide ? ' news-strip__logo-img--wide' : ''}`}
-        src={sources[attempt]}
-        alt={cleanOutletName(outlet)}
-        loading="lazy"
-        onLoad={(e) => setWide(e.currentTarget.naturalWidth / Math.max(1, e.currentTarget.naturalHeight) >= 1.8)}
-        onError={handleError}
-      />
-    </span>
-  );
+// This used to try fetching the outlet's real logo image (logo.dev, then
+// Clearbit's older endpoint as a fallback) before dropping to plain text
+// if neither loaded. Reverted: against a real, varied set of outlets, too
+// many of those fetched assets were square icon/monogram marks rather
+// than wordmarks - a solid-colour app-icon-style badge doesn't read as a
+// nameplate at standalone size no matter how it's cropped or scaled - and
+// at least one asset loaded successfully (no error to even catch) but was
+// visibly blank. Plain styled text has looked consistently good all
+// session, so that's what stays rather than chasing a fetch that keeps
+// misfiring on real-world logos.
+function OutletLogo({ outlet }) {
+  return <span className="news-strip__masthead-text ink-text">{cleanOutletName(outlet)}</span>;
 }
 
 function stripStyleVars(article, isTop) {
@@ -488,7 +427,7 @@ export default function MediaView({ data }) {
                 <button type="button" className="news-strip__collapse" onClick={() => setOpenLink(null)} aria-label="Collapse article">
                   <div className="news-strip__top">
                     <div className="news-strip__masthead">
-                      <OutletLogo outlet={article.outlet} domain={article.outletDomain} />
+                      <OutletLogo outlet={article.outlet} />
                     </div>
                     <div className="news-strip__meta">
                       <span className="news-strip__tag">{tagLabel}</span>
@@ -500,7 +439,7 @@ export default function MediaView({ data }) {
               ) : (
                 <div className="news-strip__top">
                   <div className="news-strip__masthead">
-                    <OutletLogo outlet={article.outlet} domain={article.outletDomain} />
+                    <OutletLogo outlet={article.outlet} />
                   </div>
                   <div className="news-strip__meta">
                     <span className="news-strip__tag">{tagLabel}</span>

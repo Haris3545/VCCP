@@ -3222,7 +3222,7 @@ html.custom-cursor-active textarea {
   background-size: 180px 180px, 256px 256px;
   background-repeat: repeat, repeat;
   mix-blend-mode: multiply;
-  opacity: 0.5;
+  opacity: 0.35;
   z-index: 2;
 }
 
@@ -3299,11 +3299,13 @@ html.custom-cursor-active textarea {
   gap: 14px;
 }
 
-/* The masthead is the outlet's actual logo (see OutletLogo in
-   MediaView.js) - a real wordmark fetched live from the outlet's own
-   domain rather than anyone's trademark reproduced by hand. Falls back to
-   plain nameplate text (.news-strip__masthead-text) if that logo can't be
-   found/loaded for a given outlet. */
+/* The masthead is the outlet nameplate (see OutletLogo in MediaView.js) -
+   styled text rather than a fetched logo image. A fetched-image approach
+   was tried a few different ways (plain, grayscale+multiply, cropped/
+   zoomed) but real logos kept coming back as square icon/monogram marks
+   that don't read as a nameplate at standalone size, or occasionally as a
+   blank asset with no error to catch - text has looked consistently good
+   the whole time this has been in the app, so that's what it stays as. */
 .news-strip__masthead {
   flex: 1;
   min-width: 0;
@@ -3312,52 +3314,6 @@ html.custom-cursor-active textarea {
 
 .news-strip--center .news-strip__masthead {
   justify-content: center;
-}
-
-/* Real logos, kept in their own brand colour - grayscale/multiply was
-   tried here to fake a "printed" look but didn't hold up across most real
-   logos, so this is back to plain colour art. What actually matters more
-   is that logo APIs typically ship a square asset with a good 20-25%
-   margin baked in around the visible mark (consistent "app icon" framing
-   convention), which object-fit alone can't trim - .news-strip__logo-crop
-   is a fixed-size window with overflow:hidden, and the image inside is
-   scaled up past that window so the crop eats the baked-in margin instead
-   of leaving it as visible dead space around a small logo. This is a
-   blind, un-measured crop (no canvas pixel read - many logo hosts don't
-   send permissive CORS headers, which would silently taint the canvas and
-   break entirely), so it's tuned conservatively rather than to the exact
-   edge of every possible asset. */
-.news-strip__logo-crop {
-  display: inline-flex;
-  align-items: center;
-  overflow: hidden;
-  height: 58px;
-  max-width: min(320px, 82%);
-}
-
-/* A wide (wordmark-shaped) logo is measured on load and gets a taller
-   crop window plus a heavier zoom - a masthead like this is the whole
-   point of the nameplate, so it shouldn't sit at the same modest size as
-   a near-square icon mark. */
-.news-strip__logo-crop:has(.news-strip__logo-img--wide) {
-  height: 78px;
-  max-width: min(400px, 90%);
-}
-
-.news-strip__logo-img {
-  height: 100%;
-  width: auto;
-  object-fit: contain;
-  transform: scale(1.3);
-}
-
-.news-strip__logo-img--wide {
-  transform: scale(1.65);
-}
-
-.news-strip--center .news-strip__logo-crop {
-  justify-content: center;
-  margin: 0 auto;
 }
 
 .news-strip__masthead-text {
