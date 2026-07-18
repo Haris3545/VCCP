@@ -1,5 +1,6 @@
 import artistConfig from '@/lib/artist.config';
 import { AGENCY_KICKER, STUDIO_NAME } from '@/lib/constants';
+import LogoutButton from './LogoutButton';
 
 export default function Header() {
   return (
@@ -9,7 +10,10 @@ export default function Header() {
           <span className="kicker">{AGENCY_KICKER}</span>
           <span className="header__studio-name">{STUDIO_NAME}</span>
         </div>
-        <span className="header__artist-name">{artistConfig.artistName}</span>
+        <div className="header__right">
+          <span className="header__artist-name">{artistConfig.artistName}</span>
+          <LogoutButton className="header__logout" />
+        </div>
       </div>
     </header>
   );

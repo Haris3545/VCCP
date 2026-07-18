@@ -1,15 +1,14 @@
 import { useEffect, useRef } from 'react';
-import { attachGlassHighlight } from '@/lib/glassHighlight';
+import artistConfig from '@/lib/artist.config';
 
-// Decorative, always-on strip. Explicitly labelled SIMULATED — nothing here
-// should ever be mistaken for a live feed by someone in the room.
+// Decorative, always-on strip mirroring the Dashboard tab's own headline
+// stats — every item carries its own "Simulated" pill (rather than one
+// trailing disclaimer item) so nothing here is ever mistaken for a live feed.
 const ITEMS = [
-  { label: 'Cultural Buzz Score', value: '87/100', delta: '+4.2' },
-  { label: 'Streaming Momentum', value: '112 idx', delta: '+6.8' },
-  { label: 'Social Sentiment', value: '74% pos.', delta: '-1.3' },
-  { label: 'Press Mentions', value: '342/wk', delta: '+11.5' },
-  { label: 'Search Interest', value: '91 idx', delta: '+2.1' },
-  { note: 'SIMULATED — awaiting live source connection' },
+  { label: 'in media', value: '328', delta: '+12' },
+  { label: 'Trend index', value: '+6%' },
+  { label: 'Total reach', value: '2.4M' },
+  { label: 'Sentiment', value: '81%', delta: '+3' },
 ];
 
 const BASE_SPEED = 46; // px/sec
@@ -17,25 +16,18 @@ const HOVER_SPEED = BASE_SPEED / 6;
 const EASE_MS = 450;
 
 function TickerItem({ item }) {
-  if (item.note) {
-    return (
-      <span className="ticker__item">
-        <span className="ticker__dot" />
-        {item.note}
-      </span>
-    );
-  }
+  const label = item.label === 'in media' ? `${artistConfig.artistName} in media` : item.label;
   return (
     <span className="ticker__item">
-      <span className="ticker__dot" />
-      {item.label} <strong>{item.value}</strong> ({item.delta})
+      <span className="ticker__badge">Simulated</span>
+      {label} <strong className="ticker__highlight">{item.value}</strong>
+      {item.delta && ` (${item.delta})`}
     </span>
   );
 }
 
 export default function Ticker() {
   const loop = [...ITEMS, ...ITEMS];
-  const rootRef = useRef(null);
   const trackRef = useRef(null);
   const stateRef = useRef({
     x: 0,
@@ -87,8 +79,6 @@ export default function Ticker() {
     };
   }, []);
 
-  useEffect(() => attachGlassHighlight(rootRef.current), []);
-
   function setTarget(target) {
     const s = stateRef.current;
     s.from = s.speed;
@@ -97,16 +87,13 @@ export default function Ticker() {
   }
 
   return (
-    <div
-      className="ticker glass"
-      ref={rootRef}
-      onMouseEnter={() => setTarget(HOVER_SPEED)}
-      onMouseLeave={() => setTarget(BASE_SPEED)}
-    >
-      <div className="ticker__track" ref={trackRef}>
-        {loop.map((item, i) => (
-          <TickerItem item={item} key={i} />
-        ))}
+    <div className="ticker" onMouseEnter={() => setTarget(HOVER_SPEED)} onMouseLeave={() => setTarget(BASE_SPEED)}>
+      <div className="ticker__viewport">
+        <div className="ticker__track" ref={trackRef}>
+          {loop.map((item, i) => (
+            <TickerItem item={item} key={i} />
+          ))}
+        </div>
       </div>
     </div>
   );

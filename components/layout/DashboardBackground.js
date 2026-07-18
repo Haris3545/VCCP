@@ -2,7 +2,7 @@ import FilmGrain from './FilmGrain';
 
 // Fixed photo + scrim + animated grain behind the whole app shell (dashboard,
 // audience, strategy). Replaces the flat GrainOverlay texture there — cards
-// and the header stay opaque/glass as before, so this only shows through
+// and the header stay frosted/opaque as before, so this only shows through
 // the gaps and margins.
 export default function DashboardBackground() {
   return (
