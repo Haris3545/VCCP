@@ -1,16 +1,6 @@
 import { useMemo, useState } from 'react';
 import SourceBadge from '@/components/ui/SourceBadge';
-
-// Deterministic string hash (djb2) so each article's masthead style, tilt,
-// and texture pick are stable across server render and hydration — no
-// Math.random(), which would mismatch between the two.
-function hashString(str) {
-  let h = 5381;
-  for (let i = 0; i < str.length; i++) {
-    h = (h * 33) ^ str.charCodeAt(i);
-  }
-  return Math.abs(h);
-}
+import { hashString, CATEGORIES, deriveCategory, scoreTone, PERIODS, formatDate, cleanOutletName } from '@/lib/media/helpers';
 
 // A handful of distinct "masthead personalities" built entirely from fonts
 // already bundled locally — each outlet name deterministically hashes to
@@ -98,76 +88,6 @@ const TEXTURE_VARIANTS = ['heavy', 'soft', 'print'];
 // any of them exceeding what was already dialed in as the max.
 const INK_BLEED_HEAVY_VARIANTS = ['mediaInkBleedHeavy0', 'mediaInkBleedHeavy1', 'mediaInkBleedHeavy2', 'mediaInkBleedHeavy3'];
 
-// Category is derived from real keyword matches in the headline/snippet
-// (checked in this order — first match wins) rather than assigned at
-// random, so the filter tabs below actually mean something. "Culture" is
-// the fallback bucket for anything that doesn't match a more specific one.
-const CATEGORIES = [
-  { id: 'all', label: 'All news' },
-  { id: 'music', label: 'Music' },
-  { id: 'film', label: 'Film' },
-  { id: 'style', label: 'Style' },
-  { id: 'celebrity', label: 'Celebrity' },
-  { id: 'culture', label: 'Culture' },
-];
-const CATEGORY_KEYWORDS = {
-  music: ['song', 'album', 'single', 'track', 'music', 'tour', 'concert', 'setlist', 'record', 'lyric'],
-  film: ['film', 'movie', 'video', 'trailer', 'documentary', 'short film', 'premiere'],
-  style: ['fashion', 'style', 'outfit', 'dress', 'runway', 'wardrobe', 'beauty', 'look'],
-  celebrity: ['dating', 'romance', 'relationship', 'wedding', 'engaged', 'boyfriend', 'girlfriend', 'feud', 'split'],
-};
-function deriveCategory(article) {
-  const text = `${article.headline} ${article.snippet || ''}`.toLowerCase();
-  for (const cat of ['music', 'film', 'style', 'celebrity']) {
-    if (CATEGORY_KEYWORDS[cat].some((kw) => text.includes(kw))) return cat;
-  }
-  return 'culture';
-}
-
-// A deliberately simple keyword lexicon, not a real sentiment model - and
-// deliberately conservative about what counts as positive: a headline that
-// merely reports something happening ("announces", "reveals", "shares") is
-// neutral, not positive, however exciting the news is. Only an actual
-// evaluative/praise adjective in the headline earns "positive". Sarcasm
-// obviously can't be reliably detected by keyword matching, but a few
-// common tells (a trailing "...", a deflating "uh"/"um" aside) at least
-// catch the driest cases without over-claiming what this heuristic can do.
-const POSITIVE_WORDS = [
-  'favourite', 'favorite', 'best', 'iconic', 'beloved', 'stunning', 'triumphant', 'acclaimed', 'brilliant',
-  'dazzling', 'glowing', 'adored', 'masterpiece', 'flawless', 'breathtaking', 'triumph',
-];
-const NEGATIVE_WORDS = [
-  'flop', 'criticiz', 'critici', 'backlash', 'slam', 'feud', 'controvers', 'cancel', 'disappoint', 'fail', 'mock',
-  'blast', 'boo', 'trouble', 'clash', 'accus',
-];
-const SARCASM_CUES = [', uh,', ' uh,', ', um,', ' um,', '...', ' huh?', 'lol'];
-function scoreTone(article) {
-  const text = `${article.headline} ${article.snippet || ''}`.toLowerCase();
-  const pos = POSITIVE_WORDS.some((w) => text.includes(w));
-  const neg = NEGATIVE_WORDS.some((w) => text.includes(w)) || SARCASM_CUES.some((c) => text.includes(c));
-  if (neg) return 'negative';
-  if (pos) return 'positive';
-  return 'neutral';
-}
-
-const PERIODS = [
-  { id: 'week', label: 'Last week', days: 7 },
-  { id: 'month', label: 'Last month', days: 30 },
-  { id: 'year', label: 'Last year', days: 365 },
-];
-
-function formatDate(iso) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-}
-
-// Some feeds give the outlet's display name as its bare domain (e.g.
-// "billboard.com" instead of "Billboard") - strip a trailing .com so the
-// nameplate reads as a publication name rather than a URL.
-function cleanOutletName(outlet) {
-  return outlet.replace(/\.com$/i, '');
-}
-
 // This used to try fetching the outlet's real logo image (logo.dev, then
 // Clearbit's older endpoint as a fallback) before dropping to plain text
 // if neither loaded. Reverted: against a real, varied set of outlets, too
@@ -218,7 +138,7 @@ function stripStyleVars(article, isTop) {
   };
 }
 
-function MediaTrendIndex({ articles }) {
+export function MediaTrendIndex({ articles }) {
   const [period, setPeriod] = useState('week');
   const stats = useMemo(() => {
     const days = PERIODS.find((p) => p.id === period).days;

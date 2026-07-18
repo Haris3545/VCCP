@@ -1,20 +1,22 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGlassSurface } from '@/lib/useGlassSurface';
 
-// Decorative, always-on strip. Explicitly labelled SIMULATED — nothing here
-// should ever be mistaken for a live feed by someone in the room.
-const ITEMS = [
-  { label: 'Cultural Buzz Score', value: '87/100', delta: '+4.2' },
-  { label: 'Streaming Momentum', value: '112 idx', delta: '+6.8' },
-  { label: 'Social Sentiment', value: '74% pos.', delta: '-1.3' },
-  { label: 'Press Mentions', value: '342/wk', delta: '+11.5' },
-  { label: 'Search Interest', value: '91 idx', delta: '+2.1' },
-  { note: 'SIMULATED — awaiting live source connection' },
-];
+// Shown until the client-side fetch below resolves, and again if it comes
+// back unavailable - the ticker used to show fixed simulated KPI numbers,
+// which is exactly what real headlines were meant to replace, so the
+// unavailable case is an honest note rather than falling back to those.
+const FALLBACK_ITEMS = [{ note: 'Awaiting live source connection — headlines will appear here once coverage is reachable.' }];
 
 const BASE_SPEED = 46; // px/sec
 const HOVER_SPEED = BASE_SPEED / 6;
 const EASE_MS = 450;
+
+// Some feeds give the outlet's display name as its bare domain (e.g.
+// "billboard.com") - strip a trailing .com so it reads as a publication
+// name, matching the same cleanup MediaView does for the news strips.
+function cleanOutletName(outlet) {
+  return outlet.replace(/\.com$/i, '');
+}
 
 function TickerItem({ item }) {
   if (item.note) {
@@ -28,13 +30,13 @@ function TickerItem({ item }) {
   return (
     <span className="ticker__item">
       <span className="ticker__dot" />
-      {item.label} <strong>{item.value}</strong> ({item.delta})
+      <strong>{cleanOutletName(item.outlet)}</strong> {item.headline}
     </span>
   );
 }
 
 export default function Ticker() {
-  const loop = [...ITEMS, ...ITEMS];
+  const [items, setItems] = useState(FALLBACK_ITEMS);
   const rootRef = useGlassSurface();
   const trackRef = useRef(null);
   const stateRef = useRef({
@@ -46,16 +48,48 @@ export default function Ticker() {
     halfWidth: 0,
   });
 
+  // Real headlines, fetched once client-side rather than threaded through
+  // every page's getStaticProps - the ticker renders inside AppShell on
+  // every page, most of which never otherwise touch news data at all.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/ticker')
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.source === 'live' && data.headlines?.length) {
+          setItems(data.headlines);
+        } else {
+          setItems([{ note: data.reason || 'Awaiting live source connection.' }]);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setItems(FALLBACK_ITEMS);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Re-measure the marquee's scrollable width whenever the headlines swap
+  // in - the initial fallback note is a very different width to a dozen
+  // real headlines, and the wrap-around math below needs the real number
+  // or the loop stalls or jumps depending which way it's wrong.
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return undefined;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
-
     function measure() {
       stateRef.current.halfWidth = track.scrollWidth / 2;
     }
     measure();
     window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [items]);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const track = trackRef.current;
+    if (!track) return undefined;
 
     let raf;
     let last = performance.now();
@@ -81,10 +115,7 @@ export default function Ticker() {
     }
     raf = requestAnimationFrame(frame);
 
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', measure);
-    };
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   function setTarget(target) {
@@ -93,6 +124,8 @@ export default function Ticker() {
     s.target = target;
     s.easeStart = performance.now();
   }
+
+  const loop = [...items, ...items];
 
   return (
     <div

@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 const NAV_TABS = [
   { tab: 'dashboard', label: 'Dashboard' },
   { tab: 'media', label: 'Media' },
+  { tab: 'media-2', label: 'Media 2' },
   { tab: 'music', label: 'Music' },
   { tab: 'audience', label: 'Audience' },
   { tab: 'ideas', label: 'Ideas' },

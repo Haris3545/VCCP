@@ -25,7 +25,7 @@
   --font-serif: 'Bodoni Moda', 'Times New Roman', serif;
   --font-display: 'Archivo Black', var(--font-sans);
 
-  --radius: 2px;
+  --radius: 8px;
   --shadow-card: inset 0 1px 0 rgba(244, 242, 234, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.4),
     0 8px 28px rgba(0, 0, 0, 0.45);
   --header-h: 76px;
@@ -966,11 +966,35 @@ html.custom-cursor-active textarea {
 /* headline strip reads as a matching piece of glass chrome rather than an  */
 /* opaque bar with a flat colour fill.                                      */
 /* ---------------------------------------------------------------------- */
+/* The scrolling track fades into the edges instead of hard-clipping mid-
+   character, and the single flat border-bottom is replaced with a double
+   rule - a thicker line, then a thinner one just underneath it, both
+   inset with matching side margins rather than running full-bleed - the
+   same "thick rule, thin rule below it" motif as the Media masthead,
+   just applied to the chrome instead of newsprint. */
 .ticker {
+  position: relative;
   overflow: hidden;
-  /* A thin, plain static line - no pointer-tracked glow here anymore, so it
-     doesn't visibly react to the cursor at the seam with the header above. */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 64px, #000 calc(100% - 64px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 64px, #000 calc(100% - 64px), transparent 100%);
+}
+.ticker::before,
+.ticker::after {
+  content: '';
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  pointer-events: none;
+}
+.ticker::before {
+  bottom: 6px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.ticker::after {
+  bottom: 3px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.09);
 }
 
 .ticker__track {
@@ -3618,5 +3642,166 @@ html.custom-cursor-active textarea {
   .news-strip {
     transition: none;
     animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Media 2 — the same news feed as the newspaper Media tab (see            */
+/* components/media/Media2View.js), styled with none of the paper/ink      */
+/* aesthetic at all: a plain grid of rounded pill cards that expand in      */
+/* place, using the same flat/solid chrome language as .card rather than    */
+/* pretending to be newsprint.                                             */
+/* ---------------------------------------------------------------------- */
+.media2 {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.media2__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+/* Same solid-tint chrome as .card (see its own comment for why), just a
+   much bigger corner radius - "pill" here means noticeably rounder than
+   the site's standard --radius, not a true stadium shape, since these
+   need to hold multi-line headlines and, once expanded, a paragraph. */
+.media2-pill {
+  position: relative;
+  background: var(--glass-tint);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease;
+}
+
+/* Same lift-on-hover bump as the newspaper strips (.news-strip:hover) -
+   just translateY, no rotation since these have no resting tilt to begin
+   with. */
+.media2-pill:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), 0 24px 40px rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.34);
+}
+
+.media2-pill__toggle {
+  all: unset;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 18px 20px;
+}
+.media2-pill__toggle:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: -2px;
+}
+
+.media2-pill__top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+/* One plain neutral tone for every tag rather than a colour per category -
+   green/red are reserved for trend up/down elsewhere in the app (see
+   artist.config.js), so this deliberately doesn't invent a second colour-
+   coding scheme on top of that. */
+.media2-pill__tag {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--paper);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.media2-pill__outlet {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--paper);
+}
+
+.media2-pill__date {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.media2-pill__headline {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--paper);
+}
+
+/* Same grid-template-rows accordion trick as the newspaper strips - the
+   one reliable way to animate to/from an auto height without a JS-measured
+   max-height (see .news-strip__expand's own comment for the full case). */
+.media2-pill__expand {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 420ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.media2-pill--open .media2-pill__expand {
+  grid-template-rows: 1fr;
+}
+.media2-pill__expand-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.media2-pill__expand-inner > * {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 180ms ease, transform 220ms ease;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+.media2-pill--open .media2-pill__expand-inner > * {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 320ms ease 120ms, transform 360ms ease 120ms;
+}
+
+.media2-pill__snippet {
+  margin: 4px 0 14px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: rgba(244, 242, 234, 0.78);
+}
+
+.media2-pill__link {
+  display: inline-block;
+  margin-bottom: 20px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--paper);
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media2-pill {
+    transition: none;
   }
 }

@@ -18,6 +18,7 @@ export const config = {
   matcher: [
     '/dashboard',
     '/media',
+    '/media-2',
     '/social-listening',
     '/music',
     '/youtube',
