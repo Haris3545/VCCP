@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { attachGlassHighlight } from '@/lib/glassHighlight';
+import { attachAdaptiveTint } from '@/lib/adaptiveGlassTint';
 
 const NAV_TABS = [
   { tab: 'dashboard', label: 'Dashboard' },
@@ -38,6 +39,7 @@ export default function FloatingTabNav() {
   const draggingRef = useRef(false);
 
   useEffect(() => attachGlassHighlight(navRef.current), []);
+  useEffect(() => attachAdaptiveTint(navRef.current), []);
 
   useEffect(() => {
     const mq = window.matchMedia(COLLAPSE_QUERY);

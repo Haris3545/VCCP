@@ -662,20 +662,24 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Liquid glass — shared by the ticker and the floating nav. Registering    */
-/* --gx/--gy as typed <percentage> properties (like GlassPointer's --mx/    */
-/* --my below) is what makes them animatable — a plain custom property     */
-/* can't be transitioned, so without this the highlight would always snap  */
-/* between positions no matter what transition was declared. Tracking      */
-/* itself stays instant (glassHighlight.js removes .is-resetting the       */
-/* moment the pointer moves again), and only the return-to-rest glides.    */
+/* Liquid glass — shared by the ticker and the floating nav. Reads as black  */
+/* glass first — the colour and light on top of it are the accent, not the  */
+/* base. Registering --gx/--gy/--glow-x/--glow-y as typed properties (like   */
+/* GlassPointer's --mx/--my below) is what makes them animatable — a plain   */
+/* custom property can't be transitioned, so without this everything would  */
+/* always snap between positions no matter what transition was declared.    */
+/* Tracking itself stays instant (glassHighlight.js removes .is-resetting   */
+/* the moment the pointer moves again), and only the return-to-rest glides. */
+/* --tint-r/g/b and its warm/cool/green variants (lib/adaptiveGlassTint.js) */
+/* are sampled from the actual fixed background photo behind this element  */
+/* — the colour genuinely comes from what's behind the glass, not a fixed   */
+/* decorative palette; the numbers here are just fallbacks for before the   */
+/* first sample lands (or if canvas sampling fails for some reason).        */
 /* Backdrop-filter: only declare the unprefixed property — Lightning CSS   */
 /* (Next's minifier) auto-generates its own -webkit- fallback, but a manual */
 /* -webkit-backdrop-filter line alongside it confuses that autoprefixer     */
 /* into dropping the standard property at build time, so no blur actually   */
-/* renders in production. The tint sits midway between opaque and fully    */
-/* transparent on purpose — enough to still see through it, backed by a     */
-/* text-shadow on the text that sits on top for legibility insurance.       */
+/* renders in production.                                                   */
 /* ---------------------------------------------------------------------- */
 @property --gx {
   syntax: '<percentage>';
@@ -687,18 +691,35 @@ textarea:focus-visible {
   inherits: false;
   initial-value: 20%;
 }
+@property --glow-x {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --glow-y {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
 
 .glass {
   position: relative;
   --gx: 30%;
   --gy: 20%;
-  background: linear-gradient(180deg, rgba(244, 242, 234, 0.58), rgba(244, 242, 234, 0.46));
+  --glow-x: 0px;
+  --glow-y: 0px;
+  --tint-r: 70;
+  --tint-g: 66;
+  --tint-b: 62;
+  background: linear-gradient(180deg, rgba(8, 8, 8, 0.66), rgba(8, 8, 8, 0.54)),
+    rgba(var(--tint-r), var(--tint-g), var(--tint-b), 0.22);
   backdrop-filter: blur(20px) saturate(1.5);
   isolation: isolate;
 }
 
 .glass.is-resetting {
-  transition: --gx 480ms cubic-bezier(0.22, 1, 0.36, 1), --gy 480ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: --gx 480ms cubic-bezier(0.22, 1, 0.36, 1), --gy 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    --glow-x 480ms cubic-bezier(0.22, 1, 0.36, 1), --glow-y 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .glass::before {
@@ -707,13 +728,17 @@ textarea:focus-visible {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  /* Three off-centre colour blooms (blue, pink, green) plus the white
-     specular highlight, all riding the same --gx/--gy — light scattering
-     internally into a faint spectrum rather than a single clean glint. */
-  background: radial-gradient(130px 100px at calc(var(--gx) - 10%) calc(var(--gy) - 8%), rgba(90, 160, 255, 0.3), transparent 62%),
-    radial-gradient(130px 100px at calc(var(--gx) + 11%) calc(var(--gy) + 4%), rgba(255, 100, 165, 0.26), transparent 62%),
-    radial-gradient(140px 110px at calc(var(--gx) + 3%) calc(var(--gy) + 10%), rgba(110, 255, 185, 0.22), transparent 62%),
-    radial-gradient(160px 120px at var(--gx) var(--gy), rgba(255, 255, 255, 0.68), transparent 65%);
+  /* Three colour blooms derived from the sampled photo colour (a cheap
+     prism-style split — boost one channel, pull back the others — rather
+     than three arbitrary fixed hues) plus the white specular highlight,
+     all riding the same --gx/--gy. */
+  background: radial-gradient(130px 100px at calc(var(--gx) - 10%) calc(var(--gy) - 8%),
+      rgba(var(--tint-cool-r, 90), var(--tint-cool-g, 140), var(--tint-cool-b, 255), 0.32), transparent 62%),
+    radial-gradient(130px 100px at calc(var(--gx) + 11%) calc(var(--gy) + 4%),
+      rgba(var(--tint-warm-r, 255), var(--tint-warm-g, 120), var(--tint-warm-b, 150), 0.28), transparent 62%),
+    radial-gradient(140px 110px at calc(var(--gx) + 3%) calc(var(--gy) + 10%),
+      rgba(var(--tint-green-r, 110), var(--tint-green-g, 255), var(--tint-green-b, 180), 0.24), transparent 62%),
+    radial-gradient(150px 110px at var(--gx) var(--gy), rgba(255, 255, 255, 0.55), transparent 65%);
   mix-blend-mode: overlay;
   z-index: 0;
 }
@@ -724,8 +749,19 @@ textarea:focus-visible {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -8px 16px rgba(0, 0, 0, 0.22),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  /* Baked-in, static (not pointer-driven) imperfections — a few faint
+     scratches and dust flecks, like real glass rather than a flawless
+     render. Sits in the same background list as nothing else, since the
+     rim-light/shadow below uses box-shadow, a separate property. */
+  background-image: linear-gradient(41deg, transparent 22%, rgba(255, 255, 255, 0.07) 22.4%, transparent 23%),
+    linear-gradient(-52deg, transparent 61%, rgba(255, 255, 255, 0.05) 61.3%, transparent 62%),
+    linear-gradient(18deg, transparent 78%, rgba(0, 0, 0, 0.08) 78.3%, transparent 79%),
+    radial-gradient(1px 1px at 18% 30%, rgba(0, 0, 0, 0.35), transparent 70%),
+    radial-gradient(1.5px 1.5px at 64% 68%, rgba(0, 0, 0, 0.28), transparent 70%),
+    radial-gradient(1px 1px at 82% 24%, rgba(255, 255, 255, 0.3), transparent 70%),
+    radial-gradient(1px 1px at 40% 82%, rgba(0, 0, 0, 0.22), transparent 70%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -8px 16px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
   z-index: 0;
 }
 
@@ -750,10 +786,16 @@ textarea:focus-visible {
   align-items: center;
   gap: 4px;
   max-width: calc(100vw - 24px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
   padding: 6px;
-  box-shadow: 0 10px 0 rgba(11, 11, 11, 0.1), 0 18px 40px rgba(0, 0, 0, 0.45);
+  /* The first shadow is the cursor-glow — light spilling past the pill's
+     own edge, not just a highlight painted inside it (that part is
+     .glass::before). It has to live here rather than on the shared .glass
+     rule: a second box-shadow declaration on .glass at equal specificity
+     would just override this one instead of combining with it. */
+  box-shadow: var(--glow-x) var(--glow-y) 34px rgba(255, 255, 255, 0.22), 0 10px 0 rgba(0, 0, 0, 0.3),
+    0 18px 40px rgba(0, 0, 0, 0.55);
 }
 
 .floatnav__items {
@@ -797,9 +839,18 @@ textarea:focus-visible {
   font-size: 13px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--accent-contrast);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
+  color: var(--paper);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   white-space: nowrap;
+  transition: color 200ms ease, text-shadow 200ms ease;
+}
+
+/* The active link sits on top of the white puck (.floatnav__puck), not the
+   dark glass — dark text there instead of light, and no shadow needed
+   against a solid light background. */
+.floatnav__link[aria-current='page'] {
+  color: var(--accent-contrast);
+  text-shadow: none;
 }
 
 .floatnav__current {
@@ -808,8 +859,8 @@ textarea:focus-visible {
   font-size: 13px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--accent-contrast);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
+  color: var(--paper);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   white-space: nowrap;
 }
 
@@ -824,13 +875,13 @@ textarea:focus-visible {
   font-size: 12px;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--accent-contrast);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
+  color: var(--paper);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   cursor: pointer;
   transition: background 140ms ease;
 }
 .floatnav__menu-btn:hover {
-  background: rgba(11, 11, 11, 0.08);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .floatnav__menu-glyph {
@@ -928,7 +979,8 @@ textarea:focus-visible {
 /* ---------------------------------------------------------------------- */
 .ticker {
   overflow: hidden;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: var(--glow-x) var(--glow-y) 30px rgba(255, 255, 255, 0.18);
 }
 
 .ticker__track {
@@ -944,15 +996,15 @@ textarea:focus-visible {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--accent-contrast);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
+  color: var(--paper);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
 .ticker__item strong {
-  color: var(--accent-contrast);
+  color: var(--paper);
   font-weight: 800;
 }
 
@@ -960,7 +1012,7 @@ textarea:focus-visible {
   width: 4px;
   height: 4px;
   border-radius: 999px;
-  background: var(--accent-contrast);
+  background: var(--paper);
   opacity: 0.55;
 }
 

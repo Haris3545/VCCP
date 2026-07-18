@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { attachGlassHighlight } from '@/lib/glassHighlight';
+import { attachAdaptiveTint } from '@/lib/adaptiveGlassTint';
 
 // Decorative, always-on strip. Explicitly labelled SIMULATED — nothing here
 // should ever be mistaken for a live feed by someone in the room.
@@ -88,6 +89,7 @@ export default function Ticker() {
   }, []);
 
   useEffect(() => attachGlassHighlight(rootRef.current), []);
+  useEffect(() => attachAdaptiveTint(rootRef.current), []);
 
   function setTarget(target) {
     const s = stateRef.current;
