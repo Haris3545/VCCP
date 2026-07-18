@@ -9,7 +9,6 @@ import FloatingTabNav from './FloatingTabNav';
 import RefreshButton from './RefreshButton';
 import PreviewToggle from './PreviewToggle';
 import PreviewBanner from './PreviewBanner';
-import GlassPointer from './GlassPointer';
 
 const NEXT_PREVIEW_MODE = { auto: 'mobile', mobile: 'desktop', desktop: 'auto' };
 
@@ -48,7 +47,6 @@ export default function AppShell({ children, title }) {
           <RefreshButton />
           <PreviewToggle mode={previewMode} onCycle={() => setPreviewMode((m) => NEXT_PREVIEW_MODE[m] ?? 'auto')} />
         </footer>
-        <GlassPointer />
         {/* Inside .app-shell (not a PreviewBanner-style sibling) so mobile
             preview's transform confines it to the simulated phone frame the
             same way it confines DashboardBackground, rather than floating

@@ -27,6 +27,7 @@ const MASTHEAD_STYLES = [
     paper: 'linear-gradient(160deg, #efe9d8, #e3dcc4)',
     accent: '#a3272c',
     align: 'center',
+    bodyFont: "Georgia, 'Times New Roman', serif",
   },
   {
     font: "'Playfair Display', var(--font-serif)",
@@ -36,6 +37,7 @@ const MASTHEAD_STYLES = [
     paper: 'linear-gradient(160deg, #f0e6d4, #e6d8bd)',
     accent: '#5c2a4d',
     align: 'left',
+    bodyFont: "'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif",
   },
   {
     font: "'Oswald', var(--font-sans)",
@@ -45,6 +47,7 @@ const MASTHEAD_STYLES = [
     paper: 'linear-gradient(160deg, #ece7d9, #dfd9c2)',
     accent: '#1d3a5f',
     align: 'left',
+    bodyFont: 'var(--font-sans)',
   },
   {
     font: "'Space Grotesk', var(--font-sans)",
@@ -54,6 +57,7 @@ const MASTHEAD_STYLES = [
     paper: 'linear-gradient(160deg, #edeadb, #e0ddc5)',
     accent: '#2f5233',
     align: 'center',
+    bodyFont: "'Segoe UI', var(--font-sans)",
   },
   {
     font: "'IBM Plex Mono', ui-monospace, monospace",
@@ -63,6 +67,7 @@ const MASTHEAD_STYLES = [
     paper: 'linear-gradient(160deg, #eee6d2, #e2d6b8)',
     accent: '#1f5c56',
     align: 'left',
+    bodyFont: "ui-monospace, 'SFMono-Regular', Menlo, monospace",
   },
   {
     font: 'var(--font-display)',
@@ -72,6 +77,7 @@ const MASTHEAD_STYLES = [
     paper: 'linear-gradient(160deg, #efe3d0, #e4d3b5)',
     accent: '#b5811a',
     align: 'center',
+    bodyFont: 'Georgia, serif',
   },
   {
     font: "'Playfair Display', var(--font-serif)",
@@ -81,11 +87,16 @@ const MASTHEAD_STYLES = [
     paper: 'linear-gradient(160deg, #ebe6da, #ddd7c3)',
     accent: '#1b1710',
     align: 'left',
+    bodyFont: "'Times New Roman', Cambria, serif",
   },
 ];
 
 const FOLD_CORNERS = ['tr', 'br', 'bl'];
 const TEXTURE_VARIANTS = ['heavy', 'soft', 'print'];
+// The current heaviest setting is treated as the ceiling - every variant
+// sits at or a little under it, so bleed varies article to article without
+// any of them exceeding what was already dialed in as the max.
+const INK_BLEED_HEAVY_VARIANTS = ['mediaInkBleedHeavy0', 'mediaInkBleedHeavy1', 'mediaInkBleedHeavy2', 'mediaInkBleedHeavy3'];
 
 // Category is derived from real keyword matches in the headline/snippet
 // (checked in this order — first match wins) rather than assigned at
@@ -113,23 +124,29 @@ function deriveCategory(article) {
   return 'culture';
 }
 
-// A deliberately simple keyword lexicon, not a real sentiment model — good
-// enough to give an honest, illustrative tone signal over real headline
-// text without pretending to be more sophisticated than it is.
+// A deliberately simple keyword lexicon, not a real sentiment model - and
+// deliberately conservative about what counts as positive: a headline that
+// merely reports something happening ("announces", "reveals", "shares") is
+// neutral, not positive, however exciting the news is. Only an actual
+// evaluative/praise adjective in the headline earns "positive". Sarcasm
+// obviously can't be reliably detected by keyword matching, but a few
+// common tells (a trailing "...", a deflating "uh"/"um" aside) at least
+// catch the driest cases without over-claiming what this heuristic can do.
 const POSITIVE_WORDS = [
-  'hit', 'triumph', 'best', 'love', 'stun', 'iconic', 'win', 'celebrat', 'praise', 'glowing', 'success', 'adore',
-  'dazzl', 'soar', 'acclaim', 'brilliant', 'joy', 'excit', 'return', 'surprise',
+  'favourite', 'favorite', 'best', 'iconic', 'beloved', 'stunning', 'triumphant', 'acclaimed', 'brilliant',
+  'dazzling', 'glowing', 'adored', 'masterpiece', 'flawless', 'breathtaking', 'triumph',
 ];
 const NEGATIVE_WORDS = [
   'flop', 'criticiz', 'critici', 'backlash', 'slam', 'feud', 'controvers', 'cancel', 'disappoint', 'fail', 'mock',
-  'blast', 'boo', 'trouble', 'split', 'clash', 'accus',
+  'blast', 'boo', 'trouble', 'clash', 'accus',
 ];
+const SARCASM_CUES = [', uh,', ' uh,', ', um,', ' um,', '...', ' huh?', 'lol'];
 function scoreTone(article) {
   const text = `${article.headline} ${article.snippet || ''}`.toLowerCase();
   const pos = POSITIVE_WORDS.some((w) => text.includes(w));
-  const neg = NEGATIVE_WORDS.some((w) => text.includes(w));
-  if (pos && !neg) return 'positive';
-  if (neg && !pos) return 'negative';
+  const neg = NEGATIVE_WORDS.some((w) => text.includes(w)) || SARCASM_CUES.some((c) => text.includes(c));
+  if (neg) return 'negative';
+  if (pos) return 'positive';
   return 'neutral';
 }
 
@@ -155,20 +172,27 @@ function guessDomain(outlet) {
     .replace(/[^a-z0-9]+/g, '')}.com`;
 }
 
+// Some feeds give the outlet's display name as its bare domain (e.g.
+// "billboard.com" instead of "Billboard") - strip a trailing .com so the
+// nameplate reads as a publication name rather than a URL.
+function cleanOutletName(outlet) {
+  return outlet.replace(/\.com$/i, '');
+}
+
 // Shows the outlet's actual logo, sourced live from their own domain via
 // Clearbit's keyless logo API (not a hand-reproduced trademark) — falls
 // back to the plain outlet name if the logo can't be found/loaded.
 function OutletLogo({ outlet, domain }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
-    return <span className="news-strip__masthead-text ink-text">{outlet}</span>;
+    return <span className="news-strip__masthead-text ink-text">{cleanOutletName(outlet)}</span>;
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       className="news-strip__logo-img"
       src={`https://logo.clearbit.com/${domain || guessDomain(outlet)}?size=300`}
-      alt={outlet}
+      alt={cleanOutletName(outlet)}
       loading="lazy"
       onError={() => setFailed(true)}
     />
@@ -184,10 +208,11 @@ function stripStyleVars(article, isTop) {
     : ((hashString(`${article.link}r`) % 100) / 100 - 0.5) * 4.5;
   const texX = hashString(`${article.link}tx`) % 100;
   const texY = hashString(`${article.link}ty`) % 100;
-  const texOpacity = 0.3 + ((hashString(`${article.link}to`) % 100) / 100) * 0.35;
+  const texOpacity = 0.22 + ((hashString(`${article.link}to`) % 100) / 100) * 0.26;
   const texVariant = TEXTURE_VARIANTS[hashString(`${article.link}tv`) % TEXTURE_VARIANTS.length];
   const hasFold = hashString(`${article.link}fold`) % 100 < 45;
   const foldCorner = FOLD_CORNERS[hashString(`${article.link}foldc`) % FOLD_CORNERS.length];
+  const inkBleedFilter = INK_BLEED_HEAVY_VARIANTS[hashString(`${article.link}ink`) % INK_BLEED_HEAVY_VARIANTS.length];
   return {
     vars: {
       '--paper-bg': masthead.paper,
@@ -196,6 +221,8 @@ function stripStyleVars(article, isTop) {
       '--masthead-weight': masthead.weight,
       '--masthead-style': masthead.style,
       '--masthead-tracking': masthead.tracking,
+      '--body-font': masthead.bodyFont,
+      '--ink-filter': `url(#${inkBleedFilter})`,
       '--rot': `${rot.toFixed(2)}deg`,
       '--tex-x': `${texX}%`,
       '--tex-y': `${texY}%`,
@@ -204,6 +231,7 @@ function stripStyleVars(article, isTop) {
     align: masthead.align,
     texVariant,
     fold: hasFold ? foldCorner : null,
+    inkBleedFilter,
   };
 }
 
@@ -221,12 +249,15 @@ function MediaTrendIndex({ articles }) {
     const pctChange = prior.length ? Math.round(((current.length - prior.length) / prior.length) * 100) : null;
 
     const toned = current.map(scoreTone);
+    const total = toned.length;
     const posCount = toned.filter((t) => t === 'positive').length;
     const negCount = toned.filter((t) => t === 'negative').length;
-    const scored = posCount + negCount;
-    const posPct = scored ? Math.round((posCount / scored) * 100) : null;
+    const neutralCount = total - posCount - negCount;
+    const posPct = total ? Math.round((posCount / total) * 100) : null;
+    const negPct = total ? Math.round((negCount / total) * 100) : null;
+    const neutralPct = total ? Math.round((neutralCount / total) * 100) : null;
 
-    return { currentCount: current.length, priorCount: prior.length, pctChange, posPct, negPct: posPct === null ? null : 100 - posPct };
+    return { currentCount: current.length, priorCount: prior.length, pctChange, posPct, negPct, neutralPct };
   }, [articles, period]);
 
   return (
@@ -270,10 +301,12 @@ function MediaTrendIndex({ articles }) {
         <div className="media-trend__tone">
           <div className="media-trend__tone-bar">
             <span className="media-trend__tone-fill media-trend__tone-fill--pos" style={{ width: `${stats.posPct}%` }} />
+            <span className="media-trend__tone-fill media-trend__tone-fill--neutral" style={{ width: `${stats.neutralPct}%` }} />
             <span className="media-trend__tone-fill media-trend__tone-fill--neg" style={{ width: `${stats.negPct}%` }} />
           </div>
           <span className="media-trend__tone-label">
-            {stats.posPct}% positive tone · {stats.negPct}% negative tone (headline keyword heuristic, not a sentiment model)
+            {stats.posPct}% positive · {stats.neutralPct}% neutral · {stats.negPct}% negative tone (headline keyword
+            heuristic - praise adjectives vs. plain announcements vs. backlash/sarcasm cues, not a sentiment model)
           </span>
         </div>
       ) : null}
@@ -320,10 +353,29 @@ export default function MediaView({ data }) {
             <feDisplacementMap in="SourceGraphic" in2="fiber" scale="1.6" xChannelSelector="R" yChannelSelector="G" result="bled" />
             <feGaussianBlur in="bled" stdDeviation="0.22" />
           </filter>
-          <filter id="mediaInkBleedHeavy" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+          {/* Four headline-bleed variants, all at or just under the same
+              ceiling (scale 2.6 was the previous fixed "heavy" setting) so
+              every headline reads as heavily bled but no two look
+              identical - picked per article via --ink-filter. */}
+          <filter id="mediaInkBleedHeavy0" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="17" result="fiber2" />
             <feDisplacementMap in="SourceGraphic" in2="fiber2" scale="2.6" xChannelSelector="R" yChannelSelector="G" result="bled2" />
             <feGaussianBlur in="bled2" stdDeviation="0.24" />
+          </filter>
+          <filter id="mediaInkBleedHeavy1" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.62" numOctaves="2" seed="22" result="fiber3" />
+            <feDisplacementMap in="SourceGraphic" in2="fiber3" scale="2.35" xChannelSelector="R" yChannelSelector="G" result="bled3" />
+            <feGaussianBlur in="bled3" stdDeviation="0.22" />
+          </filter>
+          <filter id="mediaInkBleedHeavy2" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.48" numOctaves="2" seed="31" result="fiber4" />
+            <feDisplacementMap in="SourceGraphic" in2="fiber4" scale="2.55" xChannelSelector="R" yChannelSelector="G" result="bled4" />
+            <feGaussianBlur in="bled4" stdDeviation="0.25" />
+          </filter>
+          <filter id="mediaInkBleedHeavy3" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.58" numOctaves="2" seed="40" result="fiber5" />
+            <feDisplacementMap in="SourceGraphic" in2="fiber5" scale="2.2" xChannelSelector="R" yChannelSelector="G" result="bled5" />
+            <feGaussianBlur in="bled5" stdDeviation="0.2" />
           </filter>
         </defs>
       </svg>
@@ -353,12 +405,18 @@ export default function MediaView({ data }) {
       <div className="media-stack">
         {articles.map((article, i) => {
           const isOpen = article.link === openLink;
+          const isLast = i === articles.length - 1;
           const { vars, align, texVariant, fold } = stripStyleVars(article, i === 0);
           const tagLabel = CATEGORIES.find((c) => c.id === article.category)?.label.toUpperCase() || 'CULTURE';
+          const outletName = cleanOutletName(article.outlet);
 
           if (isOpen) {
             return (
-              <article key={article.link} className={`news-strip news-strip--${align} news-strip--open`} style={vars}>
+              <article
+                key={article.link}
+                className={`news-strip news-strip--${align} news-strip--open${isLast ? ' news-strip--torn' : ''}`}
+                style={vars}
+              >
                 <span className={`news-strip__texture news-strip__texture--${texVariant}`} aria-hidden="true" />
                 <button type="button" className="news-strip__collapse" onClick={() => setOpenLink(null)} aria-label="Collapse article">
                   <div className="news-strip__top">
@@ -378,7 +436,7 @@ export default function MediaView({ data }) {
                   {article.snippet || 'No preview text was returned for this article — read it in full at the source.'}
                 </p>
                 <a className="news-strip__link" href={article.link} target="_blank" rel="noreferrer">
-                  Read full article at {article.outlet} →
+                  Read full article at {outletName} →
                 </a>
               </article>
             );
@@ -388,7 +446,7 @@ export default function MediaView({ data }) {
             <button
               key={article.link}
               type="button"
-              className={`news-strip news-strip--${align}`}
+              className={`news-strip news-strip--${align}${isLast ? ' news-strip--torn' : ''}`}
               style={vars}
               onClick={() => setOpenLink(article.link)}
             >
@@ -403,7 +461,7 @@ export default function MediaView({ data }) {
                 </div>
               </div>
               <div className="news-strip__rule-thick" aria-hidden="true" />
-              {fold ? <span className={`news-strip__foldcorner news-strip__foldcorner--${fold}`} aria-hidden="true" /> : null}
+              {fold && !isLast ? <span className={`news-strip__foldcorner news-strip__foldcorner--${fold}`} aria-hidden="true" /> : null}
               <h3 className="news-strip__headline ink-text--heavy">{article.headline}</h3>
             </button>
           );
