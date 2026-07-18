@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import SourceBadge from '@/components/ui/SourceBadge';
 
 // Deterministic string hash (djb2) so each article's masthead style, tilt,
@@ -202,20 +202,44 @@ function OutletLogo({ outlet, domain }) {
       ]
     : [`https://logo.clearbit.com/${resolvedDomain}?size=300`];
   const [attempt, setAttempt] = useState(0);
+  const [retryNonce, setRetryNonce] = useState(0);
+  const [wide, setWide] = useState(false);
+  const retriedRef = useRef(false);
 
   if (attempt >= sources.length) {
     return <span className="news-strip__masthead-text ink-text">{cleanOutletName(outlet)}</span>;
   }
+
+  // Roughly a dozen of these all fire at once on first paint (one per
+  // visible strip) - a transient network blip or the browser's per-host
+  // connection cap can fail one that would have succeeded a moment later.
+  // That's exactly why re-opening a strip (which remounts this component
+  // fresh, giving its logo an uncontested second attempt) so often "just
+  // works" when the first load didn't - so give the same URL one real
+  // retry after a short pause before writing it off and moving on.
+  function handleError() {
+    if (!retriedRef.current) {
+      retriedRef.current = true;
+      setTimeout(() => setRetryNonce((n) => n + 1), 600);
+      return;
+    }
+    retriedRef.current = false;
+    setAttempt((a) => a + 1);
+  }
+
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      key={sources[attempt]}
-      className="news-strip__logo-img"
-      src={sources[attempt]}
-      alt={cleanOutletName(outlet)}
-      loading="lazy"
-      onError={() => setAttempt((a) => a + 1)}
-    />
+    <span className="news-strip__logo-crop">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        key={`${sources[attempt]}#${retryNonce}`}
+        className={`news-strip__logo-img${wide ? ' news-strip__logo-img--wide' : ''}`}
+        src={sources[attempt]}
+        alt={cleanOutletName(outlet)}
+        loading="lazy"
+        onLoad={(e) => setWide(e.currentTarget.naturalWidth / Math.max(1, e.currentTarget.naturalHeight) >= 1.8)}
+        onError={handleError}
+      />
+    </span>
   );
 }
 
@@ -487,15 +511,21 @@ export default function MediaView({ data }) {
               {!isOpen ? <div className="news-strip__rule-thick" aria-hidden="true" /> : null}
               {fold && !isLast && !isOpen ? <span className={`news-strip__foldcorner news-strip__foldcorner--${fold}`} aria-hidden="true" /> : null}
 
-              <div className="news-strip__preview">
-                <div className="news-strip__preview-inner">
-                  <h3 className="news-strip__headline ink-text--heavy">{article.headline}</h3>
-                </div>
-              </div>
+              {/* One headline element throughout - it used to be a clamped
+                  preview (h3) that faded out while a second, unclamped copy
+                  (h2) of the same text faded in beside it, which read as the
+                  headline being swapped/refreshed rather than continuing.
+                  Now it just gains its clipped lines back the moment the
+                  strip opens (an instant class toggle - -webkit-line-clamp
+                  itself can't be smoothly interpolated without a second,
+                  measured element), and only the rule/snippet/link grow in
+                  below it via the accordion. */}
+              <h3 className={`news-strip__headline ink-text--heavy${isOpen ? ' news-strip__headline--open' : ''}`}>
+                {article.headline}
+              </h3>
 
               <div className="news-strip__expand">
                 <div className="news-strip__expand-inner">
-                  <h2 className="news-strip__headline news-strip__headline--open ink-text--heavy">{article.headline}</h2>
                   <div className="media-article__rule" aria-hidden="true" />
                   <p className="news-strip__snippet">
                     {article.snippet || 'No preview text was returned for this article — read it in full at the source.'}

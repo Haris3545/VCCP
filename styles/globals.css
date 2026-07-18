@@ -3200,16 +3200,29 @@ html.custom-cursor-active textarea {
   margin-top: 0;
 }
 
-/* Fine turbulence grain (close-up fibre detail), a constant on every strip. */
+/* Two grain layers, not one: the SVG feTurbulence fibre detail (smooth,
+   cloud-like Perlin noise - good for soft fibre texture) plus a genuine
+   per-pixel random noise PNG (paper-grain-static.png, generated once
+   offline - true white noise, no spatial correlation between neighbouring
+   pixels at all, the same character as FilmGrain.js's canvas noise
+   elsewhere in the app, just a single frozen frame of it instead of
+   redrawn every tick). Turbulence alone reads as soft blotches; stacking
+   the sharp true-noise layer on top is what actually gives it that
+   grainy, printed-on-newsprint bite rather than a smooth cloud pattern.
+   A constant on every strip, opacity raised well past what pure
+   turbulence needed since a second real noise layer needs more presence
+   to read at all next to it. */
 .news-strip::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn)'/></svg>");
-  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn)'/></svg>"),
+    url('/media/paper-grain-static.png');
+  background-size: 180px 180px, 256px 256px;
+  background-repeat: repeat, repeat;
   mix-blend-mode: multiply;
-  opacity: 0.3;
+  opacity: 0.5;
   z-index: 2;
 }
 
@@ -3301,34 +3314,50 @@ html.custom-cursor-active textarea {
   justify-content: center;
 }
 
-/* Real outlet logos come back as brand-colour art on a white or coloured
-   padded square (whatever logo.dev/Clearbit have on file) - fine for a
-   product UI, but it reads as a pasted-on sticker rather than a printed
-   nameplate. grayscale kills the brand colour; multiply then optically
-   drops a white/near-white backing straight into the paper underneath it
-   (multiplying by pure white is a no-op, so it reads as if there were
-   never a background there at all), while a genuinely-coloured backing
-   (a solid badge/icon-style asset rather than a plain wordmark) still
-   darkens to a solid grey/black block rather than vanishing - CSS blending
-   can optically erase a *light* background, not crop away real opaque
-   pixels, so that's an inherent limit of doing this without per-logo
-   masking. Deliberately no brightness() alongside contrast() - it would
-   dim true white just enough that multiply would stop treating it as
-   invisible and leave a faint box behind, which is exactly the artifact
-   this is trying to avoid. Sized bigger than the box the source image
-   ships with, since removing the background is what makes a bigger
-   nameplate read as confident rather than as a blown-up icon. */
-.news-strip__logo-img {
-  max-height: 58px;
+/* Real logos, kept in their own brand colour - grayscale/multiply was
+   tried here to fake a "printed" look but didn't hold up across most real
+   logos, so this is back to plain colour art. What actually matters more
+   is that logo APIs typically ship a square asset with a good 20-25%
+   margin baked in around the visible mark (consistent "app icon" framing
+   convention), which object-fit alone can't trim - .news-strip__logo-crop
+   is a fixed-size window with overflow:hidden, and the image inside is
+   scaled up past that window so the crop eats the baked-in margin instead
+   of leaving it as visible dead space around a small logo. This is a
+   blind, un-measured crop (no canvas pixel read - many logo hosts don't
+   send permissive CORS headers, which would silently taint the canvas and
+   break entirely), so it's tuned conservatively rather than to the exact
+   edge of every possible asset. */
+.news-strip__logo-crop {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  height: 58px;
   max-width: min(320px, 82%);
-  object-fit: contain;
-  object-position: left center;
-  filter: grayscale(1) contrast(1.5);
-  mix-blend-mode: multiply;
 }
 
-.news-strip--center .news-strip__logo-img {
-  object-position: center;
+/* A wide (wordmark-shaped) logo is measured on load and gets a taller
+   crop window plus a heavier zoom - a masthead like this is the whole
+   point of the nameplate, so it shouldn't sit at the same modest size as
+   a near-square icon mark. */
+.news-strip__logo-crop:has(.news-strip__logo-img--wide) {
+  height: 78px;
+  max-width: min(400px, 90%);
+}
+
+.news-strip__logo-img {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  transform: scale(1.3);
+}
+
+.news-strip__logo-img--wide {
+  transform: scale(1.65);
+}
+
+.news-strip--center .news-strip__logo-crop {
+  justify-content: center;
+  margin: 0 auto;
 }
 
 .news-strip__masthead-text {
@@ -3373,33 +3402,51 @@ html.custom-cursor-active textarea {
   text-align: center;
 }
 
+/* Folded corner - the same two grain layers used on the strip itself
+   (.news-strip::before) are repeated here on each variant rather than
+   shared, since background-image fully replaces (rather than merges
+   across) whatever a separate rule declared. Without them this was a
+   flat, grain-less gradient patch sitting on top of visibly grainy paper
+   - it read as a clean sticker glued on rather than the corner of the
+   same physical sheet. The white highlight is also toned down a good
+   deal (0.5 alpha was closer to a glint than a paper fold) and the drop
+   shadow softened slightly, so the seam reads as a crease more than a cut. */
 .news-strip__foldcorner {
   position: absolute;
   width: 30px;
   height: 30px;
   pointer-events: none;
   z-index: 5;
+  background-size: 180px 180px, 256px 256px, auto, auto;
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
+  background-blend-mode: multiply, multiply, normal, normal;
 }
 .news-strip__foldcorner--tr {
   top: 0;
   right: 0;
   clip-path: polygon(100% 0, 0 0, 100% 100%);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.3) 65%), var(--paper-bg);
-  box-shadow: -4px 4px 8px rgba(0, 0, 0, 0.35);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn)'/></svg>"),
+    url('/media/paper-grain-static.png'), linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(0, 0, 0, 0.32) 65%),
+    var(--paper-bg);
+  box-shadow: -3px 3px 6px rgba(0, 0, 0, 0.3);
 }
 .news-strip__foldcorner--br {
   bottom: 0;
   right: 0;
   clip-path: polygon(100% 100%, 0 100%, 100% 0);
-  background: linear-gradient(-45deg, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.3) 65%), var(--paper-bg);
-  box-shadow: -4px -4px 8px rgba(0, 0, 0, 0.35);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn)'/></svg>"),
+    url('/media/paper-grain-static.png'), linear-gradient(-45deg, rgba(255, 255, 255, 0.28), rgba(0, 0, 0, 0.32) 65%),
+    var(--paper-bg);
+  box-shadow: -3px -3px 6px rgba(0, 0, 0, 0.3);
 }
 .news-strip__foldcorner--bl {
   bottom: 0;
   left: 0;
   clip-path: polygon(0 100%, 100% 100%, 0 0);
-  background: linear-gradient(45deg, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.3) 65%), var(--paper-bg);
-  box-shadow: 4px -4px 8px rgba(0, 0, 0, 0.35);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn)'/></svg>"),
+    url('/media/paper-grain-static.png'), linear-gradient(45deg, rgba(255, 255, 255, 0.28), rgba(0, 0, 0, 0.32) 65%),
+    var(--paper-bg);
+  box-shadow: 3px -3px 6px rgba(0, 0, 0, 0.3);
 }
 
 .news-strip__rule-thick {
@@ -3482,28 +3529,17 @@ html.custom-cursor-active textarea {
   box-sizing: border-box;
 }
 
-/* The clamped preview headline and the full open article share one
-   toggle, driven by a CSS grid-template-rows accordion (0fr/1fr) rather
-   than a JS-measured max-height - that's the one reliable way to animate
-   to/from a height that isn't known ahead of time. They move in lockstep
-   so the compact preview shrinks away exactly as the full article grows
-   in below it, reading as one sheet unfurling rather than content
-   swapping out. Each collapses to a single grid row sized either to its
-   content (1fr, on a single-row grid that's just its natural height) or
-   to zero, and both interpolate smoothly between those two states. */
-.news-strip__preview,
+/* The rule/snippet/link below the headline are the only part that's
+   actually collapsible content of unknown height, so they're the only
+   part driven by the grid-template-rows accordion (0fr/1fr) - the one
+   reliable way to animate to/from an auto height without a JS-measured
+   max-height. The headline itself lives outside this block entirely (see
+   the single .news-strip__headline in MediaView.js) so it can't compete
+   with a second copy of itself for this same growth animation. */
 .news-strip__expand {
   display: grid;
+  grid-template-rows: 0fr;
   transition: grid-template-rows 520ms cubic-bezier(0.65, 0, 0.35, 1);
-}
-.news-strip__preview {
-  grid-template-rows: 1fr;
-}
-.news-strip--open .news-strip__preview {
-  grid-template-rows: 0fr;
-}
-.news-strip__expand {
-  grid-template-rows: 0fr;
 }
 .news-strip--open .news-strip__expand {
   grid-template-rows: 1fr;
@@ -3513,24 +3549,15 @@ html.custom-cursor-active textarea {
    min-height:auto on a grid item stops it ever shrinking below its
    content's height, so grid-template-rows: 0fr would have no visible
    effect. overflow:hidden clips the content while its row is mid-collapse. */
-.news-strip__preview-inner,
 .news-strip__expand-inner {
   overflow: hidden;
   min-height: 0;
 }
 
-.news-strip__preview-inner > * {
-  transition: opacity 200ms ease;
-}
-.news-strip--open .news-strip__preview-inner > * {
-  opacity: 0;
-  transition: opacity 140ms ease;
-}
-
-/* The full article's contents cascade in one after another rather than
-   all fading in at once - headline, rule, snippet, then the link - a
-   small staggered reveal that reads as the page unfolding rather than
-   the whole block just materialising. */
+/* Its contents cascade in one after another rather than all fading in at
+   once - rule, snippet, then the link - a small staggered reveal that
+   reads as the page unfolding rather than the whole block just
+   materialising. */
 .news-strip__expand-inner > * {
   opacity: 0;
   transform: translateY(-8px);
@@ -3549,9 +3576,6 @@ html.custom-cursor-active textarea {
 }
 .news-strip--open .news-strip__expand-inner > *:nth-child(3) {
   --reveal-delay: 210ms;
-}
-.news-strip--open .news-strip__expand-inner > *:nth-child(4) {
-  --reveal-delay: 260ms;
 }
 
 /* The last sheet in the pile ends the stack on a real torn edge rather
