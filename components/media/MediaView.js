@@ -77,6 +77,7 @@ const MASTHEAD_STYLES = [
 ];
 
 const SECTION_TAGS = ['MUSIC', 'CULTURE', 'POP', 'STYLE', 'CELEBRITY', 'FILM'];
+const FOLD_CORNERS = ['tr', 'br', 'bl'];
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -87,6 +88,10 @@ function stripStyleVars(article) {
   const masthead = MASTHEAD_STYLES[hashString(article.outlet) % MASTHEAD_STYLES.length];
   const tag = SECTION_TAGS[hashString(`${article.link}tag`) % SECTION_TAGS.length];
   const rot = ((hashString(`${article.link}r`) % 100) / 100 - 0.5) * 4.5;
+  const texX = hashString(`${article.link}tx`) % 100;
+  const texY = hashString(`${article.link}ty`) % 100;
+  const hasFold = hashString(`${article.link}fold`) % 100 < 45;
+  const foldCorner = FOLD_CORNERS[hashString(`${article.link}foldc`) % FOLD_CORNERS.length];
   return {
     vars: {
       '--paper-bg': masthead.paper,
@@ -96,8 +101,11 @@ function stripStyleVars(article) {
       '--masthead-style': masthead.style,
       '--masthead-tracking': masthead.tracking,
       '--rot': `${rot.toFixed(2)}deg`,
+      '--tex-x': `${texX}%`,
+      '--tex-y': `${texY}%`,
     },
     tag,
+    fold: hasFold ? foldCorner : null,
   };
 }
 
@@ -149,7 +157,7 @@ export default function MediaView({ data }) {
 
       <div className={`media-stack${open ? ' media-stack--reading' : ''}`}>
         {articles.map((article, i) => {
-          const { vars, tag } = stripStyleVars(article);
+          const { vars, tag, fold } = stripStyleVars(article);
           const delta = i - (openIndex ?? i);
           const pushed = open && i !== openIndex;
           const style = {
@@ -171,8 +179,14 @@ export default function MediaView({ data }) {
                 <span className="news-strip__band-rule" aria-hidden="true" />
                 <span className="news-strip__date">{formatDate(article.publishedAt)}</span>
               </div>
-              <div className="news-strip__masthead">{article.outlet}</div>
+              <div className="news-strip__masthead">
+                <span className="news-strip__logo" aria-hidden="true">
+                  {article.outlet.charAt(0)}
+                </span>
+                <span className="news-strip__masthead-text">{article.outlet}</span>
+              </div>
               <div className="news-strip__rule-thick" aria-hidden="true" />
+              {fold ? <span className={`news-strip__foldcorner news-strip__foldcorner--${fold}`} aria-hidden="true" /> : null}
               <div className="news-strip__body">
                 <h3 className="news-strip__headline">{article.headline}</h3>
                 {article.imageUrl ? (

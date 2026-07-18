@@ -3114,12 +3114,18 @@ html.custom-cursor-active textarea {
   isolation: isolate;
   display: block;
   width: 100%;
-  padding: 16px clamp(18px, 4vw, 34px) 22px;
-  margin-top: -20px;
+  padding: 16px clamp(18px, 4vw, 34px) 34px;
+  margin-top: -30px;
   background: var(--paper-bg, linear-gradient(160deg, #fbf9f2, #efece0));
   color: #17140d;
   transform: rotate(var(--rot, 0deg));
-  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.42), 0 3px 6px rgba(0, 0, 0, 0.32);
+  /* Layered for real depth rather than one flat drop shadow: a tight dark
+     contact shadow right at the edge (like the sheet is really resting on
+     the one below), a softer ambient shadow further out, and an inset
+     shading pair top/bottom so the sheet itself reads slightly curled
+     rather than perfectly flat card stock. */
+  box-shadow: 0 3px 4px rgba(0, 0, 0, 0.38), 0 16px 28px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3),
+    inset 0 18px 22px -20px rgba(0, 0, 0, 0.5), inset 0 -22px 26px -22px rgba(0, 0, 0, 0.55);
   transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 260ms ease, opacity 340ms ease;
 }
 
@@ -3127,36 +3133,45 @@ html.custom-cursor-active textarea {
   margin-top: 0;
 }
 
-/* Two texture layers rather than one: ::before is fine paper-fibre grain,
-   ::after is a handful of soft diagonal light/dark bands standing in for
-   creases and worn folds — there's no bitmap asset for this (everything in
-   the app is generated, no network image fetches), so "crumpled paper" is
-   built from gradients instead of a photographed texture. */
+/* Real photographed crumpled-paper texture (public/media/paper-crumple.jpg,
+   generated once - see the "Wire real crumpled-paper texture" work) layered
+   under a fine turbulence grain for close-up fibre detail. Each strip reads
+   a different crop of the same source image (--tex-x/--tex-y, hashed per
+   article) so repeated strips don't all show the identical crease pattern. */
 .news-strip::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn)'/></svg>");
-  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn)'/></svg>"),
+    url('/media/paper-crumple.jpg');
+  background-size: 180px 180px, 1500px 1050px;
+  background-position: 0 0, var(--tex-x, 50%) var(--tex-y, 50%);
+  background-repeat: repeat, no-repeat;
   mix-blend-mode: multiply;
-  opacity: 0.3;
+  opacity: 0.5;
   z-index: 2;
 }
 
+/* This sheet's own cast shadow/highlight - a bright catch-light where it's
+   "raised" nearest the viewer (its top), fading to a soft shadow at the
+   bottom, which is what's actually falling on the strip underneath. That
+   soft fade (rather than a hard box edge) is what keeps the overlap seam
+   from reading as a flat rectangle cut across the page beneath it. */
 .news-strip::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(115deg, transparent 22%, rgba(0, 0, 0, 0.05) 24%, transparent 27%),
-    linear-gradient(68deg, transparent 38%, rgba(255, 255, 255, 0.4) 40%, transparent 43%),
-    linear-gradient(160deg, transparent 55%, rgba(0, 0, 0, 0.06) 57%, transparent 61%),
-    linear-gradient(25deg, transparent 71%, rgba(255, 255, 255, 0.3) 73%, transparent 76%),
-    linear-gradient(100deg, transparent 86%, rgba(0, 0, 0, 0.07) 88%, transparent 92%),
-    radial-gradient(140% 100% at 50% 0%, transparent 60%, rgba(0, 0, 0, 0.12) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    transparent 10%,
+    transparent 78%,
+    rgba(0, 0, 0, 0.16) 94%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
   mix-blend-mode: overlay;
-  opacity: 0.85;
   z-index: 2;
 }
 
@@ -3166,9 +3181,10 @@ html.custom-cursor-active textarea {
 }
 
 .news-strip:hover {
-  transform: rotate(0deg) translateY(-5px);
-  z-index: 3;
-  box-shadow: 0 22px 36px rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.34);
+  transform: rotate(0deg) translateY(-6px);
+  z-index: 4;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), 0 24px 40px rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.34),
+    inset 0 18px 22px -20px rgba(0, 0, 0, 0.5), inset 0 -22px 26px -22px rgba(0, 0, 0, 0.55);
 }
 
 .news-strip__band-top {
@@ -3205,7 +3221,28 @@ html.custom-cursor-active textarea {
 
 .news-strip__masthead {
   margin-top: 6px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.news-strip__logo {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent, #a3272c);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.news-strip__masthead-text {
   font-family: var(--masthead-font, var(--font-serif));
   font-weight: var(--masthead-weight, 900);
   font-style: var(--masthead-style, normal);
@@ -3213,6 +3250,35 @@ html.custom-cursor-active textarea {
   text-transform: uppercase;
   font-size: clamp(18px, 2.4vw, 27px);
   color: #14110b;
+}
+
+.news-strip__foldcorner {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  z-index: 5;
+}
+.news-strip__foldcorner--tr {
+  top: 0;
+  right: 0;
+  clip-path: polygon(100% 0, 0 0, 100% 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.3) 65%), var(--paper-bg);
+  box-shadow: -4px 4px 8px rgba(0, 0, 0, 0.35);
+}
+.news-strip__foldcorner--br {
+  bottom: 0;
+  right: 0;
+  clip-path: polygon(100% 100%, 0 100%, 100% 0);
+  background: linear-gradient(-45deg, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.3) 65%), var(--paper-bg);
+  box-shadow: -4px -4px 8px rgba(0, 0, 0, 0.35);
+}
+.news-strip__foldcorner--bl {
+  bottom: 0;
+  left: 0;
+  clip-path: polygon(0 100%, 100% 100%, 0 0);
+  background: linear-gradient(45deg, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.3) 65%), var(--paper-bg);
+  box-shadow: 4px -4px 8px rgba(0, 0, 0, 0.35);
 }
 
 .news-strip__rule-thick {
