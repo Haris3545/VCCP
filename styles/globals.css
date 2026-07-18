@@ -3099,6 +3099,123 @@ html.custom-cursor-active textarea {
   letter-spacing: 0.02em;
 }
 
+/* Shared rounded-rect chrome toggle group - same solid, moderate-radius
+   pill language as the bottom FloatingTabNav, just a plain click-to-select
+   state instead of that nav's hover-preview mechanic (there's nothing to
+   preview here, only one thing is ever "active"). Used for both the trend
+   card's period switch and the category filter tabs. */
+.pill-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  background: var(--surface-raised);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.pill-toggle--categories {
+  margin-bottom: 22px;
+}
+
+.pill-toggle__btn {
+  all: unset;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 9px 15px;
+  border-radius: 14px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--paper);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  transition: background 140ms ease, color 140ms ease;
+}
+.pill-toggle__btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.pill-toggle__btn--active,
+.pill-toggle__btn--active:hover {
+  background: #fff;
+  color: var(--accent-contrast);
+  text-shadow: none;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Media Trend Index - real coverage-volume change for the selected        */
+/* period (computed from the fetched articles' own publishedAt spread, not */
+/* a maintained historical archive - "—" when there isn't enough earlier   */
+/* coverage in that same feed snapshot to compare against yet) plus a      */
+/* headline-tone split from a small keyword lexicon, labelled as exactly   */
+/* that rather than passed off as a real sentiment model.                  */
+/* ---------------------------------------------------------------------- */
+.media-trend {
+  margin-bottom: 22px;
+}
+
+.media-trend__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.media-trend__stat {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.media-trend__pct {
+  font-family: var(--font-display);
+  font-size: 34px;
+  color: var(--paper);
+}
+.media-trend__pct--up {
+  color: var(--trend-up);
+}
+.media-trend__pct--down {
+  color: var(--danger);
+}
+
+.media-trend__stat-label {
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 340px;
+}
+
+.media-trend__tone {
+  margin-top: 18px;
+}
+
+.media-trend__tone-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+.media-trend__tone-fill--pos {
+  background: var(--trend-up);
+}
+.media-trend__tone-fill--neg {
+  background: var(--danger);
+}
+
+.media-trend__tone-label {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .media-stack {
   display: flex;
   flex-direction: column;
@@ -3210,9 +3327,15 @@ html.custom-cursor-active textarea {
   background-image: url('/media/paper-crumple-print.jpg');
 }
 
+/* Lift + a bigger shadow only - no z-index change. Bumping stacking order
+   on hover used to let an earlier strip pop in front of whichever later
+   (visually "closer to the viewer") strip is supposed to overlap its
+   bottom edge, which read as the paper jumping in front of the one on top
+   of it while still somehow casting a shadow onto it. Leaving the natural
+   DOM-order stacking alone keeps that always correct; the lift still reads
+   fine from the shadow and translateY alone. */
 .news-strip:hover {
   transform: rotate(0deg) translateY(-6px);
-  z-index: 4;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), 0 24px 40px rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.34),
     inset 0 18px 22px -20px rgba(0, 0, 0, 0.5), inset 0 -22px 26px -22px rgba(0, 0, 0, 0.55);
 }
@@ -3348,6 +3471,20 @@ html.custom-cursor-active textarea {
   background: rgba(23, 20, 13, 0.4);
 }
 
+/* Ink imperfection: the headline's own fill is a fine, high-contrast noise
+   pattern rather than a flat colour - clipped to the text so it reads like
+   ink that didn't sit perfectly even on the paper, instead of crisp vector
+   type. Kept to headline-scale text only; at tag/date sizes the same noise
+   would just look like illegible static. */
+.ink-text {
+  color: #100d08;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='ink'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' seed='4' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.06  0 0 0 0 0.05  0 0 0 0 0.04  0.3 0.3 0.3 0 0.68'/></filter><rect width='100%25' height='100%25' filter='url(%23ink)'/></svg>");
+  background-size: 3px 3px;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 .news-strip__headline {
   margin: 0;
   font-family: var(--masthead-font, var(--font-serif));
@@ -3357,11 +3494,16 @@ html.custom-cursor-active textarea {
   letter-spacing: -0.01em;
   font-size: clamp(26px, 4.4vw, 48px);
   line-height: 0.98;
-  color: #100d08;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.news-strip__headline--open {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
 }
 
 .news-strip__underline {
@@ -3376,174 +3518,54 @@ html.custom-cursor-active textarea {
   margin-right: auto;
 }
 
-/* Reading state: the clicked strip fades out in place (its content
-   reappears large in .media-reader) while every strip before it slides
-   away to the left and every strip after it slides away to the right —
-   staggered further out the further a strip sits from the one that was
-   opened, so it reads as a single "push to the side" radiating outward.
-   Each strip's own resting tilt (--rot) carries through so the kick away
-   still reads as an extension of how it was already sitting. */
+/* Open state: expands in place within the normal page flow (no modal, no
+   scrim) - scrolling still reveals every other strip above and below
+   exactly where it already was. Un-tilted and raised above its immediate
+   neighbours so the extra height reads cleanly rather than getting cut
+   into by the next strip's usual overlap. */
 .news-strip--open {
-  opacity: 0;
-  pointer-events: none;
+  display: block;
+  width: calc(100% + 48px);
+  margin-left: -24px;
+  transform: none !important;
+  z-index: 10;
+  padding-bottom: 40px;
 }
 
-.news-strip--push-left {
-  transform: translateX(-130%) rotate(calc(var(--rot, 0deg) - 6deg));
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-.news-strip--push-right {
-  transform: translateX(130%) rotate(calc(var(--rot, 0deg) + 6deg));
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-.media-reader {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  background: rgba(6, 6, 6, 0.6);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  animation: media-reader-scrim-in 260ms ease;
-}
-
-@keyframes media-reader-scrim-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.media-reader__sheet {
-  position: relative;
-  isolation: isolate;
-  width: min(720px, 100%);
-  max-height: 84vh;
-  overflow-y: auto;
-  background: linear-gradient(180deg, #fffdf6, #f2eedd);
-  color: #1b1710;
-  padding: 46px clamp(24px, 5vw, 64px) 40px;
-  clip-path: polygon(
-    0% 0px,
-    3.85% 13px,
-    7.69% 0px,
-    11.54% 13px,
-    15.38% 0px,
-    19.23% 13px,
-    23.08% 0px,
-    26.92% 13px,
-    30.77% 0px,
-    34.62% 13px,
-    38.46% 0px,
-    42.31% 13px,
-    46.15% 0px,
-    50% 13px,
-    53.85% 0px,
-    57.69% 13px,
-    61.54% 0px,
-    65.38% 13px,
-    69.23% 0px,
-    73.08% 13px,
-    76.92% 0px,
-    80.77% 13px,
-    84.62% 0px,
-    88.46% 13px,
-    92.31% 0px,
-    96.15% 13px,
-    100% 0px,
-    100% 100%,
-    0% 100%
-  );
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55);
-  animation: media-reader-in 380ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes media-reader-in {
-  from {
-    opacity: 0;
-    transform: scale(0.92) translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.media-reader__sheet::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn2'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn2)'/></svg>");
-  background-size: 220px 220px;
-  mix-blend-mode: multiply;
-  opacity: 0.22;
-}
-
-.media-reader__sheet::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(115deg, transparent 22%, rgba(0, 0, 0, 0.04) 24%, transparent 27%),
-    linear-gradient(68deg, transparent 38%, rgba(255, 255, 255, 0.3) 40%, transparent 43%),
-    linear-gradient(160deg, transparent 55%, rgba(0, 0, 0, 0.05) 57%, transparent 61%),
-    linear-gradient(25deg, transparent 71%, rgba(255, 255, 255, 0.22) 73%, transparent 76%);
-  mix-blend-mode: overlay;
-  opacity: 0.7;
-}
-
-.media-reader__sheet > * {
-  position: relative;
-  z-index: 1;
-}
-
-.media-reader__close {
+.news-strip__collapse {
   all: unset;
-  position: absolute;
-  top: 14px;
-  right: 18px;
-  font-family: var(--font-sans);
-  font-size: 26px;
-  line-height: 1;
-  color: rgba(27, 23, 16, 0.5);
+  display: block;
+  width: 100%;
   cursor: pointer;
-  padding: 6px 10px;
-  transition: color 150ms ease;
-}
-.media-reader__close:hover {
-  color: #17140d;
+  box-sizing: border-box;
 }
 
-.media-article__masthead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(27, 23, 16, 0.55);
-}
-
-.media-article__headline {
-  margin-top: 14px;
+.news-strip__snippet {
+  margin: 18px 0 0;
   font-family: var(--font-serif);
-  font-weight: 900;
-  font-size: clamp(24px, 3.4vw, 38px);
-  line-height: 1.12;
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgba(20, 17, 11, 0.86);
+  max-width: 68ch;
+}
+
+.news-strip--center .news-strip__snippet {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.news-strip__link {
+  display: inline-block;
+  margin-top: 18px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: #14110b;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 2px;
 }
 
 .media-article__rule {
@@ -3558,43 +3580,15 @@ html.custom-cursor-active textarea {
   );
 }
 
-.media-article__snippet {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 17px;
-  line-height: 1.6;
-  color: rgba(20, 17, 11, 0.86);
-  max-width: 68ch;
-}
-
-.media-article__link {
-  display: inline-block;
-  margin-top: 22px;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #14110b;
-  border-bottom: 1px solid currentColor;
-  padding-bottom: 2px;
-}
-
 @media (max-width: 640px) {
   .news-strip {
     padding: 14px 40px 20px;
     margin-top: -16px;
   }
-
-  .media-reader__sheet {
-    padding: 40px 20px 32px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .news-strip,
-  .media-reader,
-  .media-reader__sheet {
+  .news-strip {
     transition: none;
     animation: none;
   }

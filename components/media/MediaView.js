@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import SourceBadge from '@/components/ui/SourceBadge';
 
 // Deterministic string hash (djb2) so each article's masthead style, tilt,
-// texture pick, and the reveal-open push directions are stable across
-// server render and hydration — no Math.random(), which would mismatch.
+// and texture pick are stable across server render and hydration — no
+// Math.random(), which would mismatch between the two.
 function hashString(str) {
   let h = 5381;
   for (let i = 0; i < str.length; i++) {
@@ -84,9 +84,60 @@ const MASTHEAD_STYLES = [
   },
 ];
 
-const SECTION_TAGS = ['MUSIC', 'CULTURE', 'POP', 'STYLE', 'CELEBRITY', 'FILM'];
 const FOLD_CORNERS = ['tr', 'br', 'bl'];
 const TEXTURE_VARIANTS = ['heavy', 'soft', 'print'];
+
+// Category is derived from real keyword matches in the headline/snippet
+// (checked in this order — first match wins) rather than assigned at
+// random, so the filter tabs below actually mean something. "Culture" is
+// the fallback bucket for anything that doesn't match a more specific one.
+const CATEGORIES = [
+  { id: 'all', label: 'All news' },
+  { id: 'music', label: 'Music' },
+  { id: 'film', label: 'Film' },
+  { id: 'style', label: 'Style' },
+  { id: 'celebrity', label: 'Celebrity' },
+  { id: 'culture', label: 'Culture' },
+];
+const CATEGORY_KEYWORDS = {
+  music: ['song', 'album', 'single', 'track', 'music', 'tour', 'concert', 'setlist', 'record', 'lyric'],
+  film: ['film', 'movie', 'video', 'trailer', 'documentary', 'short film', 'premiere'],
+  style: ['fashion', 'style', 'outfit', 'dress', 'runway', 'wardrobe', 'beauty', 'look'],
+  celebrity: ['dating', 'romance', 'relationship', 'wedding', 'engaged', 'boyfriend', 'girlfriend', 'feud', 'split'],
+};
+function deriveCategory(article) {
+  const text = `${article.headline} ${article.snippet || ''}`.toLowerCase();
+  for (const cat of ['music', 'film', 'style', 'celebrity']) {
+    if (CATEGORY_KEYWORDS[cat].some((kw) => text.includes(kw))) return cat;
+  }
+  return 'culture';
+}
+
+// A deliberately simple keyword lexicon, not a real sentiment model — good
+// enough to give an honest, illustrative tone signal over real headline
+// text without pretending to be more sophisticated than it is.
+const POSITIVE_WORDS = [
+  'hit', 'triumph', 'best', 'love', 'stun', 'iconic', 'win', 'celebrat', 'praise', 'glowing', 'success', 'adore',
+  'dazzl', 'soar', 'acclaim', 'brilliant', 'joy', 'excit', 'return', 'surprise',
+];
+const NEGATIVE_WORDS = [
+  'flop', 'criticiz', 'critici', 'backlash', 'slam', 'feud', 'controvers', 'cancel', 'disappoint', 'fail', 'mock',
+  'blast', 'boo', 'trouble', 'split', 'clash', 'accus',
+];
+function scoreTone(article) {
+  const text = `${article.headline} ${article.snippet || ''}`.toLowerCase();
+  const pos = POSITIVE_WORDS.some((w) => text.includes(w));
+  const neg = NEGATIVE_WORDS.some((w) => text.includes(w));
+  if (pos && !neg) return 'positive';
+  if (neg && !pos) return 'negative';
+  return 'neutral';
+}
+
+const PERIODS = [
+  { id: 'week', label: 'Last week', days: 7 },
+  { id: 'month', label: 'Last month', days: 30 },
+  { id: 'year', label: 'Last year', days: 365 },
+];
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -110,7 +161,7 @@ function guessDomain(outlet) {
 function OutletLogo({ outlet, domain }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
-    return <span className="news-strip__masthead-text">{outlet}</span>;
+    return <span className="news-strip__masthead-text ink-text">{outlet}</span>;
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -124,10 +175,13 @@ function OutletLogo({ outlet, domain }) {
   );
 }
 
-function stripStyleVars(article) {
+function stripStyleVars(article, isTop) {
   const masthead = MASTHEAD_STYLES[hashString(article.outlet) % MASTHEAD_STYLES.length];
-  const tag = SECTION_TAGS[hashString(`${article.link}tag`) % SECTION_TAGS.length];
-  const rot = ((hashString(`${article.link}r`) % 100) / 100 - 0.5) * 4.5;
+  // The top sheet in the pile sits almost flat - it's the one "currently on
+  // top," so only the strips underneath it lean at the fuller tilt range.
+  const rot = isTop
+    ? ((hashString(`${article.link}r`) % 100) / 100 - 0.5) * 1.2
+    : ((hashString(`${article.link}r`) % 100) / 100 - 0.5) * 4.5;
   const texX = hashString(`${article.link}tx`) % 100;
   const texY = hashString(`${article.link}ty`) % 100;
   const texOpacity = 0.3 + ((hashString(`${article.link}to`) % 100) / 100) * 0.35;
@@ -147,32 +201,96 @@ function stripStyleVars(article) {
       '--tex-y': `${texY}%`,
       '--tex-opacity': texOpacity.toFixed(2),
     },
-    tag,
     align: masthead.align,
     texVariant,
     fold: hasFold ? foldCorner : null,
   };
 }
 
+function MediaTrendIndex({ articles }) {
+  const [period, setPeriod] = useState('week');
+  const stats = useMemo(() => {
+    const days = PERIODS.find((p) => p.id === period).days;
+    const now = Date.now();
+    const withDates = articles.filter((a) => a.publishedAt);
+    const current = withDates.filter((a) => now - new Date(a.publishedAt).getTime() < days * 86400000);
+    const prior = withDates.filter((a) => {
+      const age = now - new Date(a.publishedAt).getTime();
+      return age >= days * 86400000 && age < days * 2 * 86400000;
+    });
+    const pctChange = prior.length ? Math.round(((current.length - prior.length) / prior.length) * 100) : null;
+
+    const toned = current.map(scoreTone);
+    const posCount = toned.filter((t) => t === 'positive').length;
+    const negCount = toned.filter((t) => t === 'negative').length;
+    const scored = posCount + negCount;
+    const posPct = scored ? Math.round((posCount / scored) * 100) : null;
+
+    return { currentCount: current.length, priorCount: prior.length, pctChange, posPct, negPct: posPct === null ? null : 100 - posPct };
+  }, [articles, period]);
+
+  return (
+    <div className="media-trend card">
+      <div className="card__head">
+        <div>
+          <div className="eyebrow">Coverage volume</div>
+          <h2 style={{ marginTop: 4 }}>Media Trend Index</h2>
+        </div>
+        <SourceBadge source="live" />
+      </div>
+
+      <div className="media-trend__body">
+        <div className="media-trend__stat">
+          <span className={`media-trend__pct${stats.pctChange > 0 ? ' media-trend__pct--up' : stats.pctChange < 0 ? ' media-trend__pct--down' : ''}`}>
+            {stats.pctChange === null ? '—' : `${stats.pctChange > 0 ? '+' : ''}${stats.pctChange}%`}
+          </span>
+          <span className="media-trend__stat-label">
+            {stats.currentCount} article{stats.currentCount === 1 ? '' : 's'}
+            {stats.priorCount
+              ? ` vs ${stats.priorCount} the ${PERIODS.find((p) => p.id === period).label.toLowerCase().replace('last ', 'previous ')}`
+              : ' — not enough earlier coverage in this feed to compare yet'}
+          </span>
+        </div>
+
+        <div className="pill-toggle">
+          {PERIODS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`pill-toggle__btn${period === p.id ? ' pill-toggle__btn--active' : ''}`}
+              onClick={() => setPeriod(p.id)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {stats.posPct !== null ? (
+        <div className="media-trend__tone">
+          <div className="media-trend__tone-bar">
+            <span className="media-trend__tone-fill media-trend__tone-fill--pos" style={{ width: `${stats.posPct}%` }} />
+            <span className="media-trend__tone-fill media-trend__tone-fill--neg" style={{ width: `${stats.negPct}%` }} />
+          </div>
+          <span className="media-trend__tone-label">
+            {stats.posPct}% positive tone · {stats.negPct}% negative tone (headline keyword heuristic, not a sentiment model)
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function MediaView({ data }) {
   const news = data?.news;
-  const articles = news?.source === 'live' ? news.articles : [];
-  const [openIndex, setOpenIndex] = useState(null);
+  const allArticles = news?.source === 'live' ? news.articles : [];
+  const [openLink, setOpenLink] = useState(null);
+  const [category, setCategory] = useState('all');
 
-  useEffect(() => {
-    if (openIndex === null) return undefined;
-    function onKey(e) {
-      if (e.key === 'Escape') setOpenIndex(null);
-    }
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [openIndex]);
+  const categorized = useMemo(() => allArticles.map((a) => ({ ...a, category: deriveCategory(a) })), [allArticles]);
+  const articles = category === 'all' ? categorized : categorized.filter((a) => a.category === category);
 
-  if (news?.source !== 'live' || articles.length === 0) {
+  if (news?.source !== 'live' || allArticles.length === 0) {
     return (
       <div className="card">
         <div className="card__head">
@@ -189,39 +307,74 @@ export default function MediaView({ data }) {
     );
   }
 
-  const open = openIndex !== null ? articles[openIndex] : null;
-
   return (
     <div className="media-newsroom">
+      <MediaTrendIndex articles={categorized} />
+
       <div className="media-newsroom__head">
         <span className="eyebrow">Live coverage agent</span>
         <span className="media-newsroom__updated">
-          Last swept {formatDate(news.fetchedAt)} · {articles.length} clippings
+          Last swept {formatDate(news.fetchedAt)} · {allArticles.length} clippings
         </span>
       </div>
 
-      <div className={`media-stack${open ? ' media-stack--reading' : ''}`}>
+      <div className="pill-toggle pill-toggle--categories">
+        {CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            className={`pill-toggle__btn${category === c.id ? ' pill-toggle__btn--active' : ''}`}
+            onClick={() => setCategory(c.id)}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="media-stack">
         {articles.map((article, i) => {
-          const { vars, tag, align, texVariant, fold } = stripStyleVars(article);
-          const delta = i - (openIndex ?? i);
-          const pushed = open && i !== openIndex;
-          const style = {
-            ...vars,
-            transitionDelay: pushed ? `${Math.min(Math.abs(delta) * 10, 160)}ms` : undefined,
-          };
+          const isOpen = article.link === openLink;
+          const { vars, align, texVariant, fold } = stripStyleVars(article, i === 0);
+          const tagLabel = CATEGORIES.find((c) => c.id === article.category)?.label.toUpperCase() || 'CULTURE';
+
+          if (isOpen) {
+            return (
+              <article key={article.link} className={`news-strip news-strip--${align} news-strip--open`} style={vars}>
+                <span className={`news-strip__texture news-strip__texture--${texVariant}`} aria-hidden="true" />
+                <button type="button" className="news-strip__collapse" onClick={() => setOpenLink(null)} aria-label="Collapse article">
+                  <div className="news-strip__band-top">
+                    <span className="news-strip__tag">{tagLabel}</span>
+                    <span className="news-strip__band-rule" aria-hidden="true" />
+                  </div>
+                  <div className="news-strip__masthead">
+                    <OutletLogo outlet={article.outlet} domain={article.outletDomain} />
+                  </div>
+                  <div className="news-strip__dateline">{formatDate(article.publishedAt)}</div>
+                </button>
+                <div className="news-strip__rule-thick" aria-hidden="true" />
+                <h2 className="news-strip__headline news-strip__headline--open ink-text">{article.headline}</h2>
+                <div className="media-article__rule" aria-hidden="true" />
+                <p className="news-strip__snippet">
+                  {article.snippet || 'No preview text was returned for this article — read it in full at the source.'}
+                </p>
+                <a className="news-strip__link" href={article.link} target="_blank" rel="noreferrer">
+                  Read full article at {article.outlet} →
+                </a>
+              </article>
+            );
+          }
+
           return (
             <button
               key={article.link}
               type="button"
-              className={`news-strip news-strip--${align}${i === openIndex ? ' news-strip--open' : ''}${
-                pushed ? (delta < 0 ? ' news-strip--push-left' : ' news-strip--push-right') : ''
-              }`}
-              style={style}
-              onClick={() => setOpenIndex(i)}
+              className={`news-strip news-strip--${align}`}
+              style={vars}
+              onClick={() => setOpenLink(article.link)}
             >
               <span className={`news-strip__texture news-strip__texture--${texVariant}`} aria-hidden="true" />
               <div className="news-strip__band-top">
-                <span className="news-strip__tag">{tag}</span>
+                <span className="news-strip__tag">{tagLabel}</span>
                 <span className="news-strip__band-rule" aria-hidden="true" />
               </div>
               <div className="news-strip__masthead">
@@ -230,39 +383,12 @@ export default function MediaView({ data }) {
               <div className="news-strip__dateline">{formatDate(article.publishedAt)}</div>
               <div className="news-strip__rule-thick" aria-hidden="true" />
               {fold ? <span className={`news-strip__foldcorner news-strip__foldcorner--${fold}`} aria-hidden="true" /> : null}
-              <h3 className="news-strip__headline">{article.headline}</h3>
+              <h3 className="news-strip__headline ink-text">{article.headline}</h3>
               <div className="news-strip__underline" aria-hidden="true" />
             </button>
           );
         })}
       </div>
-
-      {open ? (
-        <div className="media-reader" onClick={() => setOpenIndex(null)}>
-          <article className="media-reader__sheet" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="media-reader__close"
-              onClick={() => setOpenIndex(null)}
-              aria-label="Back to clippings"
-            >
-              ×
-            </button>
-            <div className="media-article__masthead">
-              <span className="media-article__eyebrow">{open.outlet}</span>
-              <span className="media-article__date">{formatDate(open.publishedAt)}</span>
-            </div>
-            <h2 className="media-article__headline">{open.headline}</h2>
-            <div className="media-article__rule" aria-hidden="true" />
-            <p className="media-article__snippet">
-              {open.snippet || 'No preview text was returned for this article — read it in full at the source.'}
-            </p>
-            <a className="media-article__link" href={open.link} target="_blank" rel="noreferrer">
-              Read full article at {open.outlet} →
-            </a>
-          </article>
-        </div>
-      ) : null}
     </div>
   );
 }
