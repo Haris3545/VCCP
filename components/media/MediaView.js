@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import SourceBadge from '@/components/ui/SourceBadge';
 
 // Deterministic string hash (djb2) so each article's masthead style, tilt,
-// section tag, and the reveal-open push directions are stable across
+// texture pick, and the reveal-open push directions are stable across
 // server render and hydration — no Math.random(), which would mismatch.
 function hashString(str) {
   let h = 5381;
@@ -13,10 +13,11 @@ function hashString(str) {
 }
 
 // A handful of distinct "masthead personalities" built entirely from fonts
-// already bundled locally (no per-outlet real branding to fetch) — each
-// outlet name deterministically hashes to one, so the same outlet always
-// reads the same way and different outlets read visibly differently, the
-// way a real stack of front pages has different mastheads, rules and ink.
+// already bundled locally — each outlet name deterministically hashes to
+// one, so the same outlet always reads the same way and different outlets
+// read visibly differently, the way a real stack of front pages has
+// different mastheads, rules, ink and layout conventions (some broadsheets
+// centre everything, tabloids run left-aligned and bolder).
 const MASTHEAD_STYLES = [
   {
     font: 'var(--font-serif)',
@@ -25,6 +26,7 @@ const MASTHEAD_STYLES = [
     tracking: '0.01em',
     paper: 'linear-gradient(160deg, #fbf9f2, #efece0)',
     accent: '#a3272c',
+    align: 'center',
   },
   {
     font: "'Playfair Display', var(--font-serif)",
@@ -33,6 +35,7 @@ const MASTHEAD_STYLES = [
     tracking: '0em',
     paper: 'linear-gradient(160deg, #fdf6ee, #f1e6d6)',
     accent: '#5c2a4d',
+    align: 'left',
   },
   {
     font: "'Oswald', var(--font-sans)",
@@ -41,6 +44,7 @@ const MASTHEAD_STYLES = [
     tracking: '0.02em',
     paper: 'linear-gradient(160deg, #f6f5ef, #e7e4d8)',
     accent: '#1d3a5f',
+    align: 'left',
   },
   {
     font: "'Space Grotesk', var(--font-sans)",
@@ -49,6 +53,7 @@ const MASTHEAD_STYLES = [
     tracking: '0em',
     paper: 'linear-gradient(160deg, #f7f8f4, #e9ebe3)',
     accent: '#2f5233',
+    align: 'center',
   },
   {
     font: "'IBM Plex Mono', ui-monospace, monospace",
@@ -57,6 +62,7 @@ const MASTHEAD_STYLES = [
     tracking: '0em',
     paper: 'linear-gradient(160deg, #f4f6ef, #e5e9dd)',
     accent: '#1f5c56',
+    align: 'left',
   },
   {
     font: 'var(--font-display)',
@@ -65,6 +71,7 @@ const MASTHEAD_STYLES = [
     tracking: '0em',
     paper: 'linear-gradient(160deg, #faf3ec, #ecdcd0)',
     accent: '#b5811a',
+    align: 'center',
   },
   {
     font: "'Playfair Display', var(--font-serif)",
@@ -73,15 +80,48 @@ const MASTHEAD_STYLES = [
     tracking: '0em',
     paper: 'linear-gradient(160deg, #f9f1ec, #ecdcd2)',
     accent: '#1b1710',
+    align: 'left',
   },
 ];
 
 const SECTION_TAGS = ['MUSIC', 'CULTURE', 'POP', 'STYLE', 'CELEBRITY', 'FILM'];
 const FOLD_CORNERS = ['tr', 'br', 'bl'];
+const TEXTURE_VARIANTS = ['heavy', 'soft', 'print'];
 
 function formatDate(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+// Best-effort fallback when the RSS feed didn't give us the outlet's real
+// domain (see lib/integrations/news.js's <source url> extraction) — a
+// plain slug guess, not a lookup of anything real, so the logo may simply
+// fail to load for less common outlets (OutletLogo falls back to text).
+function guessDomain(outlet) {
+  return `${outlet
+    .toLowerCase()
+    .replace(/^the\s+/, '')
+    .replace(/[^a-z0-9]+/g, '')}.com`;
+}
+
+// Shows the outlet's actual logo, sourced live from their own domain via
+// Clearbit's keyless logo API (not a hand-reproduced trademark) — falls
+// back to the plain outlet name if the logo can't be found/loaded.
+function OutletLogo({ outlet, domain }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return <span className="news-strip__masthead-text">{outlet}</span>;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      className="news-strip__logo-img"
+      src={`https://logo.clearbit.com/${domain || guessDomain(outlet)}?size=300`}
+      alt={outlet}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 function stripStyleVars(article) {
@@ -90,6 +130,8 @@ function stripStyleVars(article) {
   const rot = ((hashString(`${article.link}r`) % 100) / 100 - 0.5) * 4.5;
   const texX = hashString(`${article.link}tx`) % 100;
   const texY = hashString(`${article.link}ty`) % 100;
+  const texOpacity = 0.3 + ((hashString(`${article.link}to`) % 100) / 100) * 0.35;
+  const texVariant = TEXTURE_VARIANTS[hashString(`${article.link}tv`) % TEXTURE_VARIANTS.length];
   const hasFold = hashString(`${article.link}fold`) % 100 < 45;
   const foldCorner = FOLD_CORNERS[hashString(`${article.link}foldc`) % FOLD_CORNERS.length];
   return {
@@ -103,8 +145,11 @@ function stripStyleVars(article) {
       '--rot': `${rot.toFixed(2)}deg`,
       '--tex-x': `${texX}%`,
       '--tex-y': `${texY}%`,
+      '--tex-opacity': texOpacity.toFixed(2),
     },
     tag,
+    align: masthead.align,
+    texVariant,
     fold: hasFold ? foldCorner : null,
   };
 }
@@ -157,7 +202,7 @@ export default function MediaView({ data }) {
 
       <div className={`media-stack${open ? ' media-stack--reading' : ''}`}>
         {articles.map((article, i) => {
-          const { vars, tag, fold } = stripStyleVars(article);
+          const { vars, tag, align, texVariant, fold } = stripStyleVars(article);
           const delta = i - (openIndex ?? i);
           const pushed = open && i !== openIndex;
           const style = {
@@ -168,38 +213,24 @@ export default function MediaView({ data }) {
             <button
               key={article.link}
               type="button"
-              className={`news-strip${i === openIndex ? ' news-strip--open' : ''}${
+              className={`news-strip news-strip--${align}${i === openIndex ? ' news-strip--open' : ''}${
                 pushed ? (delta < 0 ? ' news-strip--push-left' : ' news-strip--push-right') : ''
               }`}
               style={style}
               onClick={() => setOpenIndex(i)}
             >
+              <span className={`news-strip__texture news-strip__texture--${texVariant}`} aria-hidden="true" />
               <div className="news-strip__band-top">
                 <span className="news-strip__tag">{tag}</span>
                 <span className="news-strip__band-rule" aria-hidden="true" />
-                <span className="news-strip__date">{formatDate(article.publishedAt)}</span>
               </div>
               <div className="news-strip__masthead">
-                <span className="news-strip__logo" aria-hidden="true">
-                  {article.outlet.charAt(0)}
-                </span>
-                <span className="news-strip__masthead-text">{article.outlet}</span>
+                <OutletLogo outlet={article.outlet} domain={article.outletDomain} />
               </div>
+              <div className="news-strip__dateline">{formatDate(article.publishedAt)}</div>
               <div className="news-strip__rule-thick" aria-hidden="true" />
               {fold ? <span className={`news-strip__foldcorner news-strip__foldcorner--${fold}`} aria-hidden="true" /> : null}
-              <div className="news-strip__body">
-                <h3 className="news-strip__headline">{article.headline}</h3>
-                {article.imageUrl ? (
-                  <figure className="news-strip__photo">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={article.imageUrl} alt="" loading="lazy" />
-                    <figcaption className="news-strip__photo-caption">{tag}</figcaption>
-                    <span className="news-strip__photo-expand" aria-hidden="true">
-                      ⤢
-                    </span>
-                  </figure>
-                ) : null}
-              </div>
+              <h3 className="news-strip__headline">{article.headline}</h3>
               <div className="news-strip__underline" aria-hidden="true" />
             </button>
           );
@@ -217,12 +248,6 @@ export default function MediaView({ data }) {
             >
               ×
             </button>
-            {open.imageUrl ? (
-              <div className="media-reader__photo">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={open.imageUrl} alt="" />
-              </div>
-            ) : null}
             <div className="media-article__masthead">
               <span className="media-article__eyebrow">{open.outlet}</span>
               <span className="media-article__date">{formatDate(open.publishedAt)}</span>

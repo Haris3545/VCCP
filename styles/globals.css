@@ -3102,9 +3102,16 @@ html.custom-cursor-active textarea {
 .media-stack {
   display: flex;
   flex-direction: column;
-  padding: 26px 16px 64px;
+  padding: 26px 0 64px;
+  overflow: hidden;
 }
 
+/* Each strip is deliberately wider than the stack and bled out on both
+   sides (rather than exactly 100%) - a small tilt still rotates every
+   strip's corners outward by a couple of px, and with two independently-
+   tilted neighbours that used to leave a sliver of whichever strip was
+   underneath visible right at the seam. Overhanging + the stack's own
+   overflow:hidden means that sliver is always paper, never a gap. */
 .news-strip {
   appearance: none;
   border: none;
@@ -3113,8 +3120,9 @@ html.custom-cursor-active textarea {
   position: relative;
   isolation: isolate;
   display: block;
-  width: 100%;
-  padding: 16px clamp(18px, 4vw, 34px) 34px;
+  width: calc(100% + 48px);
+  margin-left: -24px;
+  padding: 16px calc(clamp(18px, 4vw, 34px) + 24px) 34px;
   margin-top: -30px;
   background: var(--paper-bg, linear-gradient(160deg, #fbf9f2, #efece0));
   color: #17140d;
@@ -3133,23 +3141,16 @@ html.custom-cursor-active textarea {
   margin-top: 0;
 }
 
-/* Real photographed crumpled-paper texture (public/media/paper-crumple.jpg,
-   generated once - see the "Wire real crumpled-paper texture" work) layered
-   under a fine turbulence grain for close-up fibre detail. Each strip reads
-   a different crop of the same source image (--tex-x/--tex-y, hashed per
-   article) so repeated strips don't all show the identical crease pattern. */
+/* Fine turbulence grain (close-up fibre detail), a constant on every strip. */
 .news-strip::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn)'/></svg>"),
-    url('/media/paper-crumple.jpg');
-  background-size: 180px 180px, 1500px 1050px;
-  background-position: 0 0, var(--tex-x, 50%) var(--tex-y, 50%);
-  background-repeat: repeat, no-repeat;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='pn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23pn)'/></svg>");
+  background-size: 180px 180px;
   mix-blend-mode: multiply;
-  opacity: 0.5;
+  opacity: 0.3;
   z-index: 2;
 }
 
@@ -3180,6 +3181,35 @@ html.custom-cursor-active textarea {
   z-index: 3;
 }
 
+/* Real photographed crumpled-paper texture - one of three distinct
+   generated sheets (heavy creases / soft aged paper / medium crumple with
+   faint ghosted newsprint-text banding, see public/media/paper-crumple-*.jpg)
+   picked per article, at a per-article opacity and crop offset, so strips
+   don't all read as the same sheet at the same strength. Lives as its own
+   element rather than a third pseudo-element (only two are available) - it
+   needs its own z-index/position after the ".news-strip > *" rule above,
+   at equal specificity, to win back out of that rule's z-index: 3. */
+.news-strip__texture {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: 1500px 1050px;
+  background-position: var(--tex-x, 50%) var(--tex-y, 50%);
+  background-repeat: no-repeat;
+  mix-blend-mode: multiply;
+  opacity: var(--tex-opacity, 0.45);
+  z-index: 2;
+}
+.news-strip__texture--heavy {
+  background-image: url('/media/paper-crumple-heavy.jpg');
+}
+.news-strip__texture--soft {
+  background-image: url('/media/paper-crumple-soft.jpg');
+}
+.news-strip__texture--print {
+  background-image: url('/media/paper-crumple-print.jpg');
+}
+
 .news-strip:hover {
   transform: rotate(0deg) translateY(-6px);
   z-index: 4;
@@ -3191,6 +3221,10 @@ html.custom-cursor-active textarea {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.news-strip--center .news-strip__band-top {
+  justify-content: center;
 }
 
 .news-strip__tag {
@@ -3211,35 +3245,33 @@ html.custom-cursor-active textarea {
   background: rgba(23, 20, 13, 0.4);
 }
 
-.news-strip__date {
-  font-family: var(--font-sans);
-  font-size: 10.5px;
-  letter-spacing: 0.03em;
-  color: rgba(23, 20, 13, 0.55);
-  white-space: nowrap;
+.news-strip--center .news-strip__band-rule {
+  flex: 0 1 120px;
 }
 
+/* The masthead is the outlet's actual logo (see OutletLogo in
+   MediaView.js) - a real wordmark fetched live from the outlet's own
+   domain rather than anyone's trademark reproduced by hand. Falls back to
+   plain nameplate text (.news-strip__masthead-text) if that logo can't be
+   found/loaded for a given outlet. */
 .news-strip__masthead {
-  margin-top: 6px;
+  margin-top: 10px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
 }
 
-.news-strip__logo {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
+.news-strip--center .news-strip__masthead {
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--accent, #a3272c);
-  color: #fff;
-  font-family: var(--font-display);
-  font-size: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.news-strip__logo-img {
+  max-height: 34px;
+  max-width: min(220px, 70%);
+  object-fit: contain;
+  object-position: left center;
+}
+
+.news-strip--center .news-strip__logo-img {
+  object-position: center;
 }
 
 .news-strip__masthead-text {
@@ -3250,6 +3282,25 @@ html.custom-cursor-active textarea {
   text-transform: uppercase;
   font-size: clamp(18px, 2.4vw, 27px);
   color: #14110b;
+}
+
+/* Small boxed dateline sitting just under the masthead, the way a real
+   front page tucks "Wednesday, September 12, 2001" into a bordered box
+   right below its nameplate rather than running it inline with anything
+   else. */
+.news-strip__dateline {
+  margin-top: 6px;
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid rgba(23, 20, 13, 0.45);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: rgba(23, 20, 13, 0.7);
+}
+
+.news-strip--center {
+  text-align: center;
 }
 
 .news-strip__foldcorner {
@@ -3297,14 +3348,7 @@ html.custom-cursor-active textarea {
   background: rgba(23, 20, 13, 0.4);
 }
 
-.news-strip__body {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-}
-
 .news-strip__headline {
-  flex: 1;
   margin: 0;
   font-family: var(--masthead-font, var(--font-serif));
   font-weight: 900;
@@ -3327,48 +3371,9 @@ html.custom-cursor-active textarea {
   background: #100d08;
 }
 
-.news-strip__photo {
-  flex: 0 0 auto;
-  position: relative;
-  margin: 0;
-  width: 92px;
-  border: 2px solid #100d08;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
-}
-.news-strip__photo img {
-  display: block;
-  width: 100%;
-  height: 92px;
-  object-fit: cover;
-  object-position: 50% 30%;
-  transform: scale(1.6);
-  filter: grayscale(0.65) contrast(1.15);
-}
-.news-strip__photo-caption {
-  margin: 0;
-  padding: 3px 4px;
-  background: #100d08;
-  color: #fff;
-  font-family: var(--font-sans);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-align: center;
-  text-transform: uppercase;
-}
-.news-strip__photo-expand {
-  position: absolute;
-  right: 4px;
-  top: 4px;
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.55);
-  border-radius: 50%;
+.news-strip--center .news-strip__underline {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Reading state: the clicked strip fades out in place (its content
@@ -3502,17 +3507,6 @@ html.custom-cursor-active textarea {
   z-index: 1;
 }
 
-.media-reader__photo {
-  margin: -46px calc(-1 * clamp(24px, 5vw, 64px)) 24px;
-  height: 260px;
-  overflow: hidden;
-}
-.media-reader__photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 .media-reader__close {
   all: unset;
   position: absolute;
@@ -3588,23 +3582,12 @@ html.custom-cursor-active textarea {
 
 @media (max-width: 640px) {
   .news-strip {
-    padding: 14px 16px 20px;
+    padding: 14px 40px 20px;
     margin-top: -16px;
-  }
-
-  .news-strip__photo {
-    width: 64px;
-  }
-  .news-strip__photo img {
-    height: 64px;
   }
 
   .media-reader__sheet {
     padding: 40px 20px 32px;
-  }
-
-  .media-reader__photo {
-    height: 160px;
   }
 }
 
