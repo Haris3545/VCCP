@@ -16,10 +16,18 @@ const MIN_COVER_MS = 900;
 // fades away once the new page has mounted underneath it.
 export default function PageTransitionOverlay() {
   const router = useRouter();
-  const [state, setState] = useState({ active: false, closing: false, x: 0, y: 0 });
+  const [state, setState] = useState({ id: 0, active: false, closing: false, x: 0, y: 0 });
   const overlayRef = useRef(null);
-  const startTimeRef = useRef(0);
+  // null whenever no transition is in flight. Doubles as the guard in
+  // handleDone below — without it, a routeChangeComplete from an unrelated
+  // navigation (e.g. the logout redirect, which never called
+  // startPageTransition) reads this stale timestamp from the *previous*
+  // transition, computes an elapsed time already past MIN_COVER_MS, and
+  // schedules a same-tick "start closing" timer for a transition that isn't
+  // even running.
+  const startTimeRef = useRef(null);
   const closeTimeoutRef = useRef(null);
+  const nextIdRef = useRef(1);
 
   useEffect(() => {
     function handleStart(e) {
@@ -27,7 +35,14 @@ export default function PageTransitionOverlay() {
       const cx = typeof x === 'number' ? x : window.innerWidth / 2;
       const cy = typeof y === 'number' ? y : window.innerHeight / 2;
       startTimeRef.current = performance.now();
-      setState({ active: true, closing: false, x: cx, y: cy });
+      // A fresh id forces React to mount a brand new overlay node (via the
+      // `key` below) instead of mutating the previous one in place. That
+      // matters when a login happens again quickly after a logout: the
+      // prior overlay may still be mid fade-out, with its own inline
+      // transition/clip-path state. Reusing that node and force-resetting
+      // its style back to a pinhole produces a visible flash instead of a
+      // clean reveal; a new node just starts fresh at CSS defaults.
+      setState({ id: nextIdRef.current++, active: true, closing: false, x: cx, y: cy });
     }
     window.addEventListener(PAGE_TRANSITION_EVENT, handleStart);
     return () => window.removeEventListener(PAGE_TRANSITION_EVENT, handleStart);
@@ -61,7 +76,7 @@ export default function PageTransitionOverlay() {
       });
     });
     return () => cancelAnimationFrame(raf1);
-  }, [state.active, state.closing, state.x, state.y]);
+  }, [state.id, state.active, state.closing, state.x, state.y]);
 
   useEffect(() => {
     // router.events is a stable singleton for the app's lifetime even though
@@ -71,6 +86,11 @@ export default function PageTransitionOverlay() {
     // below moments after scheduling it, so the overlay would arm the fade
     // but never actually run it.
     function handleDone() {
+      // No transition in flight — this routeChangeComplete belongs to some
+      // other navigation (e.g. the logout redirect) that never started a
+      // transition. Ignore it rather than scheduling off a stale
+      // startTimeRef left over from the last real transition.
+      if (startTimeRef.current == null) return;
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const elapsed = performance.now() - startTimeRef.current;
       const wait = reduce ? 0 : Math.max(0, MIN_COVER_MS - elapsed);
@@ -92,15 +112,17 @@ export default function PageTransitionOverlay() {
   useEffect(() => {
     if (!state.closing) return undefined;
     const timeout = setTimeout(() => {
-      setState({ active: false, closing: false, x: 0, y: 0 });
+      startTimeRef.current = null;
+      setState((s) => ({ ...s, active: false, closing: false }));
     }, 550);
     return () => clearTimeout(timeout);
-  }, [state.closing]);
+  }, [state.id, state.closing]);
 
   if (!state.active) return null;
 
   return (
     <div
+      key={state.id}
       ref={overlayRef}
       className={`page-transition${state.closing ? ' page-transition--closing' : ''}`}
       aria-hidden="true"
