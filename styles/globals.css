@@ -203,6 +203,40 @@ p {
   padding-bottom: 96px;
 }
 
+/* Replayed on every route change (AppShell remounts this via a
+   router.pathname key) so pages fade/rise into place instead of popping
+   in fully-rendered the instant they mount. Held at the hidden state until
+   `--ready` is added — during a login/logout page-transition, that happens
+   in sync with the circle overlay starting to fade, so this cross-dissolves
+   with the reveal instead of finishing while still hidden underneath it. */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-enter--ready {
+  animation: page-fade-in 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter--ready {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .page-head {
   display: flex;
   flex-wrap: wrap;
