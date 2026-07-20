@@ -484,7 +484,17 @@ textarea:focus-visible {
   pointer-events: none;
   background:
     linear-gradient(180deg, rgba(2, 2, 2, 0.55) 0%, rgba(2, 2, 2, 0.2) 22%, rgba(2, 2, 2, 0.35) 60%, rgba(2, 2, 2, 0.82) 100%),
-    linear-gradient(90deg, rgba(2, 2, 2, 0.4) 0%, rgba(2, 2, 2, 0.05) 35%, rgba(2, 2, 2, 0.05) 65%, rgba(2, 2, 2, 0.4) 100%);
+    linear-gradient(90deg, rgba(2, 2, 2, 0.92) 0%, rgba(2, 2, 2, 0.04) 20%, rgba(2, 2, 2, 0.04) 80%, rgba(2, 2, 2, 0.92) 100%);
+  /* dashboard-bg.jpg has hard black pillarbox bars baked into the source
+     file (it wasn't shot/exported at the viewport's aspect ratio), so
+     `background-size: cover` on .app-bg-photo keeps a sliver of true black
+     in frame on wide viewports — worst on the right edge, since the 78%
+     horizontal position biases the crop toward that side. The linear
+     gradient above softens that transition; this inset shadow adds a full
+     photographic vignette on top so the falloff reads as deliberate
+     styling rather than a masked seam, and holds up at any viewport size
+     since vw/vh scale with it. */
+  box-shadow: inset 0 0 min(22vw, 30vh) min(4vw, 6vh) rgba(0, 0, 0, 0.6);
 }
 
 .app-shell .film-grain {
@@ -1866,6 +1876,11 @@ html.custom-cursor-active textarea {
   background-repeat: repeat, no-repeat;
   background-blend-mode: overlay, normal;
   filter: contrast(1.05) brightness(0.86);
+  /* Matches .app-bg-scrim's vignette on the dashboard proper — without it,
+     the same source photo's baked-in pillarbox bars (see the comment there)
+     show hard and untreated while the circle is still covering the screen,
+     then visibly change once the real dashboard takes over underneath. */
+  box-shadow: inset 0 0 min(22vw, 30vh) min(4vw, 6vh) rgba(0, 0, 0, 0.6);
   clip-path: circle(0px at 50% 50%);
   transition: clip-path 900ms cubic-bezier(0.65, 0, 0.35, 1);
   will-change: clip-path;
