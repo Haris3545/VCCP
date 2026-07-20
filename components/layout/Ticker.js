@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useGlassSurface } from '@/lib/useGlassSurface';
 
 // Shown until the client-side fetch below resolves, and again if it comes
 // back unavailable - the ticker used to show fixed simulated KPI numbers,
@@ -37,7 +36,6 @@ function TickerItem({ item }) {
 
 export default function Ticker() {
   const [items, setItems] = useState(FALLBACK_ITEMS);
-  const rootRef = useGlassSurface();
   const trackRef = useRef(null);
   const stateRef = useRef({
     x: 0,
@@ -128,12 +126,7 @@ export default function Ticker() {
   const loop = [...items, ...items];
 
   return (
-    <div
-      className="ticker glass"
-      ref={rootRef}
-      onMouseEnter={() => setTarget(HOVER_SPEED)}
-      onMouseLeave={() => setTarget(BASE_SPEED)}
-    >
+    <div className="ticker" onMouseEnter={() => setTarget(HOVER_SPEED)} onMouseLeave={() => setTarget(BASE_SPEED)}>
       <div className="ticker__track" ref={trackRef}>
         {loop.map((item, i) => (
           <TickerItem item={item} key={i} />

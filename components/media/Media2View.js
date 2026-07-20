@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import SourceBadge from '@/components/ui/SourceBadge';
+import PillToggle from '@/components/ui/PillToggle';
 import { CATEGORIES, deriveCategory, formatDate, cleanOutletName } from '@/lib/media/helpers';
 import { MediaTrendIndex } from './MediaView';
 
@@ -56,18 +57,7 @@ export default function Media2View({ data }) {
         </span>
       </div>
 
-      <div className="pill-toggle pill-toggle--categories">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            className={`pill-toggle__btn${category === c.id ? ' pill-toggle__btn--active' : ''}`}
-            onClick={() => setCategory(c.id)}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
+      <PillToggle options={CATEGORIES} value={category} onChange={setCategory} className="pill-toggle--categories" />
 
       <div className="media2__grid">
         {articles.map((article) => {
@@ -80,6 +70,11 @@ export default function Media2View({ data }) {
               key={article.link}
               className={`media2-pill${isOpen ? ' media2-pill--open' : ''}`}
               style={{ '--cat-color': CATEGORY_COLORS[article.category] || CATEGORY_COLORS.culture }}
+              // Once open, clicking anywhere on the pill (not just its
+              // header) minimises it again - the "Go to article" link
+              // below stops this from firing so following it doesn't
+              // also collapse the pill out from under the new tab.
+              onClick={isOpen ? () => setOpenLink(null) : undefined}
             >
               <button
                 type="button"
@@ -100,7 +95,13 @@ export default function Media2View({ data }) {
                   <p className="media2-pill__snippet">
                     {article.snippet || 'No preview text was returned for this article — read it in full at the source.'}
                   </p>
-                  <a className="media2-pill__go" href={article.link} target="_blank" rel="noreferrer">
+                  <a
+                    className="media2-pill__go"
+                    href={article.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     Go to article
                   </a>
                 </div>

@@ -608,48 +608,6 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Liquid glass — the ticker's own treatment (nav/buttons/cards moved to a   */
-/* flatter, solid chrome look elsewhere). Reads as black glass first — the   */
-/* colour and light on top of it are the accent, not the base. Registering  */
-/* --gx/--gy/--glow-x/--glow-y as typed properties is what makes them        */
-/* animatable — a plain custom property can't be transitioned, so without   */
-/* this everything would always snap between positions no matter what       */
-/* transition was declared.                                                 */
-/* Tracking itself stays instant (glassHighlight.js removes .is-resetting   */
-/* the moment the pointer moves again), and only the return-to-rest glides. */
-/* --tint-r/g/b and its warm/cool/green variants (lib/adaptiveGlassTint.js) */
-/* are sampled from the actual fixed background photo behind this element  */
-/* — the colour genuinely comes from what's behind the glass, not a fixed   */
-/* decorative palette; the numbers here are just fallbacks for before the   */
-/* first sample lands (or if canvas sampling fails for some reason).        */
-/* Backdrop-filter: only declare the unprefixed property — Lightning CSS   */
-/* (Next's minifier) auto-generates its own -webkit- fallback, but a manual */
-/* -webkit-backdrop-filter line alongside it confuses that autoprefixer     */
-/* into dropping the standard property at build time, so no blur actually   */
-/* renders in production.                                                   */
-/* ---------------------------------------------------------------------- */
-@property --gx {
-  syntax: '<percentage>';
-  inherits: false;
-  initial-value: 30%;
-}
-@property --gy {
-  syntax: '<percentage>';
-  inherits: false;
-  initial-value: 20%;
-}
-@property --glow-x {
-  syntax: '<length>';
-  inherits: false;
-  initial-value: 0px;
-}
-@property --glow-y {
-  syntax: '<length>';
-  inherits: false;
-  initial-value: 0px;
-}
-
-/* ---------------------------------------------------------------------- */
 /* Custom cursor — a small circle blended with mix-blend-mode:difference,   */
 /* so it inverts to black over light content and stays white over dark     */
 /* content automatically (and splits cleanly down a light/dark edge, since  */
@@ -693,71 +651,6 @@ html.custom-cursor-active textarea {
   .custom-cursor {
     transition: opacity 200ms ease;
   }
-}
-
-.glass {
-  position: relative;
-  --gx: 30%;
-  --gy: 20%;
-  --glow-x: 0px;
-  --glow-y: 0px;
-  --tint-r: 70;
-  --tint-g: 66;
-  --tint-b: 62;
-  background: linear-gradient(180deg, rgba(8, 8, 8, 0.56), rgba(8, 8, 8, 0.44)),
-    rgba(var(--tint-r), var(--tint-g), var(--tint-b), 0.2);
-  backdrop-filter: blur(36px) saturate(1.9) brightness(1.08);
-  isolation: isolate;
-}
-
-.glass.is-resetting {
-  transition: --gx 480ms cubic-bezier(0.22, 1, 0.36, 1), --gy 480ms cubic-bezier(0.22, 1, 0.36, 1),
-    --glow-x 480ms cubic-bezier(0.22, 1, 0.36, 1), --glow-y 480ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.glass::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  /* Three colour blooms derived from the sampled photo colour (a cheap
-     prism-style split — boost one channel, pull back the others — rather
-     than three arbitrary fixed hues) plus the white specular highlight,
-     all riding the same --gx/--gy. */
-  background: radial-gradient(130px 100px at calc(var(--gx) - 10%) calc(var(--gy) - 8%),
-      rgba(var(--tint-cool-r, 90), var(--tint-cool-g, 140), var(--tint-cool-b, 255), 0.32), transparent 62%),
-    radial-gradient(130px 100px at calc(var(--gx) + 11%) calc(var(--gy) + 4%),
-      rgba(var(--tint-warm-r, 255), var(--tint-warm-g, 120), var(--tint-warm-b, 150), 0.28), transparent 62%),
-    radial-gradient(140px 110px at calc(var(--gx) + 3%) calc(var(--gy) + 10%),
-      rgba(var(--tint-green-r, 110), var(--tint-green-g, 255), var(--tint-green-b, 180), 0.24), transparent 62%),
-    radial-gradient(150px 110px at var(--gx) var(--gy), rgba(255, 255, 255, 0.55), transparent 65%);
-  mix-blend-mode: overlay;
-  z-index: 0;
-}
-
-.glass::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  /* Baked-in, static (not pointer-driven) imperfection — fine dust via the
-     same feTurbulence technique GrainOverlay.js already uses elsewhere in
-     the app, tiled at a fixed pixel size so the grain stays fine regardless
-     of how big the element it's applied to is, rather than stretching to
-     fit. No scratch lines — they read as drawn-on rather than tactile. */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='100'><filter id='d'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='11' stitchTiles='stitch' result='n'/><feColorMatrix in='n' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.075 0'/></filter><rect width='100%25' height='100%25' filter='url(%23d)'/></svg>");
-  background-size: 240px 100px;
-  background-repeat: repeat;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -8px 16px rgba(0, 0, 0, 0.4),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
-  z-index: 0;
-}
-
-.glass > * {
-  position: relative;
-  z-index: 1;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -966,13 +859,20 @@ html.custom-cursor-active textarea {
 /* headline strip reads as a matching piece of glass chrome rather than an  */
 /* opaque bar with a flat colour fill.                                      */
 /* ---------------------------------------------------------------------- */
-/* The scrolling track fades into the edges instead of hard-clipping mid-
+/* Deliberately no background at all - this used to also carry the
+   .glass treatment (tint, blur, pointer-tracked colour bloom), the one
+   surface in the app that never got moved off it when everything else
+   (.card, .floatnav, buttons) dropped liquid-glass for flatter, more
+   confident chrome. Fully transparent now, so the fixed background photo
+   shows straight through with nothing riding on top of it.
+   The scrolling track fades into the edges instead of hard-clipping mid-
    character. The dividing line underneath does the same rather than
    being a flat, uniform low-opacity bar - it's one line whose own
    gradient fades to nothing at each end, echoing the track's fade
    instead of just looking like a translucent bar drawn across it. */
 .ticker {
   position: relative;
+  background: none;
   overflow: hidden;
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 64px, #000 calc(100% - 64px), transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0, #000 64px, #000 calc(100% - 64px), transparent 100%);
@@ -982,7 +882,7 @@ html.custom-cursor-active textarea {
   position: absolute;
   left: 24px;
   right: 24px;
-  bottom: 4px;
+  bottom: 2px;
   height: 1px;
   background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.24) 18%, rgba(255, 255, 255, 0.24) 82%, transparent 100%);
   pointer-events: none;
@@ -3051,16 +2951,14 @@ html.custom-cursor-active textarea {
   letter-spacing: 0.02em;
 }
 
-/* Shared rounded-rect chrome toggle group - same solid, moderate-radius
-   pill language as the bottom FloatingTabNav, just a plain click-to-select
-   state instead of that nav's hover-preview mechanic (there's nothing to
-   preview here, only one thing is ever "active"). Used for both the trend
-   card's period switch and the category filter tabs. */
-/* Matched to .floatnav/.floatnav__link (the bottom floating tab bar) -
-   same container radius/padding/shadow and same button font-size/padding,
-   so this reads as the same chrome family rather than a smaller, flatter
-   cousin of it. */
+/* Shared rounded-rect chrome toggle group - literally the same puck
+   mechanic as the bottom FloatingTabNav now (see PillToggle.js): a white
+   puck glides to preview whichever option the pointer is over on hover,
+   snapping back to the real active one on pointer leave - nothing is
+   selected until an actual click. Used for both the trend card's period
+   switch and the category filter tabs. */
 .pill-toggle {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -3077,8 +2975,24 @@ html.custom-cursor-active textarea {
   margin-bottom: 22px;
 }
 
+.pill-toggle__puck {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  height: calc(100% - 8px);
+  width: 0;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), width 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+
 .pill-toggle__btn {
   all: unset;
+  position: relative;
+  z-index: 1;
   cursor: pointer;
   flex-shrink: 0;
   padding: 12px 18px;
@@ -3090,14 +3004,13 @@ html.custom-cursor-active textarea {
   color: var(--paper);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   white-space: nowrap;
-  transition: background 140ms ease, color 140ms ease;
+  transition: color 160ms ease, text-shadow 160ms ease;
 }
-.pill-toggle__btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
+/* The active button sits on top of the white puck at rest, and whichever
+   one the puck has glided to on hover reads the same way - dark text, no
+   shadow needed against a solid light background. */
 .pill-toggle__btn--active,
-.pill-toggle__btn--active:hover {
-  background: #fff;
+.pill-toggle__btn:hover {
   color: var(--accent-contrast);
   text-shadow: none;
 }
@@ -3668,17 +3581,20 @@ html.custom-cursor-active textarea {
   gap: 20px;
 }
 
-/* flex-wrap rather than CSS grid - grid-column spans (the obvious way to
-   make one card claim a whole row) aren't animatable, so an expanding
-   card would just snap wider with no transition. flex-basis and max-width
-   both interpolate smoothly, and as a card's basis grows toward 100% the
-   browser keeps re-flowing the row in real time, so neighbours slide out
-   of the way as it grows rather than leaving a static gap where they used
-   to be. */
+/* Back to CSS Grid rather than flex-wrap - flex-basis animating
+   continuously forced the browser to re-flow the whole row every single
+   frame, which read as jittery/stuttery rather than smooth in practice
+   (each neighbour was jumping to a freshly-recalculated position every
+   frame, not sliding). A grid-column span can't be animated either, but
+   taking the width change out of the equation entirely - it snaps
+   instantly, in one frame - reads as a clean, deliberate layout change
+   rather than a stutter, and the part that actually stays continuously
+   animated (the height/content reveal below) is what a "polished"
+   expand mostly reads by anyway. */
 .media2__grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  align-items: start;
   gap: 16px;
 }
 
@@ -3688,8 +3604,6 @@ html.custom-cursor-active textarea {
    need to hold multi-line headlines and, once expanded, a paragraph. */
 .media2-pill {
   position: relative;
-  flex: 1 1 300px;
-  max-width: 420px;
   background: var(--glass-tint);
   border: 1px solid var(--border-strong);
   border-left: 3px solid var(--cat-color, var(--border-strong));
@@ -3699,17 +3613,14 @@ html.custom-cursor-active textarea {
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   isolation: isolate;
   overflow: hidden;
-  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease,
-    flex-basis 460ms cubic-bezier(0.65, 0, 0.35, 1), max-width 460ms cubic-bezier(0.65, 0, 0.35, 1);
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease;
 }
 
-/* Claims the entire row on its own (100% basis always wins a wrap) rather
-   than a fixed size, so it grows to whatever width that row actually has -
-   this is the "expand horizontally too" half of the open state; the
-   height side is the grid-template-rows accordion further down. */
+/* Claims the entire row on its own - this is the "expand horizontally
+   too" half of the open state; the height side is the grid-template-rows
+   accordion further down. */
 .media2-pill--open {
-  flex-basis: 100%;
-  max-width: 100%;
+  grid-column: 1 / -1;
 }
 
 /* Same lift-on-hover bump as the newspaper strips (.news-strip:hover) -
@@ -3794,16 +3705,22 @@ html.custom-cursor-active textarea {
 .media2-pill--open .media2-pill__expand {
   grid-template-rows: 1fr;
 }
+/* The 20px side inset lives here, on the parent, rather than on each
+   child via "> *" - .media2-pill__go has its own padding shorthand for
+   its pill shape, which at equal specificity was winning the cascade
+   over a per-child inset and cancelling it back down to nothing, leaving
+   the button flush against the pill's edge instead of matching the
+   snippet's margin. */
 .media2-pill__expand-inner {
   overflow: hidden;
   min-height: 0;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 .media2-pill__expand-inner > * {
   opacity: 0;
   transform: translateY(-6px);
   transition: opacity 180ms ease, transform 220ms ease;
-  padding-left: 20px;
-  padding-right: 20px;
 }
 .media2-pill--open .media2-pill__expand-inner > * {
   opacity: 1;

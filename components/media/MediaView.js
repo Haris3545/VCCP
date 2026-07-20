@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import SourceBadge from '@/components/ui/SourceBadge';
+import PillToggle from '@/components/ui/PillToggle';
 import { hashString, CATEGORIES, deriveCategory, scoreTone, PERIODS, formatDate, cleanOutletName } from '@/lib/media/helpers';
 
 // A handful of distinct "masthead personalities" built entirely from fonts
@@ -186,18 +187,7 @@ export function MediaTrendIndex({ articles }) {
           </span>
         </div>
 
-        <div className="pill-toggle">
-          {PERIODS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className={`pill-toggle__btn${period === p.id ? ' pill-toggle__btn--active' : ''}`}
-              onClick={() => setPeriod(p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+        <PillToggle options={PERIODS} value={period} onChange={setPeriod} />
       </div>
 
       {stats.posPct !== null ? (
@@ -291,18 +281,7 @@ export default function MediaView({ data }) {
         </span>
       </div>
 
-      <div className="pill-toggle pill-toggle--categories">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            className={`pill-toggle__btn${category === c.id ? ' pill-toggle__btn--active' : ''}`}
-            onClick={() => setCategory(c.id)}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
+      <PillToggle options={CATEGORIES} value={category} onChange={setCategory} className="pill-toggle--categories" />
 
       <div className="media-stack">
         {articles.map((article, i) => {
