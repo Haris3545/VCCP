@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { PAGE_TRANSITION_EVENT, setPageTransitionCovering } from '@/lib/pageTransition';
+import { PAGE_TRANSITION_EVENT, setPageTransitionCovering, notifyPageTransitionGrown } from '@/lib/pageTransition';
 
-// Must match .page-transition's `transition: clip-path 900ms` in globals.css —
-// this is the MINIMUM the reveal stays covered for before it's allowed to
-// start fading. It's a floor, not the real signal: the actual close also
-// waits for the grow animation's own `transitionend` (see growDoneRef
-// below), so a route change that resolves faster than the grow animation
-// never jumps straight to the opacity fade before the circle has visibly
-// finished covering the screen.
-const MIN_COVER_MS = 900;
+// A brief hold once the destination page has mounted underneath the fully-
+// grown circle, before the reveal starts fading away. The page swap itself
+// happens only after the circle has fully covered the screen (callers await
+// startPageTransition's promise before navigating — see lib/pageTransition),
+// so this isn't standing in for the grow animation anymore; it's just a
+// beat to let the new page's first paint settle before uncovering it.
+const POST_NAV_SETTLE_MS = 220;
 
 // Solid-paper circular reveal that expands from a trigger point (the button
 // that was clicked), stays covered through the Next.js route change, then
@@ -22,20 +21,19 @@ export default function PageTransitionOverlay() {
   // handleDone below — without it, a routeChangeComplete from an unrelated
   // navigation (e.g. the logout redirect, which never called
   // startPageTransition) reads this stale timestamp from the *previous*
-  // transition, computes an elapsed time already past MIN_COVER_MS, and
+  // transition, computes an elapsed time already past the settle floor, and
   // schedules a same-tick "start closing" timer for a transition that isn't
   // even running.
   const startTimeRef = useRef(null);
   const closeTimeoutRef = useRef(null);
   const nextIdRef = useRef(1);
-  // Closing needs BOTH of these true. MIN_COVER_MS is a wall-clock timer
-  // that assumes the grow transition finishes in exactly 900ms, but the
-  // double-rAF below only *starts* that CSS transition a couple of frames
-  // after the timer begins — under load (e.g. right after a logout, while
-  // the browser is still busy tearing down/mounting the page) those frames
-  // can slip enough that the timer fires before the circle has actually
-  // finished covering the screen. Gating on the real transitionend as well
-  // means closing never starts before the circle is visibly complete.
+  // Closing needs BOTH of these true. In practice growDoneRef is already
+  // true by the time closeRequestedRef can become true, since the page swap
+  // (and therefore routeChangeComplete) only happens after the caller's
+  // startPageTransition promise — resolved via notifyPageTransitionGrown
+  // below — has already fired. Kept as a pair anyway as a defensive floor:
+  // closing should never be able to start before the circle has visibly
+  // finished covering the screen, regardless of how it got triggered.
   const growDoneRef = useRef(false);
   const closeRequestedRef = useRef(false);
 
@@ -51,21 +49,25 @@ export default function PageTransitionOverlay() {
 
   useEffect(() => {
     function handleStart(e) {
-      const { x, y } = e.detail || {};
+      const { x, y, id } = e.detail || {};
       const cx = typeof x === 'number' ? x : window.innerWidth / 2;
       const cy = typeof y === 'number' ? y : window.innerHeight / 2;
       startTimeRef.current = performance.now();
       growDoneRef.current = false;
       closeRequestedRef.current = false;
       setPageTransitionCovering(true);
-      // A fresh id forces React to mount a brand new overlay node (via the
-      // `key` below) instead of mutating the previous one in place. That
-      // matters when a login happens again quickly after a logout: the
-      // prior overlay may still be mid fade-out, with its own inline
-      // transition/clip-path state. Reusing that node and force-resetting
-      // its style back to a pinhole produces a visible flash instead of a
-      // clean reveal; a new node just starts fresh at CSS defaults.
-      setState({ id: nextIdRef.current++, active: true, closing: false, x: cx, y: cy });
+      // The id comes from startPageTransition's caller so that notifying it
+      // once the circle has fully grown (below) resolves the *right*
+      // caller's promise. It doubles as the `key` below, forcing React to
+      // mount a brand new overlay node instead of mutating the previous one
+      // in place — that matters when a login happens again quickly after a
+      // logout: the prior overlay may still be mid fade-out, with its own
+      // inline transition/clip-path state. Reusing that node and
+      // force-resetting its style back to a pinhole produces a visible
+      // flash instead of a clean reveal; a new node just starts fresh at
+      // CSS defaults.
+      const transitionId = typeof id === 'number' ? id : nextIdRef.current++;
+      setState({ id: transitionId, active: true, closing: false, x: cx, y: cy });
     }
     window.addEventListener(PAGE_TRANSITION_EVENT, handleStart);
     return () => window.removeEventListener(PAGE_TRANSITION_EVENT, handleStart);
@@ -85,6 +87,7 @@ export default function PageTransitionOverlay() {
       el.style.transition = 'none';
       el.style.clipPath = `circle(${radius}px at ${state.x}px ${state.y}px)`;
       growDoneRef.current = true;
+      notifyPageTransitionGrown(state.id);
       closeIfReady();
       return undefined;
     }
@@ -97,6 +100,7 @@ export default function PageTransitionOverlay() {
     function handleTransitionEnd(e) {
       if (e.target !== el || e.propertyName !== 'clip-path') return;
       growDoneRef.current = true;
+      notifyPageTransitionGrown(state.id);
       closeIfReady();
     }
     el.addEventListener('transitionend', handleTransitionEnd);
@@ -128,8 +132,7 @@ export default function PageTransitionOverlay() {
       // startTimeRef left over from the last real transition.
       if (startTimeRef.current == null) return;
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const elapsed = performance.now() - startTimeRef.current;
-      const wait = reduce ? 0 : Math.max(0, MIN_COVER_MS - elapsed);
+      const wait = reduce ? 0 : POST_NAV_SETTLE_MS;
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = setTimeout(() => {
         closeRequestedRef.current = true;

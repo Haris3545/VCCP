@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import artistConfig from '@/lib/artist.config';
@@ -14,16 +14,15 @@ import PreviewBanner from './PreviewBanner';
 
 const NEXT_PREVIEW_MODE = { auto: 'mobile', mobile: 'desktop', desktop: 'auto' };
 
-// Keyed on the route by the caller, so it remounts (fresh state) on every
-// page swap. Ordinary navigations have nothing covering the screen, so
-// `ready` starts true and the fade-in plays immediately on mount. A
-// login/logout-triggered navigation mounts while the circle overlay is
-// still opaque, though — starting the fade there too would let it finish
-// fully hidden behind the overlay, so `ready` instead starts false and
-// waits for the overlay to release it right as the circle begins to
-// reveal, so the two visibly cross-dissolve. The fallback timeout is a
-// safety net in case that release signal is ever missed.
-function PageEnter({ children }) {
+// True once nothing is covering the screen (or once the overlay releases
+// it). Ordinary navigations have nothing covering, so this resolves true
+// immediately. A login/logout-triggered navigation mounts while the circle
+// overlay is still opaque, so this instead starts false and waits for the
+// overlay to release it right as the circle begins to reveal — the caller
+// can hold its entrance animation until then so it cross-dissolves with the
+// reveal instead of finishing while still hidden underneath it. The
+// fallback timeout is a safety net in case that release signal is missed.
+function useRevealReady() {
   const [ready, setReady] = useState(() => !isPageTransitionCovering());
 
   useEffect(() => {
@@ -48,12 +47,33 @@ function PageEnter({ children }) {
     };
   }, [ready]);
 
+  return ready;
+}
+
+// Keyed on the route by the caller, so it remounts (fresh state) on every
+// page swap and replays its fade-in.
+function PageEnter({ children }) {
+  const ready = useRevealReady();
   return <div className={`page-enter${ready ? ' page-enter--ready' : ''}`}>{children}</div>;
 }
 
 export default function AppShell({ children, title }) {
   const pageTitle = title ? `${title} · ${artistConfig.wordmark}` : artistConfig.meta.title;
   const router = useRouter();
+  // AppShell itself mounts fresh exactly once per session (the standalone
+  // /login page doesn't use it) and then persists across every later
+  // navigation, so this only ever resolves once — right after a
+  // login-triggered reveal, or immediately for a direct page load.
+  const shellReady = useRevealReady();
+  // Tracks whether PageEnter has ever been used yet. On the single render
+  // where shellReady first turns true, content still rides along with the
+  // shell's own fade (see the comment below) rather than getting wrapped in
+  // its own PageEnter — set from an effect (post-commit), not during render,
+  // so the render that actually needs to see "not yet" still does.
+  const hasEnteredOnceRef = useRef(false);
+  useEffect(() => {
+    if (shellReady) hasEnteredOnceRef.current = true;
+  }, [shellReady]);
 
   // Owned here (not inside PreviewToggle) so PreviewBanner can render as a
   // sibling of .app-shell instead of inside it — in mobile-preview mode,
@@ -74,7 +94,7 @@ export default function AppShell({ children, title }) {
   return (
     <>
       <PreviewBanner mode={previewMode} onReset={() => setPreviewMode('auto')} />
-      <div className="app-shell">
+      <div className={`app-shell${shellReady ? ' app-shell--ready' : ''}`}>
         <Head>
           <title>{pageTitle}</title>
           <meta name="description" content={artistConfig.meta.description} />
@@ -83,11 +103,17 @@ export default function AppShell({ children, title }) {
         <Header />
         <Ticker />
         <main className="container page">
-          {/* Keyed on the route so each page swap remounts PageEnter and
-              replays the fade-in — without the key, it persists across
-              navigations (only `children` changes) and the animation would
-              only ever play once. */}
-          <PageEnter key={router.pathname}>{children}</PageEnter>
+          {/* While the shell is hidden, and on the single render where it
+              first becomes ready, content rides along unwrapped — it's
+              covered by .app-shell's own opacity either way, and wrapping
+              it in a freshly-mounted PageEnter on that same render would
+              compound two opacity ramps (parent and child both animating
+              0→1 at once) into a slower, murkier fade than either alone.
+              Every route change after that first reveal swaps to PageEnter,
+              keyed on the route so it remounts (fresh state) and replays
+              its own fade for just the page body, without the chrome
+              (background/header/ticker/nav) fading again. */}
+          {hasEnteredOnceRef.current ? <PageEnter key={router.pathname}>{children}</PageEnter> : children}
         </main>
         <footer className="page-footer container">
           <RefreshButton />

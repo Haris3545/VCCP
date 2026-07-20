@@ -33,7 +33,11 @@ export default function LoginPage() {
       const dest = typeof router.query.from === 'string' ? router.query.from : '/dashboard';
       const rect = enterBtnRef.current?.getBoundingClientRect();
       if (rect) {
-        startPageTransition(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        // Wait for the circle to fully cover the screen before swapping the
+        // page underneath — the background video keeps playing through the
+        // grow, and the dashboard only mounts once it's completely hidden,
+        // so the swap itself is never visible.
+        await startPageTransition(rect.left + rect.width / 2, rect.top + rect.height / 2);
       }
       router.push(dest);
     } catch {
