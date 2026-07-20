@@ -1683,11 +1683,13 @@ html.custom-cursor-active textarea {
   transition: color 260ms ease 60ms;
 }
 
-.btn-sweep:hover::before {
+.btn-sweep:hover::before,
+.btn-sweep.is-loading::before {
   transform: scaleX(1);
 }
 
-.btn-sweep:hover span {
+.btn-sweep:hover span,
+.btn-sweep.is-loading span {
   color: #0b0b0b;
 }
 

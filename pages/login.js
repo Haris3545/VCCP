@@ -77,7 +77,12 @@ export default function LoginPage() {
               aria-label="Password"
             />
             {error ? <div className="login-error">{error}</div> : null}
-            <button type="submit" className="btn-sweep" disabled={submitting} ref={enterBtnRef}>
+            <button
+              type="submit"
+              className={`btn-sweep${submitting ? ' is-loading' : ''}`}
+              disabled={submitting}
+              ref={enterBtnRef}
+            >
               <span>{submitting ? 'Checking…' : 'Enter'}</span>
             </button>
           </form>
