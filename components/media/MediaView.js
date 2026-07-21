@@ -201,7 +201,23 @@ export default function MediaView({ data }) {
   const [category, setCategory] = useState('all');
 
   const categorized = useMemo(() => allArticles.map((a) => ({ ...a, category: deriveCategory(a) })), [allArticles]);
-  const articles = category === 'all' ? categorized : categorized.filter((a) => a.category === category);
+  const articles = useMemo(
+    () => (category === 'all' ? categorized : categorized.filter((a) => a.category === category)),
+    [categorized, category]
+  );
+  // stripStyleVars runs several hashString calls per article (masthead,
+  // rotation, texture x/y/opacity/variant, fold, ink-bleed variant) - pure
+  // per-article work that only actually needs redoing when the article
+  // list or category filter changes. Without this memo it was recomputing
+  // all of it for every article, every render - including the render
+  // triggered by opening or closing a single strip (openLink toggling),
+  // which is exactly the moment that recompute work competes with the
+  // open/close animation for the main thread.
+  const styleVarsByLink = useMemo(() => {
+    const map = new Map();
+    articles.forEach((article, i) => map.set(article.link, stripStyleVars(article, i === 0)));
+    return map;
+  }, [articles]);
 
   if (news?.source !== 'live' || allArticles.length === 0) {
     return (
@@ -225,10 +241,23 @@ export default function MediaView({ data }) {
       {/* Ink-bleed filters shared by every headline/nameplate on the page -
           feDisplacementMap distorts the crisp vector text edges using
           turbulence noise, so type reads as printed rather than perfectly
-          even, the same technique used in the broadsheet print study. */}
+          even, the same technique used in the broadsheet print study.
+          feTurbulence/feDisplacementMap are genuinely expensive - CPU-bound
+          per-pixel work, not GPU-accelerated - and the filter region below
+          (x/y/width/height) is what actually sets how many pixels each one
+          has to run that work over. It's a percentage of the filtered
+          element's own box, so it used to scale up right along with it:
+          a 25% margin was never about needing that much room (the actual
+          displacement here maxes out around 1-1.5px, scale/2, plus a
+          fraction of a px of blur spread) but the wider this page's
+          headlines get on a big screen, the more wasted pixels that
+          percentage was over-computing turbulence for. A few-percent
+          margin gives the same couple of px of real headroom the effect
+          actually needs at any element size, without the cost scaling up
+          with how wide the newspaper column itself has gotten. */}
       <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
         <defs>
-          <filter id="mediaInkBleed" x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
+          <filter id="mediaInkBleed" x="-3%" y="-3%" width="106%" height="106%" colorInterpolationFilters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="9" result="fiber" />
             <feDisplacementMap in="SourceGraphic" in2="fiber" scale="1.6" xChannelSelector="R" yChannelSelector="G" result="bled" />
             <feGaussianBlur in="bled" stdDeviation="0.22" />
@@ -237,22 +266,22 @@ export default function MediaView({ data }) {
               ceiling (scale 2.6 was the previous fixed "heavy" setting) so
               every headline reads as heavily bled but no two look
               identical - picked per article via --ink-filter. */}
-          <filter id="mediaInkBleedHeavy0" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+          <filter id="mediaInkBleedHeavy0" x="-3%" y="-3%" width="106%" height="106%" colorInterpolationFilters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="17" result="fiber2" />
             <feDisplacementMap in="SourceGraphic" in2="fiber2" scale="2.6" xChannelSelector="R" yChannelSelector="G" result="bled2" />
             <feGaussianBlur in="bled2" stdDeviation="0.24" />
           </filter>
-          <filter id="mediaInkBleedHeavy1" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+          <filter id="mediaInkBleedHeavy1" x="-3%" y="-3%" width="106%" height="106%" colorInterpolationFilters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency="0.62" numOctaves="2" seed="22" result="fiber3" />
             <feDisplacementMap in="SourceGraphic" in2="fiber3" scale="2.35" xChannelSelector="R" yChannelSelector="G" result="bled3" />
             <feGaussianBlur in="bled3" stdDeviation="0.22" />
           </filter>
-          <filter id="mediaInkBleedHeavy2" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+          <filter id="mediaInkBleedHeavy2" x="-3%" y="-3%" width="106%" height="106%" colorInterpolationFilters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency="0.48" numOctaves="2" seed="31" result="fiber4" />
             <feDisplacementMap in="SourceGraphic" in2="fiber4" scale="2.55" xChannelSelector="R" yChannelSelector="G" result="bled4" />
             <feGaussianBlur in="bled4" stdDeviation="0.25" />
           </filter>
-          <filter id="mediaInkBleedHeavy3" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+          <filter id="mediaInkBleedHeavy3" x="-3%" y="-3%" width="106%" height="106%" colorInterpolationFilters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency="0.58" numOctaves="2" seed="40" result="fiber5" />
             <feDisplacementMap in="SourceGraphic" in2="fiber5" scale="2.2" xChannelSelector="R" yChannelSelector="G" result="bled5" />
             <feGaussianBlur in="bled5" stdDeviation="0.2" />
@@ -275,7 +304,7 @@ export default function MediaView({ data }) {
         {articles.map((article, i) => {
           const isOpen = article.link === openLink;
           const isLast = i === articles.length - 1;
-          const { vars, align, texVariant, fold } = stripStyleVars(article, i === 0);
+          const { vars, align, texVariant, fold } = styleVarsByLink.get(article.link);
           const tagLabel = CATEGORIES.find((c) => c.id === article.category)?.label.toUpperCase() || 'CULTURE';
           const outletName = cleanOutletName(article.outlet);
 

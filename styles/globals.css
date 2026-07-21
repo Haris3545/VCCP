@@ -3188,28 +3188,27 @@ html.custom-cursor-active textarea {
   flex-direction: column;
   padding: 26px 0 64px;
   overflow: hidden;
-  /* .container can stretch to 2400px on a big/TV-sized display, and this
-     used to just fill it edge to edge - each strip has real news-print
-     sized type (headline clamp tops out at 48px) sitting in a column that
-     would otherwise become vastly wider than that type was ever meant to
-     fill, mostly empty paper either side.
-     A flat max-width fixed that but then stopped growing at all past it -
-     fine on a laptop, but on an actual TV-sized display it read as a
-     small, stranded column with huge dead margins either side rather than
-     a page actually sized for the screen it's on. This scales the column
-     itself with the viewport instead of pinning it to one width: min()
-     picks whichever is smallest of the container's own full width (so it
-     still shrinks freely on anything narrower than the formula below,
-     same as having no cap at all), a value that grows steadily with
-     viewport width, and an outer ceiling so it still stops at a sensible
-     newspaper-page size rather than growing forever on something huge
-     like an 8K display. Growth rate is deliberately steep (48vw, not a
-     gentler slope) so it's still visibly, meaningfully bigger at a normal
-     4K TV width rather than just barely nudging past where the old flat
-     cap sat - the ceiling only actually starts biting on something
-     noticeably past that. */
-  width: min(100%, calc(250px + 48vw), 2600px);
-  margin: 0 auto;
+  /* Deliberately breaks out of .container rather than sizing off it - the
+     page's shared .container caps at 2400px (see its own comment) so that
+     no page reads as truly edge-to-edge, but that same cap was the actual
+     thing stopping this stack from ever growing much past ~2350px of
+     usable width on a big display, no matter how generous a formula was
+     written here relative to "100%" of that parent. A percentage-of-
+     viewport margin sidesteps it entirely: the classic full-bleed trick
+     (margin-left restores the viewport's true left edge regardless of
+     the parent's own width/padding, then adds the margin back in) lets
+     this one element size itself off the real screen instead of off a
+     page-wide policy meant for body copy and grids, not a newspaper
+     meant to fill the room it's in. The margin itself is a clamp rather
+     than a flat value: 16px floor matches .container's own mobile
+     padding so small screens look unchanged, scales up through normal
+     desktop widths, and tops out at 160px so on something TV-sized the
+     stack keeps growing almost 1:1 with the screen instead of the margin
+     eating an ever-larger share of it - visibly closer to the edges the
+     bigger the display gets, never a hard stop. */
+  --stack-margin: clamp(16px, 3vw, 160px);
+  width: calc(100vw - (var(--stack-margin) * 2));
+  margin-left: calc(50% - 50vw + var(--stack-margin));
 }
 
 /* Each strip is deliberately wider than the stack and bled out on both
@@ -3233,6 +3232,24 @@ html.custom-cursor-active textarea {
   background: var(--paper-bg, linear-gradient(160deg, #fbf9f2, #efece0));
   color: #17140d;
   transform: rotate(var(--rot, 0deg));
+  /* Each strip is one of the more expensive things this page can paint -
+     a live SVG feTurbulence/feDisplacementMap filter on its headline (see
+     .ink-text--heavy), a mix-blend-mode texture layer, and five stacked
+     box-shadows including two insets - and a full feed can easily be
+     30-40 of them. All of that cost used to apply to every strip at once
+     regardless of whether it was ever scrolled into view, which is what
+     actually made the page slow rather than any one of those effects
+     alone. content-visibility: auto tells the browser to skip layout/
+     paint/style work entirely for strips currently well outside the
+     viewport, so the live cost at any moment is roughly "however many
+     strips are on screen," not "the whole feed" - the standard fix for
+     a long list of individually-expensive cards. contain-intrinsic-size
+     gives it a placeholder height to reserve for scroll purposes before a
+     strip has ever actually been rendered once (a rough closed-state
+     estimate; real layout takes over the moment it scrolls into view, same
+     as any other skipped element snapping to its real size). */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 260px;
   /* Layered for real depth rather than one flat drop shadow: a tight dark
      contact shadow right at the edge (like the sheet is really resting on
      the one below), a softer ambient shadow further out, and an inset
@@ -3334,21 +3351,23 @@ html.custom-cursor-active textarea {
    element rather than a third pseudo-element (only two are available) - it
    needs its own z-index/position after the ".news-strip > *" rule above,
    at equal specificity, to win back out of that rule's z-index: 3.
-   background-size is `cover`, not the source photo's own fixed pixel
-   dimensions - a strip's box is bigger than that in both directions once
-   it's open (full snippet + link, well over the photo's own height) and
-   used to be wider than it too on large viewports before .media-stack
-   gained its own max-width. A fixed size left both cases with a blank,
-   texture-less patch of flat --paper-bg showing through wherever the
-   photo ran out; cover guarantees it always fills the strip completely
-   regardless of how tall/wide that strip's current state makes it. */
+   background-size is 100% width / auto height, tiled vertically, not
+   `cover` - cover reacts to the element's full box (both dimensions), so
+   as the strip's height grows during the open unfurl (the accordion below
+   expanding), the browser recomputes the cover scale on every animation
+   frame and the whole texture visibly swims/rescales for the entire
+   560ms instead of holding still. The strip's width never changes across
+   open/closed (see .news-strip--open, same width as the base rule), so
+   sizing purely off width and repeating down means the pattern is
+   pinned and stable throughout the animation - opening just reveals more
+   tile underneath rather than rescaling what's already there. */
 .news-strip__texture {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-size: cover;
-  background-position: var(--tex-x, 50%) var(--tex-y, 50%);
-  background-repeat: no-repeat;
+  background-size: 100% auto;
+  background-position: var(--tex-x, 50%) var(--tex-y, 0%);
+  background-repeat: repeat-y;
   mix-blend-mode: multiply;
   opacity: var(--tex-opacity, 0.22);
   z-index: 2;

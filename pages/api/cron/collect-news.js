@@ -1,5 +1,6 @@
 import { getCoverage } from '@/lib/integrations/news';
 import { appendArticlesToArchive, hasBlobToken } from '@/lib/integrations/newsArchive';
+import { runBackfillStep } from '@/lib/integrations/newsBackfill';
 
 // Runs once a day (see vercel.json's crons entry) to fold the current live
 // coverage snapshot into the persistent archive (lib/integrations/
@@ -38,6 +39,18 @@ export default async function handler(req, res) {
   try {
     const result = await appendArticlesToArchive(coverage.articles);
 
+    // Best-effort, and deliberately after the day's own collection has
+    // already succeeded - one extra historical month per run, walking
+    // backwards until two years of real history are in place (see
+    // newsBackfill.js). A failed step here shouldn't fail the whole cron
+    // run or block today's normal collection; it just retries tomorrow.
+    let backfill = null;
+    try {
+      backfill = await runBackfillStep();
+    } catch (err) {
+      backfill = { ran: false, error: err.message };
+    }
+
     // Best-effort - the archive write already succeeded, so a revalidation
     // hiccup here shouldn't turn into a failure response. Without this the
     // new totals would still show up, just after the normal 30-minute ISR
@@ -49,7 +62,7 @@ export default async function handler(req, res) {
       // ignore — next ISR revalidation window will pick it up regardless
     }
 
-    return res.status(200).json({ ok: true, ...result });
+    return res.status(200).json({ ok: true, ...result, backfill });
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message });
   }

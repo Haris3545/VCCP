@@ -96,6 +96,15 @@ independent, so partial coverage is fine. What's wired up per tab:
   `CRON_SECRET` to trigger the collection endpoint manually for testing, outside Vercel's own
   schedule.
 
+  Collecting only forward from today would leave month/year comparisons empty until that much real
+  time had actually passed, so each cron run also backfills a few calendar months of real history
+  (`lib/integrations/newsBackfill.js`), using Google News RSS's `before:`/`after:` date-bounded search
+  operators — the same no-API-key search, just scoped to a past window instead of "recent." It walks
+  backwards a handful of months per run until two years of history are in place (enough for both the
+  "last year" period and its own prior-year comparison), then stops. Progress is tracked in its own
+  small Blob file (`news/backfill-state.json`) so a slow rollout — or one triggered manually via
+  `CRON_SECRET` — always resumes rather than restarting.
+
 ## Not included in this tier
 
 Media/Tactics/Calendar/Locations/Research tabs, exports, real auth, cross-device sync,
