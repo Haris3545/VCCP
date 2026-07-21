@@ -3189,15 +3189,22 @@ html.custom-cursor-active textarea {
   padding: 26px 0 64px;
   overflow: hidden;
   /* .container can stretch to 2400px on a big/TV-sized display, and this
-     stack used to just fill it - each strip has real news-print sized
-     type (headline clamp tops out at 48px) sitting in a column that would
-     otherwise become vastly wider than that type was ever meant to fill,
-     mostly empty paper either side. Capping it to a real newspaper-column
-     width keeps every strip readable and correctly proportioned at any
-     viewport size, and as a side effect keeps each strip's crumple
-     texture (see .news-strip__texture) from ever needing to cover more
-     area than it was designed for. */
-  max-width: 900px;
+     used to just fill it edge to edge - each strip has real news-print
+     sized type (headline clamp tops out at 48px) sitting in a column that
+     would otherwise become vastly wider than that type was ever meant to
+     fill, mostly empty paper either side.
+     A flat max-width fixed that but then stopped growing at all past it -
+     fine on a laptop, but on an actual TV-sized display it read as a
+     small, stranded column with huge dead margins either side rather than
+     a page actually sized for the screen it's on. This scales the column
+     itself with the viewport instead of pinning it to one width: min()
+     picks whichever is smallest of the container's own full width (so it
+     still shrinks freely on anything narrower than the formula below,
+     same as having no cap at all), a value that grows steadily with
+     viewport width, and an outer ceiling so it still stops at a sensible
+     newspaper-page size rather than growing forever on something huge
+     like an 8K display. */
+  width: min(100%, calc(320px + 36vw), 1700px);
   margin: 0 auto;
 }
 
@@ -3269,9 +3276,9 @@ html.custom-cursor-active textarea {
    redrawn every tick). Turbulence alone reads as soft blotches; stacking
    the sharp true-noise layer on top is what actually gives it that
    grainy, printed-on-newsprint bite rather than a smooth cloud pattern.
-   A constant on every strip, opacity raised well past what pure
-   turbulence needed since a second real noise layer needs more presence
-   to read at all next to it. */
+   A constant on every strip - kept fairly subtle (0.35 read as overpowering
+   the actual headline/print rather than sitting behind it) so it reads as
+   paper stock rather than static. */
 .news-strip::before {
   content: '';
   position: absolute;
@@ -3282,7 +3289,7 @@ html.custom-cursor-active textarea {
   background-size: 180px 180px, 256px 256px;
   background-repeat: repeat, repeat;
   mix-blend-mode: multiply;
-  opacity: 0.35;
+  opacity: 0.15;
   z-index: 2;
 }
 
@@ -3330,7 +3337,7 @@ html.custom-cursor-active textarea {
   background-position: var(--tex-x, 50%) var(--tex-y, 50%);
   background-repeat: no-repeat;
   mix-blend-mode: multiply;
-  opacity: var(--tex-opacity, 0.45);
+  opacity: var(--tex-opacity, 0.22);
   z-index: 2;
 }
 .news-strip__texture--heavy {

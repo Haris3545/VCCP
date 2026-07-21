@@ -112,7 +112,10 @@ function stripStyleVars(article, isTop) {
     : ((hashString(`${article.link}r`) % 100) / 100 - 0.5) * 4.5;
   const texX = hashString(`${article.link}tx`) % 100;
   const texY = hashString(`${article.link}ty`) % 100;
-  const texOpacity = 0.22 + ((hashString(`${article.link}to`) % 100) / 100) * 0.26;
+  // Was 0.22-0.48 - the crumple photo was overpowering the print above it
+  // at the top of that range, so both ends came down while keeping the
+  // same per-article spread between strips.
+  const texOpacity = 0.1 + ((hashString(`${article.link}to`) % 100) / 100) * 0.13;
   const texVariant = TEXTURE_VARIANTS[hashString(`${article.link}tv`) % TEXTURE_VARIANTS.length];
   const hasFold = hashString(`${article.link}fold`) % 100 < 45;
   const foldCorner = FOLD_CORNERS[hashString(`${article.link}foldc`) % FOLD_CORNERS.length];
