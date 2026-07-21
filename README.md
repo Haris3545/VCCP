@@ -84,6 +84,17 @@ independent, so partial coverage is fine. What's wired up per tab:
   manifest, so two people acting at the exact same instant can race and one write can clobber the
   other — acceptable for a small team's low write volume, not a pattern to scale up without a real
   database.
+- **Media / Media 2 news archive:** the live coverage feed (Google News RSS, see below) only ever
+  holds the last ~40 recent articles, so the Media Trend Index's month/year-over-year comparison
+  needs its own accumulating history — Google News RSS has no way to ask for "articles from a year
+  ago." `pages/api/cron/collect-news.js` runs once a day (`vercel.json`'s `crons` entry) and folds
+  that day's live articles into a persistent archive in the same Vercel Blob store as the Ideas tab
+  (reuses `BLOB_READ_WRITE_TOKEN`; without it, the archive silently stays empty and comparisons fall
+  back to whatever the live snapshot alone can show, same as before this existed). The archive isn't
+  rendered as extra article cards — only small precomputed stats (`lib/media/trend.js`) get shipped
+  to the page, so it doesn't grow the page's payload as it accumulates over time. Optionally set
+  `CRON_SECRET` to trigger the collection endpoint manually for testing, outside Vercel's own
+  schedule.
 
 ## Not included in this tier
 

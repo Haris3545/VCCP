@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import SourceBadge from '@/components/ui/SourceBadge';
 import PillToggle from '@/components/ui/PillToggle';
-import { hashString, CATEGORIES, deriveCategory, scoreTone, PERIODS, formatDate, cleanOutletName } from '@/lib/media/helpers';
+import { hashString, CATEGORIES, deriveCategory, PERIODS, formatDate, cleanOutletName } from '@/lib/media/helpers';
 
 // A handful of distinct "masthead personalities" built entirely from fonts
 // already bundled locally — each outlet name deterministically hashes to
@@ -139,30 +139,15 @@ function stripStyleVars(article, isTop) {
   };
 }
 
-export function MediaTrendIndex({ articles }) {
+// trendStats is precomputed server-side (see computeTrendStats in
+// lib/media/trend.js) from the full archive, not just whatever's rendered
+// on the page - one entry per PERIODS id. Switching the toggle below is
+// just a lookup into that object, not a recomputation, and the client
+// never has to receive (or process) the raw archive to get real
+// month/year comparisons out of it.
+export function MediaTrendIndex({ trendStats }) {
   const [period, setPeriod] = useState('week');
-  const stats = useMemo(() => {
-    const days = PERIODS.find((p) => p.id === period).days;
-    const now = Date.now();
-    const withDates = articles.filter((a) => a.publishedAt);
-    const current = withDates.filter((a) => now - new Date(a.publishedAt).getTime() < days * 86400000);
-    const prior = withDates.filter((a) => {
-      const age = now - new Date(a.publishedAt).getTime();
-      return age >= days * 86400000 && age < days * 2 * 86400000;
-    });
-    const pctChange = prior.length ? Math.round(((current.length - prior.length) / prior.length) * 100) : null;
-
-    const toned = current.map(scoreTone);
-    const total = toned.length;
-    const posCount = toned.filter((t) => t === 'positive').length;
-    const negCount = toned.filter((t) => t === 'negative').length;
-    const neutralCount = total - posCount - negCount;
-    const posPct = total ? Math.round((posCount / total) * 100) : null;
-    const negPct = total ? Math.round((negCount / total) * 100) : null;
-    const neutralPct = total ? Math.round((neutralCount / total) * 100) : null;
-
-    return { currentCount: current.length, priorCount: prior.length, pctChange, posPct, negPct, neutralPct };
-  }, [articles, period]);
+  const stats = trendStats[period];
 
   return (
     <div className="media-trend card">
@@ -183,7 +168,7 @@ export function MediaTrendIndex({ articles }) {
             {stats.currentCount} article{stats.currentCount === 1 ? '' : 's'}
             {stats.priorCount
               ? ` vs ${stats.priorCount} the ${PERIODS.find((p) => p.id === period).label.toLowerCase().replace('last ', 'previous ')}`
-              : ' — not enough earlier coverage in this feed to compare yet'}
+              : ' — not enough earlier coverage archived to compare yet'}
           </span>
         </div>
 
@@ -272,7 +257,7 @@ export default function MediaView({ data }) {
         </defs>
       </svg>
 
-      <MediaTrendIndex articles={categorized} />
+      <MediaTrendIndex trendStats={data.trendStats} />
 
       <div className="media-newsroom__head">
         <span className="eyebrow">Live coverage agent</span>
@@ -305,7 +290,14 @@ export default function MediaView({ data }) {
             <article
               key={article.link}
               className={`news-strip news-strip--${align}${isOpen ? ' news-strip--open' : ''}${isLast ? ' news-strip--torn' : ''}`}
-              style={vars}
+              // Staggered per the strip's position in the pile, capped so a
+              // long feed doesn't leave the last few cards waiting on an
+              // ever-growing delay - each one settles in shortly after the
+              // one above it rather than the whole stack materialising at
+              // once, which is what actually reads as "loading in"
+              // gracefully rather than a static page that was just always
+              // there.
+              style={{ ...vars, '--stagger-delay': `${Math.min(i * 45, 480)}ms` }}
               onClick={isOpen ? undefined : () => setOpenLink(article.link)}
               onKeyDown={
                 isOpen

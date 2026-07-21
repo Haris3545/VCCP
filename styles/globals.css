@@ -3188,6 +3188,17 @@ html.custom-cursor-active textarea {
   flex-direction: column;
   padding: 26px 0 64px;
   overflow: hidden;
+  /* .container can stretch to 2400px on a big/TV-sized display, and this
+     stack used to just fill it - each strip has real news-print sized
+     type (headline clamp tops out at 48px) sitting in a column that would
+     otherwise become vastly wider than that type was ever meant to fill,
+     mostly empty paper either side. Capping it to a real newspaper-column
+     width keeps every strip readable and correctly proportioned at any
+     viewport size, and as a side effect keeps each strip's crumple
+     texture (see .news-strip__texture) from ever needing to cover more
+     area than it was designed for. */
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 /* Each strip is deliberately wider than the stack and bled out on both
@@ -3224,6 +3235,25 @@ html.custom-cursor-active textarea {
      stop - the small bounce is what actually sells "unfurl" rather than
      "slide." */
   transition: transform 560ms cubic-bezier(0.34, 1.32, 0.64, 1), box-shadow 420ms ease, opacity 340ms ease;
+  /* Settles into its resting tilt rather than just being there on first
+     paint - staggered per strip via --stagger-delay (set in MediaView.js)
+     so the pile visibly deals itself in from the top down. `both` holds
+     the animation's final frame (which matches the element's own static
+     transform above) rather than snapping back to an unrotated state once
+     it finishes. */
+  animation: news-strip-in 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--stagger-delay, 0ms);
+}
+
+@keyframes news-strip-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px) rotate(var(--rot, 0deg));
+  }
+  to {
+    opacity: 1;
+    transform: rotate(var(--rot, 0deg));
+  }
 }
 
 .news-strip:first-child {
@@ -3283,12 +3313,20 @@ html.custom-cursor-active textarea {
    don't all read as the same sheet at the same strength. Lives as its own
    element rather than a third pseudo-element (only two are available) - it
    needs its own z-index/position after the ".news-strip > *" rule above,
-   at equal specificity, to win back out of that rule's z-index: 3. */
+   at equal specificity, to win back out of that rule's z-index: 3.
+   background-size is `cover`, not the source photo's own fixed pixel
+   dimensions - a strip's box is bigger than that in both directions once
+   it's open (full snippet + link, well over the photo's own height) and
+   used to be wider than it too on large viewports before .media-stack
+   gained its own max-width. A fixed size left both cases with a blank,
+   texture-less patch of flat --paper-bg showing through wherever the
+   photo ran out; cover guarantees it always fills the strip completely
+   regardless of how tall/wide that strip's current state makes it. */
 .news-strip__texture {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-size: 1500px 1050px;
+  background-size: cover;
   background-position: var(--tex-x, 50%) var(--tex-y, 50%);
   background-repeat: no-repeat;
   mix-blend-mode: multiply;
@@ -3664,21 +3702,75 @@ html.custom-cursor-active textarea {
   gap: 20px;
 }
 
-/* Back to CSS Grid rather than flex-wrap - flex-basis animating
-   continuously forced the browser to re-flow the whole row every single
-   frame, which read as jittery/stuttery rather than smooth in practice
-   (each neighbour was jumping to a freshly-recalculated position every
-   frame, not sliding). A grid-column span can't be animated either, but
-   taking the width change out of the equation entirely - it snaps
-   instantly, in one frame - reads as a clean, deliberate layout change
-   rather than a stutter, and the part that actually stays continuously
-   animated (the height/content reveal below) is what a "polished"
-   expand mostly reads by anyway. */
+/* Used to claim the full grid row on open (grid-column: 1 / -1). A
+   grid-column span can't be animated, so that snapped instantly in one
+   frame while every neighbour in that row simultaneously jumped to a
+   freshly-recalculated position to make room - two unrelated motions
+   (an instant reflow, then a separate eased height grow) stitched
+   together rather than one continuous "enlarge". Replaced with a
+   transform-based approach instead: the opened pill scales up in place
+   (transform doesn't affect layout, so neighbours never reflow or move
+   at all) while a backdrop dims everything else behind it - see
+   .media2-pill--open and .media2-backdrop below. */
 .media2__grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   align-items: start;
   gap: 16px;
+}
+
+/* Closed pills stay inert while one is open - without this, hovering a
+   dimmed neighbour behind the backdrop still bumped its lift/shadow, which
+   read as it still being interactive despite visibly being pushed back.
+   The dimming itself is a filter() on the pill directly rather than
+   relying on the backdrop tint alone - these pills are already a
+   translucent glass surface (--glass-tint) over a near-black page
+   background, so a dark overlay drawn on top of that has very little
+   brightness left to cut into and barely reads; darkening the pill itself
+   dims its background, border and text together regardless of how
+   translucent it already was. Deliberately filter, not opacity - opacity
+   is the property .media2-pill's own entrance animation (media2-pill-in)
+   animates and holds via fill-mode: both, and a held keyframe value wins
+   the cascade over any plain rule trying to set that same property
+   regardless of selector specificity, so an opacity-based dim here would
+   silently never apply. */
+.media2__grid--focused .media2-pill:not(.media2-pill--open) {
+  pointer-events: none;
+  filter: brightness(0.32) saturate(0.7);
+  transition: filter 320ms ease, transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 340ms ease;
+}
+
+/* Sits behind the open pill (see its z-index) but above every other pill,
+   covering just the grid rather than the full viewport - "everything else"
+   here means the rest of the coverage feed, not the page chrome around it. */
+.media2-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  border-radius: 20px;
+  background: rgba(4, 4, 4, 0.66);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  cursor: pointer;
+  opacity: 0;
+  animation: media2-backdrop-in 280ms ease forwards;
+}
+
+@keyframes media2-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media2-backdrop {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 /* Same solid-tint chrome as .card (see its own comment for why), just a
@@ -3687,6 +3779,7 @@ html.custom-cursor-active textarea {
    need to hold multi-line headlines and, once expanded, a paragraph. */
 .media2-pill {
   position: relative;
+  z-index: 1;
   background: var(--glass-tint);
   border: 1px solid var(--border-strong);
   border-left: 3px solid var(--cat-color, var(--border-strong));
@@ -3696,14 +3789,37 @@ html.custom-cursor-active textarea {
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   isolation: isolate;
   overflow: hidden;
-  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease;
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 340ms ease;
+  /* Staggered per card (--stagger-delay set in Media2View.js), same idea as
+     the newspaper strips' entrance - see .news-strip's own comment. */
+  opacity: 0;
+  animation: media2-pill-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--stagger-delay, 0ms);
 }
 
-/* Claims the entire row on its own - this is the "expand horizontally
-   too" half of the open state; the height side is the grid-template-rows
-   accordion further down. */
+@keyframes media2-pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Grows in place instead of claiming the full grid row (see the comment
+   above .media2__grid for why) - a transform, so it never reflows any
+   other pill, just visibly pushes this one forward above the dimmed
+   backdrop and everything behind it. The actual "bigger" reading
+   experience comes mostly from the grid-template-rows accordion revealing
+   the snippet/link below (further down); this scale is the "picked up
+   and pushed toward you" cue on top of that, deliberately modest so it
+   can never overflow its own grid track on a narrow single-column layout. */
 .media2-pill--open {
-  grid-column: 1 / -1;
+  z-index: 50;
+  transform: scale(1.06) translateY(-6px) !important;
+  box-shadow: 0 20px 15px -4px rgba(0, 0, 0, 0.4), 0 40px 64px rgba(0, 0, 0, 0.55), 0 8px 20px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Same lift-on-hover bump as the newspaper strips (.news-strip:hover) -
@@ -3841,6 +3957,11 @@ html.custom-cursor-active textarea {
 
 @media (prefers-reduced-motion: reduce) {
   .media2-pill {
+    transition: none;
+    animation: none;
+    opacity: 1;
+  }
+  .media2__grid--focused .media2-pill:not(.media2-pill--open) {
     transition: none;
   }
 }

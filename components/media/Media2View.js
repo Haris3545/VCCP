@@ -48,7 +48,7 @@ export default function Media2View({ data }) {
 
   return (
     <div className="media2">
-      <MediaTrendIndex articles={categorized} />
+      <MediaTrendIndex trendStats={data.trendStats} />
 
       <div className="media-newsroom__head">
         <span className="eyebrow">Live coverage agent</span>
@@ -59,8 +59,13 @@ export default function Media2View({ data }) {
 
       <PillToggle options={CATEGORIES} value={category} onChange={setCategory} className="pill-toggle--categories" />
 
-      <div className="media2__grid">
-        {articles.map((article) => {
+      <div className={`media2__grid${openLink ? ' media2__grid--focused' : ''}`}>
+        {/* A click anywhere on it closes the open pill, same as clicking the
+            pill itself once expanded - covers the rest of the grid rather
+            than the whole viewport, since "everything else" here means the
+            other cards, not the page chrome around them. */}
+        {openLink ? <div className="media2-backdrop" onClick={() => setOpenLink(null)} aria-hidden="true" /> : null}
+        {articles.map((article, i) => {
           const isOpen = article.link === openLink;
           const tagLabel = CATEGORIES.find((c) => c.id === article.category)?.label.toUpperCase() || 'CULTURE';
           const outletName = cleanOutletName(article.outlet);
@@ -69,7 +74,13 @@ export default function Media2View({ data }) {
             <article
               key={article.link}
               className={`media2-pill${isOpen ? ' media2-pill--open' : ''}`}
-              style={{ '--cat-color': CATEGORY_COLORS[article.category] || CATEGORY_COLORS.culture }}
+              // Staggered per card (capped for a long feed) so the grid
+              // visibly settles in rather than the whole thing appearing
+              // at once - see .media2-pill's entrance animation.
+              style={{
+                '--cat-color': CATEGORY_COLORS[article.category] || CATEGORY_COLORS.culture,
+                '--stagger-delay': `${Math.min(i * 35, 420)}ms`,
+              }}
               // Once open, clicking anywhere on the pill (not just its
               // header) minimises it again - the "Go to article" link
               // below stops this from firing so following it doesn't
