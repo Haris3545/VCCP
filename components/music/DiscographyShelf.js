@@ -13,6 +13,43 @@ function coverUrl(mbid, size) {
   return `https://coverartarchive.org/release-group/${mbid}/front-${size}`;
 }
 
+// Fire-and-forget - just gets the browser's own cache warmed up for a URL
+// ahead of time (see CDCase's onMouseEnter and useProgressiveCover below),
+// nothing to await or clean up.
+function preloadImage(src) {
+  const img = new Image();
+  img.src = src;
+}
+
+// The expand overlay used to request the big (1200px) cover image itself,
+// fresh, the moment it mounted - a real network + decode round trip
+// sitting right in the middle of the FLIP animation, which read as the
+// enlarge being slow even though the animation itself was running at full
+// speed. This shows the small (250px) cover immediately - already
+// downloaded and decoded, since it's the same image the shelf spine was
+// just displaying - then swaps up to the big version only once it's
+// actually ready, rather than showing nothing/a blank box while it loads.
+function useProgressiveCover(id) {
+  const [src, setSrc] = useState(id ? coverUrl(id, 250) : null);
+  useEffect(() => {
+    if (!id) {
+      setSrc(null);
+      return undefined;
+    }
+    setSrc(coverUrl(id, 250));
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (!cancelled) setSrc(coverUrl(id, 1200));
+    };
+    img.src = coverUrl(id, 1200);
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+  return src;
+}
+
 // Deterministic string hash (djb2), same algorithm as lib/media/helpers'
 // hashString - kept local rather than imported cross-feature since it's a
 // few lines and this component has no other reason to depend on Media.
@@ -28,7 +65,7 @@ function hashString(str) {
 // without a per-instance check.
 function fallbackColor(id) {
   const hue = hashString(id) % 360;
-  return `hsl(${hue}, 38%, 24%)`;
+  return { rgb: `hsl(${hue}, 38%, 24%)`, textDark: false, hsl: { h: hue, s: 38, l: 24 } };
 }
 
 function relativeLuminance(r, g, b) {
@@ -37,6 +74,26 @@ function relativeLuminance(r, g, b) {
     return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
   };
   return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+  }
+  return { h, s: s * 100, l: l * 100 };
 }
 
 // Averages the loaded cover art down to a single representative colour -
@@ -67,7 +124,42 @@ function sampleDominantColor(img) {
   r = Math.round((r / n) * 0.72);
   g = Math.round((g / n) * 0.72);
   b = Math.round((b / n) * 0.72);
-  return { rgb: `rgb(${r}, ${g}, ${b})`, textDark: relativeLuminance(r, g, b) > 0.45 };
+  return { rgb: `rgb(${r}, ${g}, ${b})`, textDark: relativeLuminance(r, g, b) > 0.45, hsl: rgbToHsl(r, g, b) };
+}
+
+// A handful of distinct spine "voices," each biased toward a colour
+// character rather than picked purely at random - the same idea as
+// MediaView's masthead fonts (different outlets read differently), just
+// driven by the release's own sampled cover colour instead of a hash
+// alone: a bright, saturated cover reads as loud/pop; a dark, desaturated
+// one reads as moodier/more serious. Multiple options per vibe still get
+// hash-picked so two loud covers don't necessarily look identical.
+const FONT_VIBES = {
+  vivid: [
+    { font: "'Archivo Black', var(--font-sans)", weight: 400, style: 'normal', tracking: '0.02em' },
+    { font: "'Space Grotesk', var(--font-sans)", weight: 700, style: 'normal', tracking: '0.01em' },
+  ],
+  moody: [
+    { font: "'Playfair Display', var(--font-serif)", weight: 700, style: 'italic', tracking: '0.01em' },
+    { font: 'var(--font-serif)', weight: 700, style: 'normal', tracking: '0.02em' },
+  ],
+  muted: [
+    { font: 'var(--font-serif)', weight: 400, style: 'italic', tracking: '0.02em' },
+    { font: "'IBM Plex Mono', ui-monospace, monospace", weight: 500, style: 'normal', tracking: '0em' },
+  ],
+  graphic: [
+    { font: "'Oswald', var(--font-sans)", weight: 600, style: 'normal', tracking: '0.03em' },
+    { font: "'Space Grotesk', var(--font-sans)", weight: 500, style: 'normal', tracking: '0.01em' },
+  ],
+};
+function pickFontStyle(id, hsl) {
+  let vibe;
+  if (hsl.l < 30) vibe = 'moody';
+  else if (hsl.s < 22) vibe = 'muted';
+  else if (hsl.s > 50) vibe = 'vivid';
+  else vibe = 'graphic';
+  const options = FONT_VIBES[vibe];
+  return options[hashString(`${id}font`) % options.length];
 }
 
 function typeLabel(rg) {
@@ -76,8 +168,10 @@ function typeLabel(rg) {
 }
 
 function CDCase({ release, isOpen, onOpen, index }) {
-  const [color, setColor] = useState(fallbackColor(release.id));
-  const [textDark, setTextDark] = useState(false);
+  const initial = fallbackColor(release.id);
+  const [color, setColor] = useState(initial.rgb);
+  const [textDark, setTextDark] = useState(initial.textDark);
+  const [fontStyle, setFontStyle] = useState(pickFontStyle(release.id, initial.hsl));
   const [coverOk, setCoverOk] = useState(true);
   const coverRef = useRef(null);
 
@@ -86,6 +180,7 @@ function CDCase({ release, isOpen, onOpen, index }) {
       const sampled = sampleDominantColor(e.target);
       setColor(sampled.rgb);
       setTextDark(sampled.textDark);
+      setFontStyle(pickFontStyle(release.id, sampled.hsl));
     } catch {
       // Tainted canvas (e.g. a CORS hiccup) - keep the hash-based fallback
       // colour, still deterministic and still reads as "this release."
@@ -98,12 +193,23 @@ function CDCase({ release, isOpen, onOpen, index }) {
       style={{
         '--case-color': color,
         '--case-text': textDark ? '#181410' : '#f4f2ea',
+        '--case-font': fontStyle.font,
+        '--case-font-weight': fontStyle.weight,
+        '--case-font-style': fontStyle.style,
+        '--case-font-tracking': fontStyle.tracking,
         '--stagger-delay': `${Math.min(index * 35, 420)}ms`,
       }}
     >
       <div
         className={`cd-case${isOpen ? ' cd-case--active' : ''}`}
         onClick={() => onOpen(release, coverRef.current, color)}
+        // Hovering is the natural thing that happens before a click (see
+        // the pivot-reveal above), so it's also the moment to start
+        // fetching the much bigger expand-view image in the background -
+        // by the time a click actually arrives the browser has often
+        // already got it cached, instead of only starting that request
+        // the moment the expand overlay mounts (see useProgressiveCover).
+        onMouseEnter={() => preloadImage(coverUrl(release.id, 1200))}
         role="button"
         tabIndex={0}
         aria-label={`Open ${release.title}`}
@@ -134,11 +240,12 @@ function CDCase({ release, isOpen, onOpen, index }) {
   );
 }
 
-const EXPANDED_SIZE = 340;
+const EXPANDED_SIZE = 460;
 
 export default function DiscographyShelf({ releaseGroups }) {
   const releases = (releaseGroups || []).slice(0, 30);
   const [openRelease, setOpenRelease] = useState(null);
+  const progressiveCoverSrc = useProgressiveCover(openRelease?.id ?? null);
   const [flip, setFlip] = useState(null); // { dx, dy, scale, color }
   const [animateIn, setAnimateIn] = useState(false);
   // Separate from animateIn: animateIn flips back to false to drive the
@@ -153,6 +260,22 @@ export default function DiscographyShelf({ releaseGroups }) {
   const [drag, setDrag] = useState({ x: 0, y: 0, rot: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const draggingRef = useRef(null);
+  // Did the pointer actually move during this press? Set in
+  // handlePointerMove, read (and reset) by the box's own onClick - a
+  // click event still fires after a drag's mouseup regardless of how far
+  // the pointer travelled in between, so without this a drag-and-release
+  // would also cycle the panel, which reads as the case flipping by
+  // itself while you were just trying to nudge it.
+  const dragMovedRef = useRef(false);
+  // Cycles cover -> bio -> tracklist -> cover on each click of the open
+  // case (see .cd-expand__flip below) - 'tracklist' is the only one that
+  // actually flips the case over in 3D (see isFlipped); cover/bio are
+  // both front-facing, just crossfaded, since "open the case up" reads
+  // as revealing something behind the cover, not turning the whole case
+  // around, while "flip it to the back" is explicitly a flip.
+  const [panel, setPanel] = useState('cover');
+  const [bio, setBio] = useState({ status: 'idle', data: null });
+  const [tracklist, setTracklist] = useState({ status: 'idle', data: null });
 
   function openCase(release, coverEl, color) {
     if (!coverEl) return;
@@ -171,6 +294,9 @@ export default function DiscographyShelf({ releaseGroups }) {
     setAnimateIn(false);
     setTransitionReady(false);
     setDrag({ x: 0, y: 0, rot: 0 });
+    setPanel('cover');
+    setBio({ status: 'idle', data: null });
+    setTracklist({ status: 'idle', data: null });
     // Double rAF: the first commits the "start" (pre-flip) transform so the
     // browser actually paints it once, the second flips the state so the
     // transition animates from that painted frame to the centred target
@@ -190,6 +316,33 @@ export default function DiscographyShelf({ releaseGroups }) {
       setTransitionReady(false);
     }, 420);
   }
+
+  function handleBoxClick() {
+    if (dragMovedRef.current) {
+      dragMovedRef.current = false;
+      return;
+    }
+    setPanel((p) => (p === 'cover' ? 'bio' : p === 'bio' ? 'tracklist' : 'cover'));
+  }
+
+  useEffect(() => {
+    if (!openRelease) return;
+    if (panel === 'bio' && bio.status === 'idle') {
+      setBio({ status: 'loading', data: null });
+      fetch(`/api/music/bio?title=${encodeURIComponent(openRelease.title)}`)
+        .then((r) => r.json())
+        .then((result) => setBio({ status: result.source === 'live' ? 'ready' : 'error', data: result }))
+        .catch(() => setBio({ status: 'error', data: null }));
+    }
+    if (panel === 'tracklist' && tracklist.status === 'idle') {
+      setTracklist({ status: 'loading', data: null });
+      fetch(`/api/music/tracklist?id=${encodeURIComponent(openRelease.id)}`)
+        .then((r) => r.json())
+        .then((result) => setTracklist({ status: result.source === 'live' ? 'ready' : 'error', data: result }))
+        .catch(() => setTracklist({ status: 'error', data: null }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panel, openRelease]);
 
   useEffect(() => {
     if (!openRelease) return undefined;
@@ -213,6 +366,7 @@ export default function DiscographyShelf({ releaseGroups }) {
     if (!origin) return;
     const dx = e.clientX - origin.startX;
     const dy = e.clientY - origin.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMovedRef.current = true;
     // Damped and clamped - a nudge, not a full drag-follow: the case
     // should feel like it's being lightly shaken in place, not dragged
     // off across the screen.
@@ -252,6 +406,8 @@ export default function DiscographyShelf({ releaseGroups }) {
   // reads as "settling into place" for the FLIP and as a little shake
   // snapping back for the drag release, without needing two curves.
   const boxTransition = transitionReady && !isDragging ? 'transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none';
+  const isFlipped = panel === 'tracklist';
+  const nextPanelHint = panel === 'cover' ? 'Click to read about this release' : panel === 'bio' ? 'Click to view the tracklist' : 'Click to turn back over';
 
   // Portalled straight to <body> rather than rendered in place: this page
   // sits inside AppShell's page-enter wrapper, which holds a
@@ -276,17 +432,66 @@ export default function DiscographyShelf({ releaseGroups }) {
                   transition: boxTransition,
                 }}
                 onPointerDown={handlePointerDown}
+                onClick={handleBoxClick}
               >
-                <img
-                  className="cd-expand__img"
-                  src={coverUrl(openRelease.id, 1200)}
-                  alt={openRelease.title}
-                  crossOrigin="anonymous"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
+                {/* cover and bio are both "front facing" - a plain
+                    crossfade between them, not a flip, since opening the
+                    case up reads as revealing something behind the cover
+                    rather than turning the object around. Only the
+                    tracklist is a real flip to the physical back. */}
+                <div className={`cd-expand__flip${isFlipped ? ' cd-expand__flip--back' : ''}`}>
+                  <div className="cd-expand__face cd-expand__face--front">
+                    <img
+                      className="cd-expand__img"
+                      src={progressiveCoverSrc}
+                      alt={openRelease.title}
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    <div className={`cd-expand__bio${panel === 'bio' ? ' cd-expand__bio--visible' : ''}`}>
+                      {bio.status === 'loading' ? <p className="cd-expand__panel-status">Looking this up…</p> : null}
+                      {bio.status === 'error' ? (
+                        <p className="cd-expand__panel-status">No Wikipedia page found for this release.</p>
+                      ) : null}
+                      {bio.status === 'ready' && bio.data ? (
+                        <>
+                          <h4>{bio.data.title}</h4>
+                          <p>{bio.data.extract}</p>
+                          {bio.data.pageUrl ? (
+                            <a href={bio.data.pageUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+                              Read more on Wikipedia →
+                            </a>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="cd-expand__face cd-expand__face--back">
+                    <h4>Tracklist</h4>
+                    {tracklist.status === 'loading' ? <p className="cd-expand__panel-status">Looking this up…</p> : null}
+                    {tracklist.status === 'error' ? (
+                      <p className="cd-expand__panel-status">No tracklist found for this release.</p>
+                    ) : null}
+                    {tracklist.status === 'ready' && tracklist.data ? (
+                      <ol className="cd-expand__tracklist">
+                        {tracklist.data.tracks.map((t, i) => (
+                          <li key={i}>{t.title}</li>
+                        ))}
+                      </ol>
+                    ) : null}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="cd-expand__close"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeCase();
                   }}
-                />
-                <button type="button" className="cd-expand__close" onClick={closeCase} aria-label="Close">
+                  aria-label="Close"
+                >
                   ×
                 </button>
               </div>
@@ -296,6 +501,7 @@ export default function DiscographyShelf({ releaseGroups }) {
                   {typeLabel(openRelease)}
                   {openRelease.firstReleaseDate ? ` · ${openRelease.firstReleaseDate.slice(0, 4)}` : ''}
                 </span>
+                <span className="cd-expand__hint">{nextPanelHint}</span>
               </div>
             </div>
           </>,

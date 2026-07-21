@@ -4056,11 +4056,10 @@ html.custom-cursor-active textarea {
 .cd-shelf {
   display: flex;
   align-items: flex-end;
-  gap: 3px;
+  gap: 10px;
   overflow-x: auto;
   overflow-y: visible;
   padding: 48px 20px 22px;
-  perspective: 1600px;
   scrollbar-width: thin;
 }
 .cd-shelf__ledge {
@@ -4074,8 +4073,17 @@ html.custom-cursor-active textarea {
 .cd-slot {
   position: relative;
   flex: 0 0 auto;
-  width: 46px;
-  height: 224px;
+  width: 34px;
+  height: 280px;
+  /* A local perspective per slot, not one shared across the whole row
+     (which used to live on .cd-shelf) - a single shared vanishing point
+     meant every case except the one nearest the shelf's own centre was
+     being viewed from an angle, giving the pivoted cover a warped,
+     keystoned look (the further from centre, the worse) rather than a
+     clean, uniform foreshortening. Each case getting its own centred
+     perspective means every single one pivots the same way regardless of
+     where it sits in a long, horizontally-scrolling row. */
+  perspective: 900px;
   /* Staggered fade-in lives on this wrapper, not on .cd-case below -
      empirically, an element with an active/held CSS animation (even one
      that only ever touches opacity, never transform) renders its own
@@ -4126,10 +4134,12 @@ html.custom-cursor-active textarea {
   /* The cover is attached at rotateY(90deg) locally (edge-on, hidden at
      rest) - rotating this parent group by some angle A composes to leave
      the cover sitting at an effective (90 - A) degrees from the camera,
-     since both share the same rotation axis. -58deg here means the
-     cover ends up around 32 degrees from face-on: enough to actually
-     read as "the cover," not just a sliver at its edge. */
-  transform: rotateY(-58deg);
+     since both share the same rotation axis. A genuine peek, not a big
+     reveal - the full cover is what clicking is for - so this only comes
+     off the shelf enough to read as a case actually tilting toward you,
+     small enough that its foreshortened width stays inside the next
+     case's own gap rather than climbing over two or three neighbours. */
+  transform: rotateY(-18deg);
 }
 .cd-case--active {
   opacity: 0 !important;
@@ -4150,15 +4160,21 @@ html.custom-cursor-active textarea {
 }
 .cd-case__spine-title {
   display: block;
-  max-width: 200px;
+  max-width: 256px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   transform: rotate(-90deg);
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  /* Per-release, set inline alongside --case-color (see CDCase in
+     DiscographyShelf.js) - a handful of distinct type treatments picked
+     deterministically per release, loosely biased by the sampled cover
+     colour's own character (bold/saturated vs. dark/moody etc.), the
+     same idea as the newspaper masthead fonts in MediaView. */
+  font-family: var(--case-font, var(--font-sans));
+  font-size: 10px;
+  font-weight: var(--case-font-weight, 700);
+  font-style: var(--case-font-style, normal);
+  letter-spacing: var(--case-font-tracking, 0.03em);
   text-transform: uppercase;
   color: var(--case-text, #f4f2ea);
 }
@@ -4166,7 +4182,7 @@ html.custom-cursor-active textarea {
   position: absolute;
   top: 0;
   left: 100%;
-  width: 168px;
+  width: 100px;
   height: 100%;
   transform-origin: left center;
   transform: rotateY(90deg);
@@ -4192,7 +4208,7 @@ html.custom-cursor-active textarea {
   }
   .cd-slot:hover .cd-case,
   .cd-case:focus-visible {
-    transform: rotateY(-18deg);
+    transform: rotateY(-10deg);
   }
 }
 
@@ -4230,18 +4246,49 @@ html.custom-cursor-active textarea {
 }
 .cd-expand__box {
   position: relative;
-  width: 340px;
-  height: 340px;
+  width: 460px;
+  height: 460px;
   border-radius: 4px;
   background: var(--case-color, #2c2c2c);
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55), 0 10px 24px rgba(0, 0, 0, 0.4);
   pointer-events: auto;
-  cursor: grab;
+  cursor: pointer;
   touch-action: none;
-  overflow: hidden;
+  /* For .cd-expand__flip's own 3D flip below - not for itself, this box
+     only ever moves via plain 2D translate/scale (the FLIP-open/close and
+     the drag nudge, both driven from JS state, see boxTransform). */
+  perspective: 1400px;
 }
 .cd-expand__box:active {
   cursor: grabbing;
+}
+/* Click-to-cycle-panels and click-and-drag-to-shake share the same
+   element (see openCase/handlePointerDown) - the case's own front face
+   needs to be a real, separately positioned layer so the 180deg flip to
+   the tracklist has something to rotate as a unit, rather than the box
+   itself rotating (which would also spin the drag nudge and the FLIP-
+   open transform sitting on the parent). */
+.cd-expand__flip {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cd-expand__flip--back {
+  transform: rotateY(180deg);
+}
+.cd-expand__face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+.cd-expand__face--back {
+  transform: rotateY(180deg);
+  background: var(--case-color, #2c2c2c);
+  padding: 28px;
+  overflow-y: auto;
+  color: #f4f2ea;
 }
 .cd-expand__img {
   width: 100%;
@@ -4250,18 +4297,77 @@ html.custom-cursor-active textarea {
   display: block;
   pointer-events: none;
 }
+/* Sits over the cover art rather than replacing it - "opening the case
+   up" reads as something sliding into view on top of the front cover,
+   not the cover disappearing. */
+.cd-expand__bio {
+  position: absolute;
+  inset: 0;
+  padding: 28px;
+  overflow-y: auto;
+  background: rgba(8, 8, 8, 0.86);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  color: #f4f2ea;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 280ms ease, transform 280ms ease;
+}
+.cd-expand__bio--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.cd-expand__bio h4,
+.cd-expand__face--back h4 {
+  margin: 0 0 12px;
+  font-family: var(--font-serif);
+  font-size: 18px;
+}
+.cd-expand__bio p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(244, 242, 234, 0.88);
+}
+.cd-expand__bio a {
+  font-size: 12px;
+  color: var(--paper);
+  text-decoration: underline;
+}
+.cd-expand__panel-status {
+  font-size: 13px;
+  color: rgba(244, 242, 234, 0.6);
+  font-style: italic;
+}
+.cd-expand__tracklist {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 13px;
+  line-height: 1.9;
+  color: rgba(244, 242, 234, 0.88);
+}
 .cd-expand__close {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 30px;
-  height: 30px;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The × glyph's own em-box isn't visually centred within its line
+     height in most fonts - flex-centering the button itself, rather
+     than relying on line-height, is what actually lands it in the
+     middle of the circle regardless of font metrics. */
   border: none;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
   color: #f4f2ea;
   font-size: 18px;
   line-height: 1;
+  padding: 0;
   cursor: pointer;
 }
 .cd-expand__caption {
@@ -4287,8 +4393,20 @@ html.custom-cursor-active textarea {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+.cd-expand__hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: normal;
+  color: rgba(138, 138, 134, 0.7);
+}
 
 @media (prefers-reduced-motion: reduce) {
+  .cd-expand__flip {
+    transition: none;
+  }
   .cd-expand-backdrop {
     animation: none;
     opacity: 1;
