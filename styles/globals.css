@@ -3203,8 +3203,12 @@ html.custom-cursor-active textarea {
      same as having no cap at all), a value that grows steadily with
      viewport width, and an outer ceiling so it still stops at a sensible
      newspaper-page size rather than growing forever on something huge
-     like an 8K display. */
-  width: min(100%, calc(320px + 36vw), 1700px);
+     like an 8K display. Growth rate is deliberately steep (48vw, not a
+     gentler slope) so it's still visibly, meaningfully bigger at a normal
+     4K TV width rather than just barely nudging past where the old flat
+     cap sat - the ceiling only actually starts biting on something
+     noticeably past that. */
+  width: min(100%, calc(250px + 48vw), 2600px);
   margin: 0 auto;
 }
 
@@ -3236,30 +3240,39 @@ html.custom-cursor-active textarea {
      rather than perfectly flat card stock. */
   box-shadow: 0 3px 4px rgba(0, 0, 0, 0.38), 0 16px 28px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3),
     inset 0 18px 22px -20px rgba(0, 0, 0, 0.5), inset 0 -22px 26px -22px rgba(0, 0, 0, 0.55);
-  /* A slight overshoot-then-settle on the lift itself (still pure
-     translateY, nothing 3D) reads as the sheet being picked up and given a
-     little flick to straighten it out, rather than sliding to a dead
-     stop - the small bounce is what actually sells "unfurl" rather than
-     "slide." */
-  transition: transform 560ms cubic-bezier(0.34, 1.32, 0.64, 1), box-shadow 420ms ease, opacity 340ms ease;
-  /* Settles into its resting tilt rather than just being there on first
-     paint - staggered per strip via --stagger-delay (set in MediaView.js)
-     so the pile visibly deals itself in from the top down. `both` holds
-     the animation's final frame (which matches the element's own static
-     transform above) rather than snapping back to an unrotated state once
-     it finishes. */
-  animation: news-strip-in 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Was a spring/overshoot curve (cubic-bezier(0.34, 1.32, 0.64, 1)) - it
+     read as a little flick/bounce rather than one continuous motion, and
+     stood out even more once next to the headline/accordion below moving
+     on their own separate timings. A single ease-in-out shared by every
+     moving part of the open interaction (this, the accordion, and the
+     headline reveal below) at the same 560ms duration is what actually
+     reads as one unfurling motion rather than several different-timed
+     animations firing at once: slow to start, quickest through the
+     middle, and slow again settling into place - not a sudden snap to a
+     dead stop. */
+  transition: transform 560ms cubic-bezier(0.65, 0, 0.35, 1), box-shadow 560ms cubic-bezier(0.65, 0, 0.35, 1), opacity 340ms ease;
+  /* Fades in on first paint rather than just being there - staggered per
+     strip via --stagger-delay (set in MediaView.js) so the pile visibly
+     deals itself in from the top down. Deliberately opacity-only, not also
+     a translateY slide like the very first version of this had: a
+     fill-mode: both animation holds its last keyframe's computed value
+     for a property indefinitely at a higher cascade priority than any
+     ordinary rule or transition trying to touch that same property
+     afterwards - including this strip's own open/close lift below, which
+     also animates transform. With transform in both places, the open
+     transition lost the fight and the lift just snapped instantly instead
+     of easing. Keeping the entrance to opacity alone means there's no
+     shared property left to collide over. */
+  animation: news-strip-in 640ms ease both;
   animation-delay: var(--stagger-delay, 0ms);
 }
 
 @keyframes news-strip-in {
   from {
     opacity: 0;
-    transform: translateY(22px) rotate(var(--rot, 0deg));
   }
   to {
     opacity: 1;
-    transform: rotate(var(--rot, 0deg));
   }
 }
 
@@ -3524,10 +3537,35 @@ html.custom-cursor-active textarea {
   overflow: hidden;
 }
 
+/* -webkit-line-clamp can't itself be smoothly animated - the headline's
+   own height still snaps instantly from 2 lines to full the moment this
+   class lands, no matter what. Fading it in from the same instant masks
+   that jump instead of trying (and failing) to smooth it directly: the
+   newly-revealed lines arrive already partway faded in rather than
+   popping in at full opacity, and it's brief and early enough in the
+   560ms unfurl (see .news-strip's transition) that it reads as part of
+   the same continuous reveal rather than a separate flourish tacked on
+   top of it. */
 .news-strip__headline--open {
   display: block;
   -webkit-line-clamp: unset;
   overflow: visible;
+  animation: news-strip-headline-in 380ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@keyframes news-strip-headline-in {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .news-strip__headline--open {
+    animation: none;
+  }
 }
 
 /* Open state: a flat, purely vertical lift - no scale, no perspective tilt,
@@ -3570,7 +3608,11 @@ html.custom-cursor-active textarea {
 .news-strip__expand {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 520ms cubic-bezier(0.65, 0, 0.35, 1);
+  /* Matches .news-strip's own transform/box-shadow duration+curve exactly
+     (see its comment) so the lift and the height grow complete together
+     as one motion instead of the accordion trailing behind on its own
+     timeline. */
+  transition: grid-template-rows 560ms cubic-bezier(0.65, 0, 0.35, 1);
 }
 .news-strip--open .news-strip__expand {
   grid-template-rows: 1fr;
@@ -3597,16 +3639,21 @@ html.custom-cursor-active textarea {
 .news-strip--open .news-strip__expand-inner > * {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 380ms ease var(--reveal-delay, 120ms), transform 460ms cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 120ms);
+  /* Tightened from 380/460ms starting at a 100-210ms delay, which used to
+     let the last item trail on for up to 670ms total - well past the
+     560ms the lift and accordion now share, so the reveal read as still
+     dribbling in after the rest of the motion had already settled. Now
+     finishes inside that same window instead of after it. */
+  transition: opacity 280ms ease var(--reveal-delay, 60ms), transform 340ms cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 60ms);
 }
 .news-strip--open .news-strip__expand-inner > *:nth-child(1) {
-  --reveal-delay: 100ms;
+  --reveal-delay: 60ms;
 }
 .news-strip--open .news-strip__expand-inner > *:nth-child(2) {
-  --reveal-delay: 160ms;
+  --reveal-delay: 100ms;
 }
 .news-strip--open .news-strip__expand-inner > *:nth-child(3) {
-  --reveal-delay: 210ms;
+  --reveal-delay: 140ms;
 }
 
 /* The last sheet in the pile ends the stack on a real torn edge rather
@@ -3798,20 +3845,22 @@ html.custom-cursor-active textarea {
   overflow: hidden;
   transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 340ms ease;
   /* Staggered per card (--stagger-delay set in Media2View.js), same idea as
-     the newspaper strips' entrance - see .news-strip's own comment. */
+     the newspaper strips' entrance - see .news-strip's own comment. Kept to
+     opacity only, not also a translateY slide, for the same reason: a
+     fill-mode: both animation holds transform at a higher cascade priority
+     than this pill's own hover/open transform transitions below, so with
+     transform in both places the lift would snap instead of easing. */
   opacity: 0;
-  animation: media2-pill-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: media2-pill-in 560ms ease both;
   animation-delay: var(--stagger-delay, 0ms);
 }
 
 @keyframes media2-pill-in {
   from {
     opacity: 0;
-    transform: translateY(16px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
