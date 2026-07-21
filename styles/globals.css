@@ -4040,3 +4040,257 @@ html.custom-cursor-active textarea {
     transition: none;
   }
 }
+
+/* ---------------------------------------------------------------------- */
+/* Music - discography shelf                                              */
+/* ---------------------------------------------------------------------- */
+/* A physical CD shelf metaphor for the discography (components/music/
+   DiscographyShelf.js): each release is a thin spine at rest, the way a
+   real shelf of jewel cases reads from across a room - only on hover does
+   it pivot open enough to show its own cover, and only on click does it
+   come off the shelf entirely. perspective on the row is what gives every
+   case's pivot a real vanishing point rather than a flat skewed rotation. */
+.cd-shelf-wrap {
+  margin-top: 4px;
+}
+.cd-shelf {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 48px 20px 22px;
+  perspective: 1600px;
+  scrollbar-width: thin;
+}
+.cd-shelf__ledge {
+  height: 14px;
+  margin: 0 8px;
+  background: linear-gradient(180deg, #2a2723, #151310);
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.5);
+}
+
+.cd-slot {
+  position: relative;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 224px;
+  /* Staggered fade-in lives on this wrapper, not on .cd-case below -
+     empirically, an element with an active/held CSS animation (even one
+     that only ever touches opacity, never transform) renders its own
+     preserve-3d children as flattened in this browser, breaking the
+     pivot-reveal entirely while the animation is live. Since fill-mode:
+     both holds the animation "live" indefinitely after it finishes (the
+     same mechanism behind the .news-strip/.media2-pill comments
+     elsewhere in this file, just a different symptom here - flattened
+     3D instead of a blocked transition), .cd-case can never carry both
+     the entrance animation and the 3D hover pivot. This wrapper has no
+     transform of its own, so animating its opacity is free of the
+     interaction entirely. */
+  opacity: 0;
+  animation: cd-slot-in 480ms ease both;
+  animation-delay: var(--stagger-delay, 0ms);
+}
+@keyframes cd-slot-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.cd-case {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transform-origin: left center;
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* Each .cd-slot is its own separate stacking context (siblings in a flex
+   row, not one shared 3D scene) - normal DOM-order 2D paint rules apply
+   between them regardless of which one's cover has swung "closer" to the
+   camera in its own local 3D space. Without this, a pivoted-open cover
+   swinging out over a later sibling in the row was getting painted
+   *underneath* that sibling's flat, opaque spine instead of over it,
+   since later-in-DOM wins ties in normal paint order. Lifting the whole
+   hovered slot above its neighbours fixes the paint order to match what
+   the 3D is actually depicting. */
+.cd-slot:hover,
+.cd-slot:has(.cd-case:focus-visible) {
+  z-index: 5;
+}
+.cd-slot:hover .cd-case,
+.cd-case:focus-visible {
+  /* The cover is attached at rotateY(90deg) locally (edge-on, hidden at
+     rest) - rotating this parent group by some angle A composes to leave
+     the cover sitting at an effective (90 - A) degrees from the camera,
+     since both share the same rotation axis. -58deg here means the
+     cover ends up around 32 degrees from face-on: enough to actually
+     read as "the cover," not just a sliver at its edge. */
+  transform: rotateY(-58deg);
+}
+.cd-case--active {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.cd-case__spine {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--case-color, #2c2c2c);
+  border-radius: 2px;
+  backface-visibility: hidden;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.08), inset -1px 0 0 rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.cd-case__spine-title {
+  display: block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: rotate(-90deg);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--case-text, #f4f2ea);
+}
+.cd-case__cover {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 168px;
+  height: 100%;
+  transform-origin: left center;
+  transform: rotateY(90deg);
+  background: var(--case-color, #2c2c2c);
+  overflow: hidden;
+  border-radius: 0 3px 3px 0;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.4);
+}
+.cd-case__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-slot {
+    animation: none;
+    opacity: 1;
+  }
+  .cd-case {
+    transition: none;
+  }
+  .cd-slot:hover .cd-case,
+  .cd-case:focus-visible {
+    transform: rotateY(-18deg);
+  }
+}
+
+/* Click takes a case off the shelf entirely rather than just enlarging it
+   in place (unlike Media 2's pills, see .media2-pill--open's own comment)
+   - "pull it to the middle of the screen" is real travel across the page,
+   not a same-spot scale-up, so it needs an actual FLIP (First-Last-
+   Invert-Play) transform computed in JS from the clicked cover's on-screen
+   rect (see DiscographyShelf's openCase) rather than anything expressible
+   as a fixed CSS keyframe. */
+.cd-expand-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(4, 4, 4, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  animation: cd-backdrop-in 260ms ease forwards;
+}
+@keyframes cd-backdrop-in {
+  to {
+    opacity: 1;
+  }
+}
+.cd-expand {
+  position: fixed;
+  inset: 0;
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.cd-expand__box {
+  position: relative;
+  width: 340px;
+  height: 340px;
+  border-radius: 4px;
+  background: var(--case-color, #2c2c2c);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55), 0 10px 24px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  overflow: hidden;
+}
+.cd-expand__box:active {
+  cursor: grabbing;
+}
+.cd-expand__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.cd-expand__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #f4f2ea;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cd-expand__caption {
+  margin-top: 22px;
+  text-align: center;
+  color: var(--paper);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 260ms ease 120ms, transform 260ms ease 120ms;
+}
+.cd-expand__caption--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.cd-expand__caption h3 {
+  margin: 0 0 4px;
+  font-family: var(--font-serif);
+  font-size: 20px;
+}
+.cd-expand__caption span {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-expand-backdrop {
+    animation: none;
+    opacity: 1;
+  }
+}

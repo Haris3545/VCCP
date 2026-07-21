@@ -1,4 +1,5 @@
 import SourceSection from '@/components/ui/SourceSection';
+import DiscographyShelf from './DiscographyShelf';
 
 function formatNumber(n) {
   return typeof n === 'number' ? n.toLocaleString('en-US') : '—';
@@ -35,19 +36,8 @@ export default function MusicView({ data }) {
         )}
       </SourceSection>
 
-      <SourceSection title="Discography" eyebrow="MusicBrainz" result={discography}>
-        {discography?.source === 'live' &&
-          discography.releaseGroups.slice(0, 20).map((rg) => (
-            <div className="list-row" key={rg.id}>
-              <span>{rg.title}</span>
-              <span style={{ color: 'var(--muted)', textTransform: 'capitalize' }}>
-                {rg.primaryType?.toLowerCase()}
-              </span>
-              <span style={{ marginLeft: 'auto', color: 'var(--muted)' }}>
-                {rg.firstReleaseDate || '—'}
-              </span>
-            </div>
-          ))}
+      <SourceSection title="Discography" eyebrow="MusicBrainz + Cover Art Archive" result={discography}>
+        {discography?.source === 'live' && <DiscographyShelf releaseGroups={discography.releaseGroups} />}
       </SourceSection>
 
       <SourceSection title="Facts & awards" eyebrow="Wikidata" result={facts}>
