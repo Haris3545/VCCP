@@ -99,13 +99,22 @@ function titleKey(title) {
 // "Today's Hits" is a generic, algorithmically-generated various-artists
 // playlist MusicBrainz happens to have indexed with this artist attached -
 // not a real release of hers, so it's dropped outright rather than shown
-// in any section.
-const HIDDEN_RELEASE_TITLES = new Set(['todays hits'].map(titleKey));
-// "Bottoms" and "Wuthering Heights" are film-soundtrack work, not albums
-// in the ordinary sense (MusicBrainz tags them primaryType: Album purely
-// because they're full-length releases) - pinned into "Other releases"
-// regardless of type so they don't sit alongside her actual studio albums.
-const FORCE_OTHER_RELEASE_TITLES = new Set(['bottoms', 'wuthering heights'].map(titleKey));
+// in any section. Matched by prefix, not exact title: MusicBrainz reindexes
+// it under a new dated title periodically ("Today's Hits: June 2022" today,
+// presumably some other month next time it's regenerated) - the "Today's
+// Hits" part is the only thing that's stable.
+const HIDDEN_RELEASE_TITLE_PREFIXES = ['todays hits'].map(titleKey);
+// Film-soundtrack work and remix collections, not albums in the ordinary
+// sense (MusicBrainz tags them primaryType: Album purely because they're
+// full-length releases) - pinned into "Other releases" regardless of type
+// so they don't sit alongside her actual studio albums.
+const FORCE_OTHER_RELEASE_TITLES = new Set(
+  [
+    'BOTTOMS: Original Motion Picture Score',
+    'Wuthering Heights',
+    "Brat and it's completely different but also still brat",
+  ].map(titleKey)
+);
 
 // Buckets releases into named rows-and-columns sections - albums, then
 // singles, then whatever's left (EPs, live albums, compilations, ...) -
@@ -119,7 +128,7 @@ function groupReleases(releases) {
   const other = [];
   for (const rg of releases) {
     const key = titleKey(rg.title);
-    if (HIDDEN_RELEASE_TITLES.has(key)) continue;
+    if (HIDDEN_RELEASE_TITLE_PREFIXES.some((prefix) => key.startsWith(prefix))) continue;
     const type = rg.primaryType || '';
     if (FORCE_OTHER_RELEASE_TITLES.has(key)) other.push(rg);
     else if (type === 'Album') albums.push(rg);
@@ -134,9 +143,7 @@ function groupReleases(releases) {
 }
 
 // Fallback spine/cover colour for a release-group whose art hasn't loaded
-// (or never loads) yet - deterministic so it's stable across renders, and
-// a fixed low lightness so white spine text and the tracklist/insert
-// panels always have enough contrast without a per-instance check. Two
+// (or never loads) yet - deterministic so it's stable across renders. Two
 // shades (base + deep) so the expanded case's front-cover and back-cover
 // gradients have something to run between even before real art loads.
 function fallbackColor(id) {
@@ -144,37 +151,7 @@ function fallbackColor(id) {
   return {
     rgb: `hsl(${hue}, 40%, 32%)`,
     rgbDeep: `hsl(${hue}, 46%, 15%)`,
-    textDark: false,
-    hsl: { h: hue, s: 40, l: 32 },
   };
-}
-
-function relativeLuminance(r, g, b) {
-  const toLinear = (c) => {
-    const s = c / 255;
-    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-}
-
-function rgbToHsl(r, g, b) {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  let h = 0;
-  let s = 0;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
-    else if (max === g) h = (b - r) / d + 2;
-    else h = (r - g) / d + 4;
-    h *= 60;
-  }
-  return { h, s: s * 100, l: l * 100 };
 }
 
 // Averages the loaded cover art down to a single representative colour -
@@ -211,44 +188,7 @@ function sampleDominantColor(img) {
   return {
     rgb: `rgb(${base.r}, ${base.g}, ${base.b})`,
     rgbDeep: `rgb(${deep.r}, ${deep.g}, ${deep.b})`,
-    textDark: relativeLuminance(base.r, base.g, base.b) > 0.45,
-    hsl: rgbToHsl(base.r, base.g, base.b),
   };
-}
-
-// A handful of distinct spine "voices," each biased toward a colour
-// character rather than picked purely at random - the same idea as
-// MediaView's masthead fonts (different outlets read differently), just
-// driven by the release's own sampled cover colour instead of a hash
-// alone: a bright, saturated cover reads as loud/pop; a dark, desaturated
-// one reads as moodier/more serious. Multiple options per vibe still get
-// hash-picked so two loud covers don't necessarily look identical.
-const FONT_VIBES = {
-  vivid: [
-    { font: "'Archivo Black', var(--font-sans)", weight: 400, style: 'normal', tracking: '0.02em' },
-    { font: "'Space Grotesk', var(--font-sans)", weight: 700, style: 'normal', tracking: '0.01em' },
-  ],
-  moody: [
-    { font: "'Playfair Display', var(--font-serif)", weight: 700, style: 'italic', tracking: '0.01em' },
-    { font: 'var(--font-serif)', weight: 700, style: 'normal', tracking: '0.02em' },
-  ],
-  muted: [
-    { font: 'var(--font-serif)', weight: 400, style: 'italic', tracking: '0.02em' },
-    { font: "'IBM Plex Mono', ui-monospace, monospace", weight: 500, style: 'normal', tracking: '0em' },
-  ],
-  graphic: [
-    { font: "'Oswald', var(--font-sans)", weight: 600, style: 'normal', tracking: '0.03em' },
-    { font: "'Space Grotesk', var(--font-sans)", weight: 500, style: 'normal', tracking: '0.01em' },
-  ],
-};
-function pickFontStyle(id, hsl) {
-  let vibe;
-  if (hsl.l < 30) vibe = 'moody';
-  else if (hsl.s < 22) vibe = 'muted';
-  else if (hsl.s > 50) vibe = 'vivid';
-  else vibe = 'graphic';
-  const options = FONT_VIBES[vibe];
-  return options[hashString(`${id}font`) % options.length];
 }
 
 function typeLabel(rg) {
@@ -260,8 +200,6 @@ function PileCase({ release, index, isActive, large, onOpen }) {
   const initial = fallbackColor(release.id);
   const [color, setColor] = useState(initial.rgb);
   const [colorDeep, setColorDeep] = useState(initial.rgbDeep);
-  const [textDark, setTextDark] = useState(initial.textDark);
-  const [fontStyle, setFontStyle] = useState(pickFontStyle(release.id, initial.hsl));
   const [coverOk, setCoverOk] = useState(true);
   const caseRef = useRef(null);
 
@@ -270,8 +208,6 @@ function PileCase({ release, index, isActive, large, onOpen }) {
       const sampled = sampleDominantColor(e.target);
       setColor(sampled.rgb);
       setColorDeep(sampled.rgbDeep);
-      setTextDark(sampled.textDark);
-      setFontStyle(pickFontStyle(release.id, sampled.hsl));
     } catch {
       // Tainted canvas (e.g. a CORS hiccup) - keep the hash-based fallback
       // colours, still deterministic and still reads as "this release."
@@ -288,11 +224,6 @@ function PileCase({ release, index, isActive, large, onOpen }) {
       className={`pile-case${large ? ' pile-case--lg' : ''}${isActive ? ' pile-case--active' : ''}`}
       style={{
         '--case-color': color,
-        '--case-text': textDark ? '#181410' : '#f4f2ea',
-        '--case-font': fontStyle.font,
-        '--case-font-weight': fontStyle.weight,
-        '--case-font-style': fontStyle.style,
-        '--case-font-tracking': fontStyle.tracking,
         '--stagger-delay': `${Math.min(index * 28, 380)}ms`,
       }}
       onClick={handleOpen}
@@ -314,9 +245,7 @@ function PileCase({ release, index, isActive, large, onOpen }) {
       }}
     >
       <div className="pile-case__enter">
-        <div className="pile-case__spine">
-          <span>{release.title}</span>
-        </div>
+        <div className="pile-case__spine" />
         <div className="pile-case__cover">
           {coverOk ? (
             <img
@@ -703,9 +632,7 @@ export default function DiscographyShelf({ releaseGroups }) {
                     }
                   }}
                 >
-                  <div className="cd-expand__spine" style={{ transform: spineT }}>
-                    <span>{openRelease.title}</span>
-                  </div>
+                  <div className="cd-expand__spine" style={{ transform: spineT }} />
 
                   <div className="cd-expand__leaf" style={{ transform: coverLeafT, zIndex: coverZ }}>
                     <div className="cd-expand__flip" style={{ transform: coverFlipT }}>
