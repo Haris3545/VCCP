@@ -266,8 +266,8 @@ function PileCase({ release, index, isActive, large, onOpen }) {
 // Intrinsic size of the centred, expanded rig - kept in one place since
 // both the CSS (see .cd-expand__stage/__spine/__leaf in globals.css) and
 // the FLIP scale math below (openCase) need to agree on the same numbers.
-const RIG_W = 340;
-const SPINE_W = 28;
+const RIG_W = 400;
+const SPINE_W = 33;
 const LEAF_W = RIG_W - SPINE_W;
 // Not a round 180 - see .cd-expand__flip's own comment in globals.css for
 // why a rotateY transition landing on exactly 180deg is worth avoiding.
@@ -283,7 +283,7 @@ const HINGE_HINTS = {
 // hinge takes to settle back to "front" before it's safe to start flying
 // the case back to the pile.
 const HINGE_DURATION = 820;
-const MINIMIZE_DURATION = 220;
+const MINIMIZE_DURATION = 260;
 
 export default function DiscographyShelf({ releaseGroups }) {
   const releases = (releaseGroups || []).slice(0, 30);
@@ -297,20 +297,10 @@ export default function DiscographyShelf({ releaseGroups }) {
   // needs to stay switched on through that close, not switch off the
   // moment animateIn does. transitionReady turns on once (after the first
   // open frame has painted) and stays on until this whole overlay
-  // unmounts, so both the open and the close FLIP get the transition,
-  // and only a live drag (see isDragging) or the very first frame (which
-  // has nothing to transition from yet) turn it off.
+  // unmounts, so both the open and the close FLIP get the transition -
+  // only the very first frame (which has nothing to transition from yet)
+  // needs it off.
   const [transitionReady, setTransitionReady] = useState(false);
-  const [drag, setDrag] = useState({ x: 0, y: 0, rot: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const draggingRef = useRef(null);
-  // Did the pointer actually move during this press? Set in
-  // handlePointerMove, read (and reset) by the rig's own onClick - a click
-  // event still fires after a drag's mouseup regardless of how far the
-  // pointer travelled in between, so without this a drag-and-release would
-  // also cycle the hinge state, which reads as the case opening by itself
-  // while you were just trying to nudge it.
-  const dragMovedRef = useRef(false);
   // Which of the three physical states the case is in - see HINGE_STATES.
   // Every click of the open case cycles it: front (closed, cover facing
   // you) -> open (cover swings out to reveal the insert; the tray sits
@@ -344,7 +334,6 @@ export default function DiscographyShelf({ releaseGroups }) {
     setOpenRelease(release);
     setAnimateIn(false);
     setTransitionReady(false);
-    setDrag({ x: 0, y: 0, rot: 0 });
     setHingeIndex(0);
     setBio({ status: 'idle', data: null });
     setTracklist({ status: 'idle', data: null });
@@ -377,7 +366,6 @@ export default function DiscographyShelf({ releaseGroups }) {
 
   function minimizeCase() {
     setAnimateIn(false);
-    setDrag({ x: 0, y: 0, rot: 0 });
     window.setTimeout(() => {
       setOpenRelease(null);
       setFlip(null);
@@ -386,10 +374,6 @@ export default function DiscographyShelf({ releaseGroups }) {
   }
 
   function handleRigClick() {
-    if (dragMovedRef.current) {
-      dragMovedRef.current = false;
-      return;
-    }
     setHingeIndex((i) => (i + 1) % HINGE_STATES.length);
   }
 
@@ -411,9 +395,11 @@ export default function DiscographyShelf({ releaseGroups }) {
   }
 
   function handleDiscPointerDown(e) {
-    // Grabbing the disc is its own gesture, not a nudge of the whole case
-    // (see handlePointerDown below) or a click-through to the rig's own
-    // hinge-cycling onClick.
+    // Grabbing the disc is its own gesture, not a click-through to the
+    // rig's own hinge-cycling onClick - stopped here on pointerdown, and
+    // again on the disc's own onClick below, since pointerdown and click
+    // are separate event dispatches (stopping one doesn't stop the other).
+    e.preventDefault();
     e.stopPropagation();
     stopDiscSpin();
     discSpin.current.dragging = true;
@@ -491,42 +477,8 @@ export default function DiscographyShelf({ releaseGroups }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [openRelease]);
 
-  function handlePointerDown(e) {
-    e.preventDefault();
-    draggingRef.current = { startX: e.clientX, startY: e.clientY };
-    setIsDragging(true);
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-  }
-
-  function handlePointerMove(e) {
-    const origin = draggingRef.current;
-    if (!origin) return;
-    const dx = e.clientX - origin.startX;
-    const dy = e.clientY - origin.startY;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMovedRef.current = true;
-    // Damped and clamped - a nudge, not a full drag-follow: the case
-    // should feel like it's being lightly shaken in place (in any of its
-    // three hinge states), not dragged off across the screen.
-    setDrag({
-      x: Math.max(-26, Math.min(26, dx * 0.35)),
-      y: Math.max(-18, Math.min(18, dy * 0.35)),
-      rot: Math.max(-8, Math.min(8, dx * 0.04)),
-    });
-  }
-
-  function handlePointerUp() {
-    draggingRef.current = null;
-    window.removeEventListener('pointermove', handlePointerMove);
-    window.removeEventListener('pointerup', handlePointerUp);
-    setIsDragging(false);
-    setDrag({ x: 0, y: 0, rot: 0 });
-  }
-
   useEffect(
     () => () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
       window.removeEventListener('pointermove', handleDiscPointerMove);
       window.removeEventListener('pointerup', handleDiscPointerUp);
       stopDiscSpin();
@@ -536,25 +488,29 @@ export default function DiscographyShelf({ releaseGroups }) {
 
   if (releases.length === 0) return null;
 
-  const preFlipTransform = flip ? `translate(${flip.dx}px, ${flip.dy}px) scale(${flip.scale})` : 'none';
-  const settledTransform = `translate(${drag.x}px, ${drag.y}px) rotate(${drag.rot}deg) scale(1)`;
+  // A slight lean in the direction of travel - away from centre (then
+  // straightening out) while opening, into the pile while closing - rather
+  // than a purely straight-line FLIP. Derived from which side of the
+  // viewport centre the pile position sits on (flip.dx), clamped to a
+  // small angle so it reads as momentum, not a spin.
+  const flipTiltDeg = flip ? Math.max(-12, Math.min(12, flip.dx * 0.025)) : 0;
+  const preFlipTransform = flip
+    ? `translate(${flip.dx}px, ${flip.dy}px) rotate(${flipTiltDeg}deg) scale(${flip.scale})`
+    : 'none';
+  const settledTransform = 'scale(1)';
   const stageTransform = animateIn ? settledTransform : preFlipTransform;
-  // Active only once there's a painted frame to tween from, and switched
-  // off entirely during a live drag so the case tracks the pointer
-  // immediately rather than lagging behind an easing curve - it should
-  // feel grabbed, not chased. Opening (and the post-drag return-to-rest)
-  // use a plain deceleration curve, not a spring with overshoot - arriving
-  // at the centre of the screen is meant to read as a deliberate, polished
-  // move, not a playful bounce. Closing/minimising - animateIn having gone
-  // back to false while transitionReady is still true - uses a shorter,
-  // accelerating curve instead: a quick zip back into the pile rather than
-  // a mirror of the same slow arrival.
-  const stageTransition =
-    !transitionReady || isDragging
-      ? 'none'
-      : animateIn
-        ? 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1)'
-        : `transform ${MINIMIZE_DURATION}ms cubic-bezier(0.5, 0, 0.75, 0)`;
+  // Opening eases out to a clean stop at the centre - a plain deceleration
+  // curve, not a spring with overshoot, so arriving reads as a deliberate,
+  // polished move rather than a playful bounce. Closing/minimising -
+  // animateIn having gone back to false while transitionReady is still
+  // true - gets its own quicker ease-in-out: a "zip" back into the pile,
+  // still smooth at both ends rather than accelerating the whole way and
+  // stopping dead.
+  const stageTransition = !transitionReady
+    ? 'none'
+    : animateIn
+      ? 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1)'
+      : `transform ${MINIMIZE_DURATION}ms cubic-bezier(0.65, 0, 0.35, 1)`;
 
   // Which leaf paints on top whenever both occupy the same slot (front and
   // back - never open, where they don't overlap) is decided with a plain
@@ -617,7 +573,6 @@ export default function DiscographyShelf({ releaseGroups }) {
                   transform: stageTransform,
                   transition: stageTransition,
                 }}
-                onPointerDown={handlePointerDown}
               >
                 <div
                   className="cd-expand__rig"
@@ -676,6 +631,7 @@ export default function DiscographyShelf({ releaseGroups }) {
                           className="cd-expand__disc-wrap"
                           ref={discRef}
                           onPointerDown={hingeState === 'open' ? handleDiscPointerDown : undefined}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <div className="cd-expand__disc" style={{ transform: `rotate(${discRotation}deg)` }}>
                             <div className="cd-expand__disc-ring" />

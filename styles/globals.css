@@ -4068,41 +4068,41 @@ html.custom-cursor-active textarea {
   margin-top: 4px;
 }
 .cd-pile-group {
-  margin-bottom: 30px;
+  margin-bottom: 26px;
 }
 .cd-pile-group__label {
   margin-bottom: 14px;
 }
 .cd-pile {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 132px);
+  grid-template-columns: repeat(auto-fill, 152px);
   justify-content: center;
-  gap: 30px 22px;
+  gap: 16px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: radial-gradient(120% 140% at 50% -12%, rgba(244, 242, 234, 0.05), transparent 68%);
-  padding: 24px 12px;
+  padding: 20px 14px;
 }
 /* Albums get a visibly bigger case than singles/other releases - they're
    the headline releases, and the size difference itself reads as a
    hierarchy without needing a second label. */
 .cd-pile--lg {
-  grid-template-columns: repeat(auto-fill, 184px);
-  gap: 36px 26px;
+  grid-template-columns: repeat(auto-fill, 212px);
+  gap: 20px 14px;
 }
 
 .pile-case {
   position: relative;
-  width: 132px;
-  height: 121px;
+  width: 152px;
+  height: 139px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.4));
   transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), filter 300ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .pile-case--lg {
-  width: 184px;
-  height: 169px;
+  width: 212px;
+  height: 194px;
 }
 .pile-case:hover,
 .pile-case:focus-visible {
@@ -4144,19 +4144,30 @@ html.custom-cursor-active textarea {
   position: absolute;
   left: 0;
   top: 0;
-  width: 11px;
+  width: 13px;
   height: 100%;
   border-radius: 2px 0 0 2px;
   background: var(--case-color, #2c2c2c);
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.12), inset -1px 0 0 rgba(0, 0, 0, 0.35);
 }
 .pile-case--lg .pile-case__spine {
-  width: 15px;
+  width: 17px;
+}
+/* A brighter strip down the left third of the spine - see
+   .cd-expand__spine::before's own comment for the same detail on the
+   centred, expanded case. */
+.pile-case__spine::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 33.333%;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 2px 0 0 2px;
 }
 .pile-case__cover {
   position: absolute;
   top: 0;
-  left: 11px;
+  left: 13px;
   right: 0;
   bottom: 0;
   overflow: hidden;
@@ -4164,7 +4175,7 @@ html.custom-cursor-active textarea {
   background: var(--case-color, #2c2c2c);
 }
 .pile-case--lg .pile-case__cover {
-  left: 15px;
+  left: 17px;
 }
 .pile-case__cover::before {
   content: '';
@@ -4184,12 +4195,12 @@ html.custom-cursor-active textarea {
 
 @media (max-width: 640px) {
   .cd-pile {
-    grid-template-columns: repeat(auto-fill, 108px);
-    gap: 24px 16px;
+    grid-template-columns: repeat(auto-fill, 124px);
+    gap: 14px 10px;
   }
   .pile-case {
-    width: 108px;
-    height: 99px;
+    width: 124px;
+    height: 114px;
   }
 }
 
@@ -4234,21 +4245,18 @@ html.custom-cursor-active textarea {
   justify-content: center;
   pointer-events: none;
 }
-/* The FLIP-open/close and the drag nudge (see openCase/handlePointerDown
-   in DiscographyShelf.js) both live on this outer stage as a plain 2D
-   translate/scale - the hinge state (open/closed, front/back) lives one
-   level down on .cd-expand__rig and its children, so a live drag never
-   has to fight the hinge transition or vice versa. A single
-   filter: drop-shadow here (not a per-face box-shadow) casts one shadow
-   behind the whole object regardless of which faces are currently
-   showing in its own 3D space. */
+/* The FLIP-open/close (see openCase/closeCase in DiscographyShelf.js)
+   lives on this outer stage as a plain 2D translate/rotate/scale - the
+   hinge state (open/closed, front/back) lives one level down on
+   .cd-expand__rig and its children. A single filter: drop-shadow here
+   (not a per-face box-shadow) casts one shadow behind the whole object
+   regardless of which faces are currently showing in its own 3D space. */
 .cd-expand__stage {
   position: relative;
-  width: 340px;
-  height: 312px;
-  perspective: 2200px;
+  width: 400px;
+  height: 367px;
+  perspective: 2600px;
   pointer-events: auto;
-  touch-action: none;
   filter: drop-shadow(0 40px 60px rgba(0, 0, 0, 0.55)) drop-shadow(0 12px 22px rgba(0, 0, 0, 0.4));
 }
 .cd-expand__rig {
@@ -4272,7 +4280,7 @@ html.custom-cursor-active textarea {
   position: absolute;
   left: 0;
   top: 0;
-  width: 28px;
+  width: 33px;
   height: 100%;
   border-radius: 2px 0 0 2px;
   background: rgba(230, 227, 218, 0.14);
@@ -4282,11 +4290,22 @@ html.custom-cursor-active textarea {
   z-index: 5;
   transition: transform 820ms cubic-bezier(0.65, 0, 0.35, 1);
 }
+/* A brighter strip down the left third of the spine - the edge of the
+   case catching more light than the flat frosted body of it, the same
+   idea as the real bevel highlight a moulded jewel-case spine has. */
+.cd-expand__spine::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 33.333%;
+  background: rgba(230, 227, 218, 0.34);
+  border-radius: 2px 0 0 2px;
+}
 .cd-expand__leaf {
   position: absolute;
   top: 0;
-  left: 28px;
-  width: 312px;
+  left: 33px;
+  width: 367px;
   height: 100%;
   /* Only ever translates - the rotation lives on .cd-expand__flip below,
      in its own nested element. A single element animating translateX and
@@ -4356,7 +4375,7 @@ html.custom-cursor-active textarea {
 /* ---- cover leaf: back = insert / bio card ---- */
 .cd-expand__face--insert {
   background: var(--paper);
-  padding: 26px 24px;
+  padding: 30px 28px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -4364,29 +4383,29 @@ html.custom-cursor-active textarea {
 }
 .cd-expand__kicker {
   font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--case-color-deep, #6b6459);
-  margin-bottom: 8px;
+  margin-bottom: 9px;
 }
 .cd-expand__face--insert h4 {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   font-family: var(--font-serif);
-  font-size: 19px;
+  font-size: 22px;
   font-weight: 700;
   color: #241f18;
   line-height: 1.18;
 }
 .cd-expand__face--insert p {
-  margin: 0 0 12px;
+  margin: 0 0 13px;
   font-family: var(--font-serif);
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.6;
   color: #3a352c;
 }
 .cd-expand__face--insert a {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--case-color-deep, #6b6459);
 }
 
@@ -4398,12 +4417,15 @@ html.custom-cursor-active textarea {
   position: absolute;
   top: 0;
   left: 50%;
-  width: 74px;
-  height: 22px;
+  width: 87px;
+  height: 26px;
   transform: translateX(-50%);
-  background: radial-gradient(circle at 50% -12px, transparent 35px, #cfd6d6 36px);
+  background: radial-gradient(circle at 50% -14px, transparent 41px, #cfd6d6 42px);
   z-index: 1;
 }
+/* Only ever set inline (see DiscographyShelf's discRotation) - no
+   transition here, since it's driven frame-by-frame during a drag and by
+   the momentum decay after release, not by a discrete state change. */
 .cd-expand__disc-wrap {
   position: absolute;
   inset: 0;
@@ -4418,8 +4440,8 @@ html.custom-cursor-active textarea {
 }
 .cd-expand__disc {
   position: relative;
-  width: 216px;
-  height: 216px;
+  width: 254px;
+  height: 254px;
   border-radius: 50%;
   background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 12%), conic-gradient(from 200deg, #aab8c6, #d8c791, #d99a97, #9fb3d9, #a9d3b9, #c6a9d9, #e0cf98, #a6b8c9, #aab8c6);
   box-shadow: 0 3px 14px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
@@ -4437,8 +4459,8 @@ html.custom-cursor-active textarea {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 76px;
-  height: 76px;
+  width: 89px;
+  height: 89px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: radial-gradient(circle, transparent 56%, rgba(58, 40, 20, 0.5) 60%, rgba(58, 40, 20, 0.5) 78%, transparent 82%);
@@ -4447,8 +4469,8 @@ html.custom-cursor-active textarea {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 42px;
-  height: 42px;
+  width: 49px;
+  height: 49px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: repeating-radial-gradient(circle, rgba(0, 0, 0, 0.08) 0 1px, transparent 1px 3px), radial-gradient(circle at 38% 32%, #fff, #dfe3e3 60%, #c3c8c8);
@@ -4457,7 +4479,7 @@ html.custom-cursor-active textarea {
 .cd-expand__disc-hub::after {
   content: '';
   position: absolute;
-  inset: 12px;
+  inset: 14px;
   border-radius: 50%;
   background: #b9bebd;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -4466,15 +4488,15 @@ html.custom-cursor-active textarea {
 /* ---- tray leaf: back = tracklist / back cover ---- */
 .cd-expand__face--backcover {
   background: radial-gradient(120% 140% at 70% 0%, rgba(255, 255, 255, 0.1), transparent 45%), linear-gradient(170deg, var(--case-color, #a31f2e), var(--case-color-deep, #7c1620));
-  padding: 24px 24px 20px;
+  padding: 28px 28px 24px;
   display: flex;
   flex-direction: column;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset -10px 0 20px -16px rgba(0, 0, 0, 0.35);
 }
 .cd-expand__face--backcover h4 {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   font-family: var(--font-serif);
-  font-size: 15px;
+  font-size: 17px;
   color: #f4f2ea;
 }
 .cd-expand__tracklist {
@@ -4485,14 +4507,14 @@ html.custom-cursor-active textarea {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 .cd-expand__tracklist li {
   display: flex;
-  gap: 9px;
+  gap: 10px;
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   color: #fbeceb;
 }
@@ -4500,7 +4522,7 @@ html.custom-cursor-active textarea {
   font-style: normal;
   font-weight: 400;
   color: rgba(251, 236, 235, 0.6);
-  width: 14px;
+  width: 16px;
   flex: none;
 }
 .cd-expand__panel-status {
