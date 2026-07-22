@@ -266,8 +266,8 @@ function PileCase({ release, index, isActive, large, onOpen }) {
 // Intrinsic size of the centred, expanded rig - kept in one place since
 // both the CSS (see .cd-expand__stage/__spine/__leaf in globals.css) and
 // the FLIP scale math below (openCase) need to agree on the same numbers.
-const RIG_W = 400;
-const SPINE_W = 33;
+const RIG_W = 480;
+const SPINE_W = 40;
 const LEAF_W = RIG_W - SPINE_W;
 // Not a round 180 - see .cd-expand__flip's own comment in globals.css for
 // why a rotateY transition landing on exactly 180deg is worth avoiding.
@@ -283,7 +283,7 @@ const HINGE_HINTS = {
 // hinge takes to settle back to "front" before it's safe to start flying
 // the case back to the pile.
 const HINGE_DURATION = 820;
-const MINIMIZE_DURATION = 260;
+const MINIMIZE_DURATION = 300;
 
 export default function DiscographyShelf({ releaseGroups }) {
   const releases = (releaseGroups || []).slice(0, 30);
@@ -499,18 +499,18 @@ export default function DiscographyShelf({ releaseGroups }) {
     : 'none';
   const settledTransform = 'scale(1)';
   const stageTransform = animateIn ? settledTransform : preFlipTransform;
-  // Opening eases out to a clean stop at the centre - a plain deceleration
-  // curve, not a spring with overshoot, so arriving reads as a deliberate,
-  // polished move rather than a playful bounce. Closing/minimising -
-  // animateIn having gone back to false while transitionReady is still
-  // true - gets its own quicker ease-in-out: a "zip" back into the pile,
-  // still smooth at both ends rather than accelerating the whole way and
-  // stopping dead.
+  // A strong ease-out (fast start, long gentle deceleration into the final
+  // position) for both directions - not a spring with overshoot, so it
+  // reads as a deliberate, polished move that visibly *settles* into place
+  // rather than just stopping. Closing gets a shorter duration on the same
+  // curve, which is what makes it read as a quicker "zip" back into the
+  // pile without giving up that settled arrival.
+  const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
   const stageTransition = !transitionReady
     ? 'none'
     : animateIn
-      ? 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1)'
-      : `transform ${MINIMIZE_DURATION}ms cubic-bezier(0.65, 0, 0.35, 1)`;
+      ? `transform 440ms ${EASE_OUT}`
+      : `transform ${MINIMIZE_DURATION}ms ${EASE_OUT}`;
 
   // Which leaf paints on top whenever both occupy the same slot (front and
   // back - never open, where they don't overlap) is decided with a plain
@@ -549,6 +549,26 @@ export default function DiscographyShelf({ releaseGroups }) {
     coverZ = 1;
     trayZ = 2;
   }
+
+  // .cd-expand__leaf's own hit-test box is a plain flat rectangle - the
+  // rotation that actually moves a face out of view lives one level down,
+  // on .cd-expand__flip - so cover leaf and tray leaf have fully
+  // overlapping hit-test areas whenever they share the same translateX
+  // (which "front" and "open" both do), regardless of which one is
+  // actually rotated into view. Left to default pointer-events, the
+  // browser resolves a click anywhere in that shared area to whichever
+  // leaf has the higher z-index (the cover leaf, in front/open) even when
+  // its content has visually rotated away and something else - the disc -
+  // is what's actually painted there. That's what made the disc
+  // undraggable: every pointerdown on it was silently being claimed by the
+  // cover leaf instead. Each leaf and face defaults to pointer-events:none
+  // in CSS, and only the one face that's genuinely visible for the current
+  // hinge state gets pointer-events re-enabled here, so hit-testing always
+  // matches what's on screen instead of static DOM stacking order.
+  const coverFaceActive = hingeState === 'front';
+  const insertFaceActive = hingeState === 'open';
+  const trayFaceActive = hingeState === 'open';
+  const backcoverFaceActive = hingeState === 'back';
 
   // Portalled straight to <body> rather than rendered in place: this page
   // sits inside AppShell's page-enter wrapper, which holds a
@@ -591,7 +611,10 @@ export default function DiscographyShelf({ releaseGroups }) {
 
                   <div className="cd-expand__leaf" style={{ transform: coverLeafT, zIndex: coverZ }}>
                     <div className="cd-expand__flip" style={{ transform: coverFlipT }}>
-                      <div className="cd-expand__face cd-expand__face--front cd-expand__face--cover">
+                      <div
+                        className="cd-expand__face cd-expand__face--front cd-expand__face--cover"
+                        style={{ pointerEvents: coverFaceActive ? 'auto' : 'none' }}
+                      >
                         <img
                           className="cd-expand__cover-img"
                           src={progressiveCoverSrc}
@@ -602,13 +625,13 @@ export default function DiscographyShelf({ releaseGroups }) {
                           }}
                         />
                       </div>
-                      <div className="cd-expand__face cd-expand__face--back cd-expand__face--insert">
+                      <div
+                        className="cd-expand__face cd-expand__face--back cd-expand__face--insert"
+                        style={{ pointerEvents: insertFaceActive ? 'auto' : 'none' }}
+                      >
                         <span className="cd-expand__kicker">From the liner notes</span>
                         <h4>{openRelease.title}</h4>
                         {bio.status === 'loading' ? <p className="cd-expand__panel-status">Looking this up…</p> : null}
-                        {bio.status === 'error' ? (
-                          <p className="cd-expand__panel-status">No Wikipedia page found for this release.</p>
-                        ) : null}
                         {bio.status === 'ready' && bio.data ? (
                           <>
                             <p>{bio.data.extract}</p>
@@ -625,12 +648,15 @@ export default function DiscographyShelf({ releaseGroups }) {
 
                   <div className="cd-expand__leaf" style={{ transform: trayLeafT, zIndex: trayZ }}>
                     <div className="cd-expand__flip" style={{ transform: trayFlipT }}>
-                      <div className="cd-expand__face cd-expand__face--front cd-expand__face--tray">
+                      <div
+                        className="cd-expand__face cd-expand__face--front cd-expand__face--tray"
+                        style={{ pointerEvents: trayFaceActive ? 'auto' : 'none' }}
+                      >
                         <div className="cd-expand__hub-arch" />
                         <div
                           className="cd-expand__disc-wrap"
                           ref={discRef}
-                          onPointerDown={hingeState === 'open' ? handleDiscPointerDown : undefined}
+                          onPointerDown={handleDiscPointerDown}
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="cd-expand__disc" style={{ transform: `rotate(${discRotation}deg)` }}>
@@ -639,12 +665,12 @@ export default function DiscographyShelf({ releaseGroups }) {
                           </div>
                         </div>
                       </div>
-                      <div className="cd-expand__face cd-expand__face--back cd-expand__face--backcover">
+                      <div
+                        className="cd-expand__face cd-expand__face--back cd-expand__face--backcover"
+                        style={{ pointerEvents: backcoverFaceActive ? 'auto' : 'none' }}
+                      >
                         <h4>Tracklist</h4>
                         {tracklist.status === 'loading' ? <p className="cd-expand__panel-status">Looking this up…</p> : null}
-                        {tracklist.status === 'error' ? (
-                          <p className="cd-expand__panel-status">No tracklist found for this release.</p>
-                        ) : null}
                         {tracklist.status === 'ready' && tracklist.data ? (
                           <ol className="cd-expand__tracklist">
                             {tracklist.data.tracks.map((t, i) => (

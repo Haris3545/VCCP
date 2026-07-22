@@ -4075,9 +4075,13 @@ html.custom-cursor-active textarea {
 }
 .cd-pile {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 152px);
-  justify-content: center;
-  gap: 16px 12px;
+  grid-template-columns: repeat(auto-fill, 182px);
+  /* Left-aligned, not centred - every group (Albums/Singles/Other) starts
+     at the same left edge/padding regardless of how many cases it holds,
+     so cases line up across sections instead of each row's leftover
+     space being split evenly around it. */
+  justify-content: start;
+  gap: 18px 14px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: radial-gradient(120% 140% at 50% -12%, rgba(244, 242, 234, 0.05), transparent 68%);
@@ -4087,22 +4091,22 @@ html.custom-cursor-active textarea {
    the headline releases, and the size difference itself reads as a
    hierarchy without needing a second label. */
 .cd-pile--lg {
-  grid-template-columns: repeat(auto-fill, 212px);
-  gap: 20px 14px;
+  grid-template-columns: repeat(auto-fill, 254px);
+  gap: 22px 16px;
 }
 
 .pile-case {
   position: relative;
-  width: 152px;
-  height: 139px;
+  width: 182px;
+  height: 167px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.4));
   transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), filter 300ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .pile-case--lg {
-  width: 212px;
-  height: 194px;
+  width: 254px;
+  height: 233px;
 }
 .pile-case:hover,
 .pile-case:focus-visible {
@@ -4144,30 +4148,29 @@ html.custom-cursor-active textarea {
   position: absolute;
   left: 0;
   top: 0;
-  width: 13px;
+  width: 16px;
   height: 100%;
   border-radius: 2px 0 0 2px;
   background: var(--case-color, #2c2c2c);
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.12), inset -1px 0 0 rgba(0, 0, 0, 0.35);
 }
 .pile-case--lg .pile-case__spine {
-  width: 17px;
+  width: 20px;
 }
-/* A brighter strip down the left third of the spine - see
-   .cd-expand__spine::before's own comment for the same detail on the
-   centred, expanded case. */
+/* A darker strip down the left third of the spine - the shaded side of
+   the case's moulded edge, not a light catching it. */
 .pile-case__spine::before {
   content: '';
   position: absolute;
   inset: 0 auto 0 0;
   width: 33.333%;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.32);
   border-radius: 2px 0 0 2px;
 }
 .pile-case__cover {
   position: absolute;
   top: 0;
-  left: 13px;
+  left: 16px;
   right: 0;
   bottom: 0;
   overflow: hidden;
@@ -4175,7 +4178,7 @@ html.custom-cursor-active textarea {
   background: var(--case-color, #2c2c2c);
 }
 .pile-case--lg .pile-case__cover {
-  left: 17px;
+  left: 20px;
 }
 .pile-case__cover::before {
   content: '';
@@ -4195,12 +4198,12 @@ html.custom-cursor-active textarea {
 
 @media (max-width: 640px) {
   .cd-pile {
-    grid-template-columns: repeat(auto-fill, 124px);
-    gap: 14px 10px;
+    grid-template-columns: repeat(auto-fill, 148px);
+    gap: 16px 12px;
   }
   .pile-case {
-    width: 124px;
-    height: 114px;
+    width: 148px;
+    height: 136px;
   }
 }
 
@@ -4253,9 +4256,9 @@ html.custom-cursor-active textarea {
    regardless of which faces are currently showing in its own 3D space. */
 .cd-expand__stage {
   position: relative;
-  width: 400px;
-  height: 367px;
-  perspective: 2600px;
+  width: 480px;
+  height: 440px;
+  perspective: 3120px;
   pointer-events: auto;
   filter: drop-shadow(0 40px 60px rgba(0, 0, 0, 0.55)) drop-shadow(0 12px 22px rgba(0, 0, 0, 0.4));
 }
@@ -4280,7 +4283,7 @@ html.custom-cursor-active textarea {
   position: absolute;
   left: 0;
   top: 0;
-  width: 33px;
+  width: 40px;
   height: 100%;
   border-radius: 2px 0 0 2px;
   background: rgba(230, 227, 218, 0.14);
@@ -4290,23 +4293,33 @@ html.custom-cursor-active textarea {
   z-index: 5;
   transition: transform 820ms cubic-bezier(0.65, 0, 0.35, 1);
 }
-/* A brighter strip down the left third of the spine - the edge of the
-   case catching more light than the flat frosted body of it, the same
-   idea as the real bevel highlight a moulded jewel-case spine has. */
+/* A darker strip down the left third of the spine - the shaded side of
+   the case's moulded edge. */
 .cd-expand__spine::before {
   content: '';
   position: absolute;
   inset: 0 auto 0 0;
   width: 33.333%;
-  background: rgba(230, 227, 218, 0.34);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 2px 0 0 2px;
 }
 .cd-expand__leaf {
   position: absolute;
   top: 0;
-  left: 33px;
-  width: 367px;
+  left: 40px;
+  width: 440px;
   height: 100%;
+  /* Defaults to not receiving pointer events at all - see the matching
+     comment above coverFaceActive/insertFaceActive/etc. in
+     DiscographyShelf.js. This leaf's own hit-test box never changes shape
+     with the hinge state (only its descendant .cd-expand__flip rotates in
+     3D), so cover leaf and tray leaf fully overlap in "front" and "open" -
+     without this, a click always resolved to whichever leaf had the
+     higher z-index, even when its content had rotated out of view and
+     something else (the disc) was what's actually on screen there. Each
+     .cd-expand__face re-enables pointer-events itself, inline, only when
+     it's the face actually visible for the current hinge state. */
+  pointer-events: none;
   /* Only ever translates - the rotation lives on .cd-expand__flip below,
      in its own nested element. A single element animating translateX and
      rotateY together is where an earlier version of this hinge's
@@ -4335,6 +4348,9 @@ html.custom-cursor-active textarea {
   overflow: hidden;
   border-radius: 4px;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  /* Off by default - see .cd-expand__leaf's own comment. Set to 'auto'
+     inline, per-face, only for whichever one is actually visible. */
+  pointer-events: none;
 }
 .cd-expand__face--back {
   transform: rotateY(180deg);
@@ -4375,37 +4391,51 @@ html.custom-cursor-active textarea {
 /* ---- cover leaf: back = insert / bio card ---- */
 .cd-expand__face--insert {
   background: var(--paper);
-  padding: 30px 28px;
+  padding: 34px 32px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   box-shadow: inset 0 0 0 1px var(--border), inset 10px 0 20px -16px rgba(0, 0, 0, 0.3);
+  /* A slim, low-contrast thumb instead of the browser's default scrollbar
+     (a stark white/grey bar that looks jarring against this panel). */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(36, 31, 24, 0.28) transparent;
+}
+.cd-expand__face--insert::-webkit-scrollbar {
+  width: 6px;
+}
+.cd-expand__face--insert::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cd-expand__face--insert::-webkit-scrollbar-thumb {
+  background: rgba(36, 31, 24, 0.28);
+  border-radius: 3px;
 }
 .cd-expand__kicker {
   font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--case-color-deep, #6b6459);
-  margin-bottom: 9px;
+  margin-bottom: 10px;
 }
 .cd-expand__face--insert h4 {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   font-family: var(--font-serif);
-  font-size: 22px;
+  font-size: 25px;
   font-weight: 700;
   color: #241f18;
   line-height: 1.18;
 }
 .cd-expand__face--insert p {
-  margin: 0 0 13px;
+  margin: 0 0 14px;
   font-family: var(--font-serif);
-  font-size: 13.5px;
+  font-size: 15px;
   line-height: 1.6;
   color: #3a352c;
 }
 .cd-expand__face--insert a {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--case-color-deep, #6b6459);
 }
 
@@ -4417,10 +4447,10 @@ html.custom-cursor-active textarea {
   position: absolute;
   top: 0;
   left: 50%;
-  width: 87px;
-  height: 26px;
+  width: 104px;
+  height: 31px;
   transform: translateX(-50%);
-  background: radial-gradient(circle at 50% -14px, transparent 41px, #cfd6d6 42px);
+  background: radial-gradient(circle at 50% -17px, transparent 49px, #cfd6d6 50px);
   z-index: 1;
 }
 /* Only ever set inline (see DiscographyShelf's discRotation) - no
@@ -4440,8 +4470,8 @@ html.custom-cursor-active textarea {
 }
 .cd-expand__disc {
   position: relative;
-  width: 254px;
-  height: 254px;
+  width: 305px;
+  height: 305px;
   border-radius: 50%;
   background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 12%), conic-gradient(from 200deg, #aab8c6, #d8c791, #d99a97, #9fb3d9, #a9d3b9, #c6a9d9, #e0cf98, #a6b8c9, #aab8c6);
   box-shadow: 0 3px 14px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
@@ -4459,8 +4489,8 @@ html.custom-cursor-active textarea {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 89px;
-  height: 89px;
+  width: 107px;
+  height: 107px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: radial-gradient(circle, transparent 56%, rgba(58, 40, 20, 0.5) 60%, rgba(58, 40, 20, 0.5) 78%, transparent 82%);
@@ -4469,8 +4499,8 @@ html.custom-cursor-active textarea {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 49px;
-  height: 49px;
+  width: 59px;
+  height: 59px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: repeating-radial-gradient(circle, rgba(0, 0, 0, 0.08) 0 1px, transparent 1px 3px), radial-gradient(circle at 38% 32%, #fff, #dfe3e3 60%, #c3c8c8);
@@ -4479,7 +4509,7 @@ html.custom-cursor-active textarea {
 .cd-expand__disc-hub::after {
   content: '';
   position: absolute;
-  inset: 14px;
+  inset: 17px;
   border-radius: 50%;
   background: #b9bebd;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -4488,15 +4518,15 @@ html.custom-cursor-active textarea {
 /* ---- tray leaf: back = tracklist / back cover ---- */
 .cd-expand__face--backcover {
   background: radial-gradient(120% 140% at 70% 0%, rgba(255, 255, 255, 0.1), transparent 45%), linear-gradient(170deg, var(--case-color, #a31f2e), var(--case-color-deep, #7c1620));
-  padding: 28px 28px 24px;
+  padding: 32px 32px 28px;
   display: flex;
   flex-direction: column;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset -10px 0 20px -16px rgba(0, 0, 0, 0.35);
 }
 .cd-expand__face--backcover h4 {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   font-family: var(--font-serif);
-  font-size: 17px;
+  font-size: 19px;
   color: #f4f2ea;
 }
 .cd-expand__tracklist {
@@ -4507,14 +4537,28 @@ html.custom-cursor-active textarea {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
+  /* Same slim thumb treatment as .cd-expand__face--insert, tuned dark
+     enough to still read against this panel's own dark-red background. */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.32) transparent;
+}
+.cd-expand__tracklist::-webkit-scrollbar {
+  width: 6px;
+}
+.cd-expand__tracklist::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cd-expand__tracklist::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.32);
+  border-radius: 3px;
 }
 .cd-expand__tracklist li {
   display: flex;
-  gap: 10px;
+  gap: 11px;
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.4;
   color: #fbeceb;
 }
@@ -4522,19 +4566,21 @@ html.custom-cursor-active textarea {
   font-style: normal;
   font-weight: 400;
   color: rgba(251, 236, 235, 0.6);
-  width: 16px;
+  width: 18px;
   flex: none;
 }
 .cd-expand__panel-status {
-  font-size: 13px;
+  font-size: 14px;
   font-style: italic;
   color: rgba(244, 242, 234, 0.55);
 }
 
+/* Sits inside the case's own bounds (top-right corner) rather than
+   floating above/outside it. */
 .cd-expand__close {
   position: absolute;
-  top: -16px;
-  right: -16px;
+  top: 14px;
+  right: 14px;
   width: 34px;
   height: 34px;
   display: flex;
