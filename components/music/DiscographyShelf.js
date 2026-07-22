@@ -58,29 +58,27 @@ function hashString(str) {
   return Math.abs(h);
 }
 
-// Every position/rotation/stacking value a pile case needs, derived
-// purely from its own id (plus its slot among the others, for the loose
-// grid below) - stable across re-renders without keeping a separate
-// layout table in state. A pure grid would look mechanical and a pure
-// random scatter would let cases collide or crowd into a corner, so this
-// buckets each release into a grid cell first (spread evenly across the
-// pile) and then jitters position/rotation within that cell - close
-// neighbours end up overlapping (the brief), but nothing drifts far
-// enough to bury another case entirely.
-function pileLayout(id, index, total) {
-  const cols = Math.max(3, Math.round(Math.sqrt(total * 1.4)));
-  const rows = Math.max(1, Math.ceil(total / cols));
-  const col = index % cols;
-  const row = Math.floor(index / cols);
-  const cellW = 84 / cols;
-  const cellH = 76 / rows;
-  const baseX = 8 + col * cellW + cellW / 2;
-  const baseY = 11 + row * cellH + cellH / 2;
-  const jitterX = ((hashString(`${id}x`) % 200) / 200 - 0.5) * cellW * 0.9;
-  const jitterY = ((hashString(`${id}y`) % 200) / 200 - 0.5) * cellH * 0.9;
-  const rot = ((hashString(`${id}r`) % 200) / 200 - 0.5) * 34;
-  const z = hashString(`${id}z`) % Math.max(total, 1);
-  return { xPct: baseX + jitterX, yPct: baseY + jitterY, rot, z };
+// Buckets releases into named rows-and-columns sections - albums, then
+// singles, then whatever's left (EPs, live albums, compilations, ...) -
+// rather than one flat grid in whatever order the API returned them.
+// Stable per bucket (Array#sort is a stable sort in every engine this
+// project runs on), so releases keep their original relative order within
+// a section instead of being re-shuffled by the grouping itself.
+function groupReleases(releases) {
+  const albums = [];
+  const singles = [];
+  const other = [];
+  for (const rg of releases) {
+    const type = rg.primaryType || '';
+    if (type === 'Album') albums.push(rg);
+    else if (type === 'Single') singles.push(rg);
+    else other.push(rg);
+  }
+  return [
+    { label: 'Albums', items: albums },
+    { label: 'Singles', items: singles },
+    { label: 'Other releases', items: other },
+  ].filter((group) => group.items.length > 0);
 }
 
 // Fallback spine/cover colour for a release-group whose art hasn't loaded
@@ -206,7 +204,7 @@ function typeLabel(rg) {
   return rg.primaryType || 'Release';
 }
 
-function PileCase({ release, index, total, isActive, onOpen }) {
+function PileCase({ release, index, isActive, onOpen }) {
   const initial = fallbackColor(release.id);
   const [color, setColor] = useState(initial.rgb);
   const [colorDeep, setColorDeep] = useState(initial.rgbDeep);
@@ -214,7 +212,6 @@ function PileCase({ release, index, total, isActive, onOpen }) {
   const [fontStyle, setFontStyle] = useState(pickFontStyle(release.id, initial.hsl));
   const [coverOk, setCoverOk] = useState(true);
   const caseRef = useRef(null);
-  const layout = pileLayout(release.id, index, total);
 
   function handleLoad(e) {
     try {
@@ -238,10 +235,6 @@ function PileCase({ release, index, total, isActive, onOpen }) {
       ref={caseRef}
       className={`pile-case${isActive ? ' pile-case--active' : ''}`}
       style={{
-        '--pile-x': `${layout.xPct}%`,
-        '--pile-y': `${layout.yPct}%`,
-        '--pile-rot': `${layout.rot}deg`,
-        '--pile-z': layout.z,
         '--case-color': color,
         '--case-text': textDark ? '#181410' : '#f4f2ea',
         '--case-font': fontStyle.font,
@@ -306,7 +299,8 @@ const HINGE_HINTS = {
 };
 
 export default function DiscographyShelf({ releaseGroups }) {
-  const releases = (releaseGroups || []).slice(0, 22);
+  const releases = (releaseGroups || []).slice(0, 30);
+  const groups = groupReleases(releases);
   const [openRelease, setOpenRelease] = useState(null);
   const progressiveCoverSrc = useProgressiveCover(openRelease?.id ?? null);
   const [flip, setFlip] = useState(null); // { dx, dy, scale, colors }
@@ -643,13 +637,22 @@ export default function DiscographyShelf({ releaseGroups }) {
         )
       : null;
 
+  let runningIndex = 0;
+
   return (
     <div className="cd-pile-wrap">
-      <div className="cd-pile">
-        {releases.map((rg, i) => (
-          <PileCase key={rg.id} release={rg} index={i} total={releases.length} isActive={openRelease?.id === rg.id} onOpen={openCase} />
-        ))}
-      </div>
+      {groups.map((group) => (
+        <div className="cd-pile-group" key={group.label}>
+          <div className="eyebrow cd-pile-group__label">{group.label}</div>
+          <div className="cd-pile">
+            {group.items.map((rg) => {
+              const i = runningIndex;
+              runningIndex += 1;
+              return <PileCase key={rg.id} release={rg} index={i} isActive={openRelease?.id === rg.id} onOpen={openCase} />;
+            })}
+          </div>
+        </div>
+      ))}
       {overlay}
     </div>
   );
