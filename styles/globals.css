@@ -4050,148 +4050,132 @@ html.custom-cursor-active textarea {
    it pivot open enough to show its own cover, and only on click does it
    come off the shelf entirely. perspective on the row is what gives every
    case's pivot a real vanishing point rather than a flat skewed rotation. */
-.cd-shelf-wrap {
+/* ---------------------------------------------------------------------- */
+/* Discography — a scattered pile of jewel cases rather than a shelf row. */
+/* Hovering lifts a case up through the pile (see .pile-case:hover);      */
+/* clicking pulls it to the centre of the screen via a FLIP transform     */
+/* (see DiscographyShelf's openCase) where it becomes a real two-leaf     */
+/* jewel case that opens - insert/bio on the left, disc tray on the right */
+/* - and, clicked again, closes over onto its own back cover (tracklist). */
+/* The hinge mechanics (spine relocating left -> middle -> right as the   */
+/* object is turned over, translateX/rotateY split across nested         */
+/* elements, the delayed z-index swap, the 179.9deg turn) were worked out */
+/* in an Artifact prototype first - see DiscographyShelf's render-time    */
+/* transform block for the same state machine. */
+/* ---------------------------------------------------------------------- */
+.cd-pile-wrap {
   margin-top: 4px;
 }
-.cd-shelf {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  overflow-x: auto;
-  overflow-y: visible;
-  padding: 48px 20px 22px;
-  scrollbar-width: thin;
+.cd-pile {
+  position: relative;
+  height: 560px;
+  border-radius: var(--radius);
+  background: radial-gradient(120% 90% at 50% -8%, rgba(244, 242, 234, 0.05), transparent 68%);
 }
-.cd-shelf__ledge {
-  height: 14px;
-  margin: 0 8px;
-  background: linear-gradient(180deg, #2a2723, #151310);
-  border-radius: 0 0 6px 6px;
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.5);
+@media (max-width: 640px) {
+  .cd-pile {
+    height: 460px;
+  }
 }
 
-.cd-slot {
-  position: relative;
-  flex: 0 0 auto;
-  width: 34px;
-  height: 280px;
-  /* A local perspective per slot, not one shared across the whole row
-     (which used to live on .cd-shelf) - a single shared vanishing point
-     meant every case except the one nearest the shelf's own centre was
-     being viewed from an angle, giving the pivoted cover a warped,
-     keystoned look (the further from centre, the worse) rather than a
-     clean, uniform foreshortening. Each case getting its own centred
-     perspective means every single one pivots the same way regardless of
-     where it sits in a long, horizontally-scrolling row. */
-  perspective: 900px;
-  /* Staggered fade-in lives on this wrapper, not on .cd-case below -
-     empirically, an element with an active/held CSS animation (even one
-     that only ever touches opacity, never transform) renders its own
-     preserve-3d children as flattened in this browser, breaking the
-     pivot-reveal entirely while the animation is live. Since fill-mode:
-     both holds the animation "live" indefinitely after it finishes (the
-     same mechanism behind the .news-strip/.media2-pill comments
-     elsewhere in this file, just a different symptom here - flattened
-     3D instead of a blocked transition), .cd-case can never carry both
-     the entrance animation and the 3D hover pivot. This wrapper has no
-     transform of its own, so animating its opacity is free of the
-     interaction entirely. */
-  opacity: 0;
-  animation: cd-slot-in 480ms ease both;
-  animation-delay: var(--stagger-delay, 0ms);
-}
-@keyframes cd-slot-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-.cd-case {
+.pile-case {
   position: absolute;
-  inset: 0;
+  left: var(--pile-x);
+  top: var(--pile-y);
+  width: 108px;
+  height: 99px;
+  z-index: var(--pile-z, 1);
   cursor: pointer;
-  transform-style: preserve-3d;
-  transform-origin: left center;
-  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.4));
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1), filter 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translate(-50%, -50%) rotate(var(--pile-rot, 0deg));
 }
-/* Each .cd-slot is its own separate stacking context (siblings in a flex
-   row, not one shared 3D scene) - normal DOM-order 2D paint rules apply
-   between them regardless of which one's cover has swung "closer" to the
-   camera in its own local 3D space. Without this, a pivoted-open cover
-   swinging out over a later sibling in the row was getting painted
-   *underneath* that sibling's flat, opaque spine instead of over it,
-   since later-in-DOM wins ties in normal paint order. Lifting the whole
-   hovered slot above its neighbours fixes the paint order to match what
-   the 3D is actually depicting. */
-.cd-slot:hover,
-.cd-slot:has(.cd-case:focus-visible) {
-  z-index: 5;
+.pile-case:hover,
+.pile-case:focus-visible {
+  z-index: 999;
+  transform: translate(-50%, -50%) rotate(0deg) scale(1.24) translateY(-20px);
+  filter: drop-shadow(0 26px 30px rgba(0, 0, 0, 0.55));
 }
-.cd-slot:hover .cd-case,
-.cd-case:focus-visible {
-  /* The cover is attached at rotateY(90deg) locally (edge-on, hidden at
-     rest) - rotating this parent group by some angle A composes to leave
-     the cover sitting at an effective (90 - A) degrees from the camera,
-     since both share the same rotation axis. A genuine peek, not a big
-     reveal - the full cover is what clicking is for - so this only comes
-     off the shelf enough to read as a case actually tilting toward you,
-     small enough that its foreshortened width stays inside the next
-     case's own gap rather than climbing over two or three neighbours. */
-  transform: rotateY(-18deg);
-}
-.cd-case--active {
+.pile-case--active {
   opacity: 0 !important;
   pointer-events: none;
 }
-
-.cd-case__spine {
+/* The entrance pop-in animates transform (scale/translateY), and a CSS
+   animation - even with nothing left to do once fill-mode: both holds its
+   final frame - outranks *any* normal-priority rule for the properties it
+   touches, including a same-element :hover with higher specificity (this
+   is the same class of bug as the old shelf's flattened-3D-children
+   comment, just hitting transform directly instead of preserve-3d). Kept
+   on this separate, always-fully-sized inner wrapper instead of on
+   .pile-case itself so the hover lift above - a plain transition, not an
+   animation - never has to fight it for the transform property. */
+.pile-case__enter {
   position: absolute;
   inset: 0;
+  opacity: 0;
+  animation: pile-case-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--stagger-delay, 0ms);
+}
+@keyframes pile-case-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82) translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pile-case__spine {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  border-radius: 2px 0 0 2px;
   background: var(--case-color, #2c2c2c);
-  border-radius: 2px;
-  backface-visibility: hidden;
-  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.08), inset -1px 0 0 rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.12), inset -1px 0 0 rgba(0, 0, 0, 0.35);
 }
-.cd-case__spine-title {
+.pile-case__spine span {
   display: block;
-  max-width: 256px;
+  width: 90px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   transform: rotate(-90deg);
-  /* Per-release, set inline alongside --case-color (see CDCase in
-     DiscographyShelf.js) - a handful of distinct type treatments picked
-     deterministically per release, loosely biased by the sampled cover
-     colour's own character (bold/saturated vs. dark/moody etc.), the
-     same idea as the newspaper masthead fonts in MediaView. */
   font-family: var(--case-font, var(--font-sans));
-  font-size: 10px;
+  font-size: 7px;
   font-weight: var(--case-font-weight, 700);
   font-style: var(--case-font-style, normal);
   letter-spacing: var(--case-font-tracking, 0.03em);
   text-transform: uppercase;
   color: var(--case-text, #f4f2ea);
 }
-.cd-case__cover {
+.pile-case__cover {
   position: absolute;
   top: 0;
-  left: 100%;
-  width: 100px;
-  height: 100%;
-  transform-origin: left center;
-  transform: rotateY(90deg);
-  background: var(--case-color, #2c2c2c);
+  left: 9px;
+  right: 0;
+  bottom: 0;
   overflow: hidden;
   border-radius: 0 3px 3px 0;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.4);
+  background: var(--case-color, #2c2c2c);
 }
-.cd-case__cover img {
+.pile-case__cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 22%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.14) 80%, rgba(255, 255, 255, 0) 94%);
+  mix-blend-mode: screen;
+}
+.pile-case__cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -4199,26 +4183,21 @@ html.custom-cursor-active textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cd-slot {
+  .pile-case {
+    transition: none;
+  }
+  .pile-case__enter {
     animation: none;
     opacity: 1;
   }
-  .cd-case {
-    transition: none;
-  }
-  .cd-slot:hover .cd-case,
-  .cd-case:focus-visible {
-    transform: rotateY(-10deg);
+  .pile-case:hover,
+  .pile-case:focus-visible {
+    transform: translate(-50%, -50%) scale(1.08);
   }
 }
 
-/* Click takes a case off the shelf entirely rather than just enlarging it
-   in place (unlike Media 2's pills, see .media2-pill--open's own comment)
-   - "pull it to the middle of the screen" is real travel across the page,
-   not a same-spot scale-up, so it needs an actual FLIP (First-Last-
-   Invert-Play) transform computed in JS from the clicked cover's on-screen
-   rect (see DiscographyShelf's openCase) rather than anything expressible
-   as a fixed CSS keyframe. */
+/* ---------------- expanded case: centred, real two-leaf hinge --------- */
+
 .cd-expand-backdrop {
   position: fixed;
   inset: 0;
@@ -4244,116 +4223,291 @@ html.custom-cursor-active textarea {
   justify-content: center;
   pointer-events: none;
 }
-.cd-expand__box {
+/* The FLIP-open/close and the drag nudge (see openCase/handlePointerDown
+   in DiscographyShelf.js) both live on this outer stage as a plain 2D
+   translate/scale - the hinge state (open/closed, front/back) lives one
+   level down on .cd-expand__rig and its children, so a live drag never
+   has to fight the hinge transition or vice versa. A single
+   filter: drop-shadow here (not a per-face box-shadow) casts one shadow
+   behind the whole object regardless of which faces are currently
+   showing in its own 3D space. */
+.cd-expand__stage {
   position: relative;
-  width: 460px;
-  height: 460px;
-  border-radius: 4px;
-  background: var(--case-color, #2c2c2c);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55), 0 10px 24px rgba(0, 0, 0, 0.4);
+  width: 340px;
+  height: 312px;
+  perspective: 2200px;
   pointer-events: auto;
-  cursor: pointer;
   touch-action: none;
-  /* For .cd-expand__flip's own 3D flip below - not for itself, this box
-     only ever moves via plain 2D translate/scale (the FLIP-open/close and
-     the drag nudge, both driven from JS state, see boxTransform). */
-  perspective: 1400px;
+  filter: drop-shadow(0 40px 60px rgba(0, 0, 0, 0.55)) drop-shadow(0 12px 22px rgba(0, 0, 0, 0.4));
 }
-.cd-expand__box:active {
-  cursor: grabbing;
+.cd-expand__rig {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  cursor: pointer;
 }
-/* Click-to-cycle-panels and click-and-drag-to-shake share the same
-   element (see openCase/handlePointerDown) - the case's own front face
-   needs to be a real, separately positioned layer so the 180deg flip to
-   the tracklist has something to rotate as a unit, rather than the box
-   itself rotating (which would also spin the drag nudge and the FLIP-
-   open transform sitting on the parent). */
+/* Moves with the hinge state, same as the leaves below (see
+   DiscographyShelf's spineT/coverLeafT/etc.) - closed-front has it on the
+   left, open has it in the middle (the leaves swing away from it on
+   either side, so it never needs to move for that state), closed-back has
+   it on the right, matching which side is now the spine once the object
+   has been turned over. */
+.cd-expand__spine {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 2px 0 0 2px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.04) 30%, rgba(0, 0, 0, 0.14) 70%, rgba(0, 0, 0, 0.3));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  z-index: 5;
+  transition: transform 820ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.cd-expand__spine span {
+  display: block;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: rotate(-90deg);
+  font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(244, 242, 234, 0.8);
+}
+.cd-expand__leaf {
+  position: absolute;
+  top: 0;
+  left: 28px;
+  width: 312px;
+  height: 100%;
+  /* Only ever translates - the rotation lives on .cd-expand__flip below,
+     in its own nested element. A single element animating translateX and
+     rotateY together is where an earlier version of this hinge's
+     "clicking pops straight to the wrong face" bug came from; splitting
+     them so each element only ever transitions one kind of transform
+     sidesteps it entirely. */
+  transition: transform 820ms cubic-bezier(0.65, 0, 0.35, 1), z-index 0s linear 410ms;
+}
 .cd-expand__flip {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-.cd-expand__flip--back {
-  transform: rotateY(180deg);
+  transform-origin: left center;
+  /* A rotateY transition that lands on (or passes through) exactly
+     180deg gets represented internally as flipping from +180 to -180
+     partway through - mathematically the same orientation, just a
+     different sign. DiscographyShelf's render lands a hair short of 180
+     (179.9deg) instead, keeping every transition on one continuous,
+     unambiguous path - not visible at rest. */
+  transition: transform 820ms cubic-bezier(0.65, 0, 0.35, 1);
 }
 .cd-expand__face {
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
   overflow: hidden;
+  border-radius: 4px;
 }
 .cd-expand__face--back {
   transform: rotateY(180deg);
-  background: var(--case-color, #2c2c2c);
-  padding: 28px;
-  overflow-y: auto;
-  color: #f4f2ea;
 }
-.cd-expand__img {
+/* Shared glossy plastic dressing, layered over every face. */
+.cd-expand__face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0) 16%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.15) 78%, rgba(255, 255, 255, 0) 92%);
+  mix-blend-mode: screen;
+}
+.cd-expand__face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---- cover leaf: front = real cover art ---- */
+.cd-expand__face--cover {
+  background: var(--case-color, #2c2c2c);
+}
+.cd-expand__cover-img {
+  position: relative;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
   pointer-events: none;
 }
-/* Sits over the cover art rather than replacing it - "opening the case
-   up" reads as something sliding into view on top of the front cover,
-   not the cover disappearing. */
-.cd-expand__bio {
-  position: absolute;
-  inset: 0;
-  padding: 28px;
+
+/* ---- cover leaf: back = insert / bio card ---- */
+.cd-expand__face--insert {
+  background: var(--paper);
+  padding: 26px 24px;
   overflow-y: auto;
-  background: rgba(8, 8, 8, 0.86);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  color: #f4f2ea;
-  opacity: 0;
-  transform: translateY(10px);
-  pointer-events: none;
-  transition: opacity 280ms ease, transform 280ms ease;
+  display: flex;
+  flex-direction: column;
+  box-shadow: inset 0 0 0 1px var(--border), inset 10px 0 20px -16px rgba(0, 0, 0, 0.3);
 }
-.cd-expand__bio--visible {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
+.cd-expand__kicker {
+  font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--case-color-deep, #6b6459);
+  margin-bottom: 8px;
 }
-.cd-expand__bio h4,
-.cd-expand__face--back h4 {
+.cd-expand__face--insert h4 {
   margin: 0 0 12px;
   font-family: var(--font-serif);
-  font-size: 18px;
+  font-size: 19px;
+  font-weight: 700;
+  color: #241f18;
+  line-height: 1.18;
 }
-.cd-expand__bio p {
-  margin: 0 0 14px;
-  font-size: 13px;
+.cd-expand__face--insert p {
+  margin: 0 0 12px;
+  font-family: var(--font-serif);
+  font-size: 12.5px;
   line-height: 1.6;
-  color: rgba(244, 242, 234, 0.88);
+  color: #3a352c;
 }
-.cd-expand__bio a {
+.cd-expand__face--insert a {
+  font-size: 11px;
+  color: var(--case-color-deep, #6b6459);
+}
+
+/* ---- tray leaf: front = disc tray ---- */
+.cd-expand__face--tray {
+  background: radial-gradient(140% 120% at 50% 0%, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 55%), linear-gradient(180deg, #cfd6d6, #b7bebd);
+}
+.cd-expand__hub-arch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 74px;
+  height: 22px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 50% -12px, transparent 35px, #cfd6d6 36px);
+  z-index: 1;
+}
+.cd-expand__disc-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cd-expand__disc {
+  position: relative;
+  width: 216px;
+  height: 216px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 12%), conic-gradient(from 200deg, #aab8c6, #d8c791, #d99a97, #9fb3d9, #a9d3b9, #c6a9d9, #e0cf98, #a6b8c9, #aab8c6);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+.cd-expand__disc::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.cd-expand__disc-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 76px;
+  height: 76px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 56%, rgba(58, 40, 20, 0.5) 60%, rgba(58, 40, 20, 0.5) 78%, transparent 82%);
+}
+.cd-expand__disc-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 42px;
+  height: 42px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, rgba(0, 0, 0, 0.08) 0 1px, transparent 1px 3px), radial-gradient(circle at 38% 32%, #fff, #dfe3e3 60%, #c3c8c8);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.cd-expand__disc-hub::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: #b9bebd;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ---- tray leaf: back = tracklist / back cover ---- */
+.cd-expand__face--backcover {
+  background: radial-gradient(120% 140% at 70% 0%, rgba(255, 255, 255, 0.1), transparent 45%), linear-gradient(170deg, var(--case-color, #a31f2e), var(--case-color-deep, #7c1620));
+  padding: 24px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset -10px 0 20px -16px rgba(0, 0, 0, 0.35);
+}
+.cd-expand__face--backcover h4 {
+  margin: 0 0 12px;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: #f4f2ea;
+}
+.cd-expand__tracklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.cd-expand__tracklist li {
+  display: flex;
+  gap: 9px;
+  font-family: var(--font-serif);
+  font-style: italic;
   font-size: 12px;
-  color: var(--paper);
-  text-decoration: underline;
+  line-height: 1.4;
+  color: #fbeceb;
+}
+.cd-expand__tracklist li b {
+  font-style: normal;
+  font-weight: 400;
+  color: rgba(251, 236, 235, 0.6);
+  width: 14px;
+  flex: none;
 }
 .cd-expand__panel-status {
   font-size: 13px;
-  color: rgba(244, 242, 234, 0.6);
   font-style: italic;
+  color: rgba(244, 242, 234, 0.55);
 }
-.cd-expand__tracklist {
-  margin: 0;
-  padding-left: 22px;
-  font-size: 13px;
-  line-height: 1.9;
-  color: rgba(244, 242, 234, 0.88);
-}
+
 .cd-expand__close {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 32px;
-  height: 32px;
+  top: -16px;
+  right: -16px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4363,15 +4517,16 @@ html.custom-cursor-active textarea {
      middle of the circle regardless of font metrics. */
   border: none;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.6);
   color: #f4f2ea;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1;
   padding: 0;
   cursor: pointer;
+  z-index: 10;
 }
 .cd-expand__caption {
-  margin-top: 22px;
+  margin-top: 26px;
   text-align: center;
   color: var(--paper);
   opacity: 0;
@@ -4404,6 +4559,8 @@ html.custom-cursor-active textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .cd-expand__spine,
+  .cd-expand__leaf,
   .cd-expand__flip {
     transition: none;
   }
