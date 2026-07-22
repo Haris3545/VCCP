@@ -13,11 +13,11 @@ export default async function handler(req, res) {
     return res.status(401).json({ source: 'unavailable', reason: 'Not authenticated' });
   }
 
-  const { title } = req.query;
+  const { title, type } = req.query;
   if (!title || typeof title !== 'string') {
     return res.status(400).json({ source: 'unavailable', reason: 'missing title' });
   }
 
-  const bio = await getReleaseBio(title, artistIdentifiers.name);
+  const bio = await getReleaseBio(title, artistIdentifiers.name, typeof type === 'string' ? type : '');
   return res.status(200).json(bio);
 }

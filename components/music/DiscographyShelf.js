@@ -28,6 +28,13 @@ function preloadImage(src) {
 // downloaded and decoded, since it's the same image the pile case was
 // just displaying - then swaps up to the big version only once it's
 // actually ready, rather than showing nothing/a blank box while it loads.
+// The swap itself used to be the jarring part: img.onload fires once bytes
+// are in, but the browser can still be mid-decode, so the very next paint
+// - often the first frame or two of the open animation - could show a
+// half-decoded/blank image, reading as the cover "reloading" right as it
+// grows. img.decode() resolves only once the bitmap is fully ready to
+// paint, so the state swap (and the re-render it causes) never lands on
+// an undecoded frame.
 function useProgressiveCover(id) {
   const [src, setSrc] = useState(id ? coverUrl(id, 250) : null);
   useEffect(() => {
@@ -38,10 +45,21 @@ function useProgressiveCover(id) {
     setSrc(coverUrl(id, 250));
     let cancelled = false;
     const img = new Image();
-    img.onload = () => {
+    img.src = coverUrl(id, 1200);
+    const swap = () => {
       if (!cancelled) setSrc(coverUrl(id, 1200));
     };
-    img.src = coverUrl(id, 1200);
+    if (img.decode) {
+      img.decode().then(swap).catch(() => {
+        // decode() can reject even for an image that will still go on to
+        // load fine (e.g. some cross-origin cases) - onload is the
+        // fallback path rather than leaving the cover stuck on the small
+        // version.
+        img.onload = swap;
+      });
+    } else {
+      img.onload = swap;
+    }
     return () => {
       cancelled = true;
     };
@@ -58,6 +76,37 @@ function hashString(str) {
   return Math.abs(h);
 }
 
+// Punctuation/case-insensitive match key, for the two hardcoded title
+// lists below - MusicBrainz titles come through with whatever quote
+// style/casing the release was actually tagged with. Apostrophes are
+// stripped rather than turned into a separator, so a contraction collapses
+// into one word ("today's" -> "todays") instead of splitting into two -
+// otherwise "Today's Hits" would normalize to "today s hits" and silently
+// fail to match the plain "todays hits" written below.
+function titleKey(title) {
+  return (title || '')
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+// MusicBrainz's discography for this artist includes a handful of entries
+// that don't belong in this view at all, or belong somewhere different
+// than their own primaryType would put them - not worth a general rule,
+// so they're named explicitly instead.
+//
+// "Today's Hits" is a generic, algorithmically-generated various-artists
+// playlist MusicBrainz happens to have indexed with this artist attached -
+// not a real release of hers, so it's dropped outright rather than shown
+// in any section.
+const HIDDEN_RELEASE_TITLES = new Set(['todays hits'].map(titleKey));
+// "Bottoms" and "Wuthering Heights" are film-soundtrack work, not albums
+// in the ordinary sense (MusicBrainz tags them primaryType: Album purely
+// because they're full-length releases) - pinned into "Other releases"
+// regardless of type so they don't sit alongside her actual studio albums.
+const FORCE_OTHER_RELEASE_TITLES = new Set(['bottoms', 'wuthering heights'].map(titleKey));
+
 // Buckets releases into named rows-and-columns sections - albums, then
 // singles, then whatever's left (EPs, live albums, compilations, ...) -
 // rather than one flat grid in whatever order the API returned them.
@@ -69,8 +118,11 @@ function groupReleases(releases) {
   const singles = [];
   const other = [];
   for (const rg of releases) {
+    const key = titleKey(rg.title);
+    if (HIDDEN_RELEASE_TITLES.has(key)) continue;
     const type = rg.primaryType || '';
-    if (type === 'Album') albums.push(rg);
+    if (FORCE_OTHER_RELEASE_TITLES.has(key)) other.push(rg);
+    else if (type === 'Album') albums.push(rg);
     else if (type === 'Single') singles.push(rg);
     else other.push(rg);
   }
@@ -204,7 +256,7 @@ function typeLabel(rg) {
   return rg.primaryType || 'Release';
 }
 
-function PileCase({ release, index, isActive, onOpen }) {
+function PileCase({ release, index, isActive, large, onOpen }) {
   const initial = fallbackColor(release.id);
   const [color, setColor] = useState(initial.rgb);
   const [colorDeep, setColorDeep] = useState(initial.rgbDeep);
@@ -233,7 +285,7 @@ function PileCase({ release, index, isActive, onOpen }) {
   return (
     <div
       ref={caseRef}
-      className={`pile-case${isActive ? ' pile-case--active' : ''}`}
+      className={`pile-case${large ? ' pile-case--lg' : ''}${isActive ? ' pile-case--active' : ''}`}
       style={{
         '--case-color': color,
         '--case-text': textDark ? '#181410' : '#f4f2ea',
@@ -297,6 +349,12 @@ const HINGE_HINTS = {
   open: 'Click to close over the back',
   back: 'Click to return to the front',
 };
+// Matches .cd-expand__spine/__leaf/__flip's own transition-duration in
+// globals.css - kept in sync here so closeCase (below) knows how long the
+// hinge takes to settle back to "front" before it's safe to start flying
+// the case back to the pile.
+const HINGE_DURATION = 820;
+const MINIMIZE_DURATION = 220;
 
 export default function DiscographyShelf({ releaseGroups }) {
   const releases = (releaseGroups || []).slice(0, 30);
@@ -332,6 +390,12 @@ export default function DiscographyShelf({ releaseGroups }) {
   const [hingeIndex, setHingeIndex] = useState(0);
   const [bio, setBio] = useState({ status: 'idle', data: null });
   const [tracklist, setTracklist] = useState({ status: 'idle', data: null });
+  // The disc itself, spun by dragging it around its own centre (see
+  // handleDiscPointerDown below) - separate from hingeIndex, which only
+  // ever tracks which of the three physical states the case is in.
+  const [discRotation, setDiscRotation] = useState(0);
+  const discRef = useRef(null);
+  const discSpin = useRef({ dragging: false, lastAngle: 0, lastTime: 0, velocity: 0, raf: null });
 
   const hingeState = HINGE_STATES[hingeIndex];
 
@@ -355,6 +419,8 @@ export default function DiscographyShelf({ releaseGroups }) {
     setHingeIndex(0);
     setBio({ status: 'idle', data: null });
     setTracklist({ status: 'idle', data: null });
+    stopDiscSpin();
+    setDiscRotation(0);
     // Double rAF: the first commits the "start" (pre-flip) transform so the
     // browser actually paints it once, the second flips the state so the
     // transition animates from that painted frame to the centred target
@@ -365,14 +431,29 @@ export default function DiscographyShelf({ releaseGroups }) {
     }));
   }
 
+  // Minimising (the FLIP back down into the pile) only ever starts once
+  // the case is showing its front cover - closing from 'open' or 'back'
+  // first plays the hinge back to 'front' (the same transition a manual
+  // click would use) and only *then* flies back, rather than shrinking
+  // away mid-open/turned-around, which read as the case vanishing rather
+  // than being closed and put away.
   function closeCase() {
+    if (hingeIndex !== 0) {
+      setHingeIndex(0);
+      window.setTimeout(minimizeCase, HINGE_DURATION);
+    } else {
+      minimizeCase();
+    }
+  }
+
+  function minimizeCase() {
     setAnimateIn(false);
     setDrag({ x: 0, y: 0, rot: 0 });
     window.setTimeout(() => {
       setOpenRelease(null);
       setFlip(null);
       setTransitionReady(false);
-    }, 420);
+    }, MINIMIZE_DURATION);
   }
 
   function handleRigClick() {
@@ -383,11 +464,81 @@ export default function DiscographyShelf({ releaseGroups }) {
     setHingeIndex((i) => (i + 1) % HINGE_STATES.length);
   }
 
+  function discAngleFromEvent(e) {
+    const el = discRef.current;
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    return Math.atan2(e.clientY - cy, e.clientX - cx);
+  }
+
+  function stopDiscSpin() {
+    if (discSpin.current.raf) {
+      cancelAnimationFrame(discSpin.current.raf);
+      discSpin.current.raf = null;
+    }
+    discSpin.current.dragging = false;
+  }
+
+  function handleDiscPointerDown(e) {
+    // Grabbing the disc is its own gesture, not a nudge of the whole case
+    // (see handlePointerDown below) or a click-through to the rig's own
+    // hinge-cycling onClick.
+    e.stopPropagation();
+    stopDiscSpin();
+    discSpin.current.dragging = true;
+    discSpin.current.lastAngle = discAngleFromEvent(e);
+    discSpin.current.lastTime = performance.now();
+    discSpin.current.velocity = 0;
+    window.addEventListener('pointermove', handleDiscPointerMove);
+    window.addEventListener('pointerup', handleDiscPointerUp);
+  }
+
+  function handleDiscPointerMove(e) {
+    const spin = discSpin.current;
+    if (!spin.dragging) return;
+    const angle = discAngleFromEvent(e);
+    let delta = angle - spin.lastAngle;
+    // Normalize to -PI..PI so crossing the atan2 seam (the angle wrapping
+    // from +PI to -PI as the pointer passes due-left of the disc) doesn't
+    // register as a huge jump in the wrong direction.
+    if (delta > Math.PI) delta -= Math.PI * 2;
+    if (delta < -Math.PI) delta += Math.PI * 2;
+    const now = performance.now();
+    const dt = Math.max(1, now - spin.lastTime);
+    const deltaDeg = (delta * 180) / Math.PI;
+    spin.velocity = deltaDeg / dt;
+    spin.lastAngle = angle;
+    spin.lastTime = now;
+    setDiscRotation((r) => r + deltaDeg);
+  }
+
+  function handleDiscPointerUp() {
+    const spin = discSpin.current;
+    spin.dragging = false;
+    window.removeEventListener('pointermove', handleDiscPointerMove);
+    window.removeEventListener('pointerup', handleDiscPointerUp);
+    // The disc keeps turning after release and eases down to a stop, like
+    // a real disc losing momentum on a spindle, rather than just freezing
+    // wherever the pointer happened to let go.
+    function decay() {
+      spin.velocity *= 0.94;
+      setDiscRotation((r) => r + spin.velocity * 16);
+      if (Math.abs(spin.velocity) > 0.006) {
+        spin.raf = requestAnimationFrame(decay);
+      } else {
+        spin.raf = null;
+      }
+    }
+    if (Math.abs(spin.velocity) > 0.012) spin.raf = requestAnimationFrame(decay);
+  }
+
   useEffect(() => {
     if (!openRelease) return;
     if (hingeState === 'open' && bio.status === 'idle') {
       setBio({ status: 'loading', data: null });
-      fetch(`/api/music/bio?title=${encodeURIComponent(openRelease.title)}`)
+      fetch(`/api/music/bio?title=${encodeURIComponent(openRelease.title)}&type=${encodeURIComponent(openRelease.primaryType || '')}`)
         .then((r) => r.json())
         .then((result) => setBio({ status: result.source === 'live' ? 'ready' : 'error', data: result }))
         .catch(() => setBio({ status: 'error', data: null }));
@@ -447,6 +598,9 @@ export default function DiscographyShelf({ releaseGroups }) {
     () => () => {
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointermove', handleDiscPointerMove);
+      window.removeEventListener('pointerup', handleDiscPointerUp);
+      stopDiscSpin();
     },
     []
   );
@@ -458,12 +612,20 @@ export default function DiscographyShelf({ releaseGroups }) {
   const stageTransform = animateIn ? settledTransform : preFlipTransform;
   // Active only once there's a painted frame to tween from, and switched
   // off entirely during a live drag so the case tracks the pointer
-  // immediately rather than lagging behind a 420ms easing curve - it
-  // should feel grabbed, not chased. The same curve serves both the
-  // open/close FLIP and the post-drag spring-back: a touch of overshoot
-  // reads as "settling into place" for the FLIP and as a little shake
-  // snapping back for the drag release, without needing two curves.
-  const stageTransition = transitionReady && !isDragging ? 'transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none';
+  // immediately rather than lagging behind an easing curve - it should
+  // feel grabbed, not chased. Opening (and the post-drag return-to-rest)
+  // use a plain deceleration curve, not a spring with overshoot - arriving
+  // at the centre of the screen is meant to read as a deliberate, polished
+  // move, not a playful bounce. Closing/minimising - animateIn having gone
+  // back to false while transitionReady is still true - uses a shorter,
+  // accelerating curve instead: a quick zip back into the pile rather than
+  // a mirror of the same slow arrival.
+  const stageTransition =
+    !transitionReady || isDragging
+      ? 'none'
+      : animateIn
+        ? 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1)'
+        : `transform ${MINIMIZE_DURATION}ms cubic-bezier(0.5, 0, 0.75, 0)`;
 
   // Which leaf paints on top whenever both occupy the same slot (front and
   // back - never open, where they don't overlap) is decided with a plain
@@ -583,8 +745,12 @@ export default function DiscographyShelf({ releaseGroups }) {
                     <div className="cd-expand__flip" style={{ transform: trayFlipT }}>
                       <div className="cd-expand__face cd-expand__face--front cd-expand__face--tray">
                         <div className="cd-expand__hub-arch" />
-                        <div className="cd-expand__disc-wrap">
-                          <div className="cd-expand__disc">
+                        <div
+                          className="cd-expand__disc-wrap"
+                          ref={discRef}
+                          onPointerDown={hingeState === 'open' ? handleDiscPointerDown : undefined}
+                        >
+                          <div className="cd-expand__disc" style={{ transform: `rotate(${discRotation}deg)` }}>
                             <div className="cd-expand__disc-ring" />
                             <div className="cd-expand__disc-hub" />
                           </div>
@@ -641,18 +807,23 @@ export default function DiscographyShelf({ releaseGroups }) {
 
   return (
     <div className="cd-pile-wrap">
-      {groups.map((group) => (
-        <div className="cd-pile-group" key={group.label}>
-          <div className="eyebrow cd-pile-group__label">{group.label}</div>
-          <div className="cd-pile">
-            {group.items.map((rg) => {
-              const i = runningIndex;
-              runningIndex += 1;
-              return <PileCase key={rg.id} release={rg} index={i} isActive={openRelease?.id === rg.id} onOpen={openCase} />;
-            })}
+      {groups.map((group) => {
+        const isAlbums = group.label === 'Albums';
+        return (
+          <div className="cd-pile-group" key={group.label}>
+            <div className="eyebrow cd-pile-group__label">{group.label}</div>
+            <div className={`cd-pile${isAlbums ? ' cd-pile--lg' : ''}`}>
+              {group.items.map((rg) => {
+                const i = runningIndex;
+                runningIndex += 1;
+                return (
+                  <PileCase key={rg.id} release={rg} index={i} large={isAlbums} isActive={openRelease?.id === rg.id} onOpen={openCase} />
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
       {overlay}
     </div>
   );
